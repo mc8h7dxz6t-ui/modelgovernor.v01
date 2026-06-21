@@ -4,6 +4,27 @@ modelgovernor.v01 is an institutional-grade AI governance control plane for orga
 
 Its core differentiation is **Adaptive Reservation Sizing**: a policy-bounded capability that reduces unnecessary reserve lock-up while preserving reserve-before-dispatch enforcement, exact settlement, auditability, and conservative fail-safe behavior.
 
+## Market positioning
+
+Enterprise AI governance operates across three layers:
+
+1. **Policy layer** — what is permitted
+2. **Workflow layer** — who approves and what evidence exists
+3. **Execution layer** — what can actually run, spend, settle, and be reconciled
+
+modelgovernor.v01 is purpose-built for **layer 3**.
+
+Most enterprise AI governance platforms focus primarily on policy inventories, approvals, governance workflows, evidence collection, or compliance mapping. Those systems are valuable, but they typically do not sit directly in the runtime execution path where financial control and request-time enforcement must actually occur.
+
+modelgovernor.v01 is designed to complement those platforms by serving as the **runtime enforcement and financial governance control plane** for governed AI execution.
+
+### Category distinctions
+
+- **Enterprise governance system-of-record and workflow platforms** such as Credo AI, OneTrust, ServiceNow, and IBM watsonx.governance focus on inventory, approvals, assessments, and organizational governance workflows.
+- **Fairness and compliance specialists** such as FairNow focus on fairness, transparency, and model-risk evidence workflows.
+- **Policy accelerators and downloadable governance kits** provide templates, operating baselines, and policy packs.
+- **modelgovernor.v01** focuses on deterministic runtime enforcement: reserve-before-dispatch budget control, exact-decimal settlement, bounded request-time policy enforcement, reconciliation, and audit-grade financial lineage.
+
 ## What it does
 
 modelgovernor.v01 combines:
@@ -63,6 +84,18 @@ modelgovernor.v01 is built as a layered control plane:
 - Runtime guardrails for traces, concurrency, and request velocity
 - Deterministic reconciliation for stale reservations
 - Portable deployment across local, VPS, and cloud environments
+
+## Engineering standards
+
+To maintain institutional-grade behavior as throughput grows, the platform is designed around the following constraints:
+
+- **Short, indexed reserve transactions** to keep reservation latency predictable under concurrency
+- **Database-enforced idempotency** so retries cannot double-lock capital
+- **Dedicated volatile guardrail memory** so Redis eviction cannot corrupt runtime enforcement
+- **Provider-aware final settlement** so authoritative usage metadata remains preferred when available
+- **Conservative degraded-mode behavior** so the platform fails safe when dependencies or telemetry are impaired
+
+These constraints ensure the system remains credible not just in architecture diagrams, but in operational reality.
 
 ## Repository layout
 
