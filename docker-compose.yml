@@ -1,0 +1,44 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-modelgovernor}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  sidecar:
+    build:
+      context: ./sidecar
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      SIDECAR_INTERNAL_TOKENS: ${SIDECAR_INTERNAL_TOKENS}
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "8081:8081"
+
+  reconciler:
+    build:
+      context: ./reconciler
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    depends_on:
+      - postgres
+    ports:
+      - "8082:8082"
+
+volumes:
+  postgres_data:
