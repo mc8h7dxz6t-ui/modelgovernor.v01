@@ -11,7 +11,7 @@ on:
           - staging
           - production
       image_tag:
-        description: "Release image tag to promote"
+        description: "Release image tag to promote (e.g. v1.2.3)"
         required: true
         type: string
 
@@ -19,7 +19,7 @@ permissions:
   contents: read
 
 jobs:
-  render-release-manifests:
+  validate-and-render:
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
 
@@ -27,22 +27,75 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate image tag format
+        run: |
+          set -euo pipefail
+          if ! echo "${{ inputs.image_tag }}" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9._-]+)?$'; then
+            echo "::error::image_tag must match v<major>.<minor>.<patch> (got: ${{ inputs.image_tag }})" >&2
+            exit 1
+          fi
+
       - name: Install kustomize
         run: |
-          curl -sSL "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          curl -sSL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.5.0/kustomize_v5.5.0_linux_amd64.tar.gz" \
+            | tar -xz
           sudo mv kustomize /usr/local/bin/kustomize
+          kustomize version
 
-      - name: Render environment manifest for promoted tag
+      - name: Install kubectl
+        run: |
+          curl -sSL "https://dl.k8s.io/release/v1.31.0/bin/linux/amd64/kubectl" -o /tmp/kubectl
+          sudo install -o root -g root -m 0755 /tmp/kubectl /usr/local/bin/kubectl
+          kubectl version --client
+
+      - name: Verify all overlays render cleanly at promoted tag
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          set -euo pipefail
+          for env in staging production; do
+            tmp_dir="$(mktemp -d)"
+            cp -R deploy "$tmp_dir/deploy"
+            cd "$tmp_dir/deploy/overlays/${env}"
+            kustomize edit set image modelgovernor/sidecar=modelgovernor/sidecar:${IMAGE_TAG}
+            kustomize edit set image modelgovernor/reconciler=modelgovernor/reconciler:${IMAGE_TAG}
+            kustomize build . > "$RUNNER_TEMP/rendered-${env}.yaml"
+            cd "$GITHUB_WORKSPACE"
+          done
+
+      - name: Render target environment manifest
         env:
           TARGET_ENV: ${{ inputs.environment }}
           IMAGE_TAG: ${{ inputs.image_tag }}
         run: |
+          set -euo pipefail
           tmp_dir="$(mktemp -d)"
-          cp -R "deploy/overlays/${TARGET_ENV}" "$tmp_dir/overlay"
-          cd "$tmp_dir/overlay"
+          cp -R deploy "$tmp_dir/deploy"
+          cd "$tmp_dir/deploy/overlays/${TARGET_ENV}"
           kustomize edit set image modelgovernor/sidecar=modelgovernor/sidecar:${IMAGE_TAG}
           kustomize edit set image modelgovernor/reconciler=modelgovernor/reconciler:${IMAGE_TAG}
           kustomize build . > "$GITHUB_WORKSPACE/rendered-${TARGET_ENV}.yaml"
+
+      - name: Validate rendered manifest — resource count and dry-run
+        env:
+          TARGET_ENV: ${{ inputs.environment }}
+        run: |
+          set -euo pipefail
+          rendered="rendered-${TARGET_ENV}.yaml"
+
+          if [ ! -s "$rendered" ]; then
+            echo "::error::Rendered manifest is empty" >&2
+            exit 1
+          fi
+
+          resource_count=$(grep -c "^kind:" "$rendered" || true)
+          echo "Resource count: ${resource_count}"
+          if [ "${resource_count}" -lt 5 ]; then
+            echo "::error::Rendered manifest has fewer resources than expected (got ${resource_count}, need >= 5)" >&2
+            exit 1
+          fi
+
+          kubectl apply --dry-run=client -f "$rendered"
 
       - name: Upload rendered manifest
         uses: actions/upload-artifact@v4

@@ -175,7 +175,7 @@ jobs:
           gateway_ready=0
           for i in {1..30}; do
             gateway_code=$(curl -s -o /dev/null -w "%{http_code}" \
-              -H "Authorization: ******" \
+              -H "Authorization: Bearer ${LIVE_GATEWAY_KEY}" \
               "$LIVE_GATEWAY_URL/v1/models" || true)
             if [ "$gateway_code" = "200" ]; then
               gateway_ready=1
