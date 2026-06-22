@@ -10,6 +10,8 @@ A production-grade, ledger-backed AI governance control plane for reliable spend
 - Per-trace atomic cap enforcement
 - Drift enforcement with deterministic wallet lockout
 - Reconciler handling for expiry, stranded holds, and late settlement
+- Internal-auth operational read APIs for wallet/operation/trace/audit state
+- Internal-auth Prometheus-style metrics at `/metrics`
 
 ## Quick local demo (Docker Compose first)
 
@@ -27,6 +29,14 @@ Then inspect:
 ```bash
 make demo-ledger
 make demo-events
+```
+
+Internal operational surfaces (all require `x-internal-token`):
+
+```bash
+curl -H "x-internal-token: $SIDECAR_PRIMARY_TOKEN" http://localhost:8081/internal/wallet/demo-user
+curl -H "x-internal-token: $SIDECAR_PRIMARY_TOKEN" http://localhost:8081/internal/events/recent?limit=20
+curl -H "x-internal-token: $SIDECAR_PRIMARY_TOKEN" http://localhost:8081/metrics
 ```
 
 Shutdown:

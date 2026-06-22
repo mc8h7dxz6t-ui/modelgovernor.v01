@@ -6,10 +6,11 @@ This repository separates lightweight checks from higher-assurance proof runs.
 
 ```bash
 pytest -q tests/integration/test_ledger_hardening.py
+pytest -q tests/integration/test_sidecar_admin_observability.py
 pytest -q tests/load/test_load_harness.py
 ```
 
-Purpose: quick regression checks on logic and deterministic invariants.
+Purpose: quick regression checks on ledger logic, deterministic invariants, and internal-auth observability/admin read surfaces.
 
 ## Tier 2: Postgres-backed proof checks (real DB semantics)
 

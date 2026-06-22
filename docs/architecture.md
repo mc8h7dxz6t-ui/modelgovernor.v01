@@ -8,6 +8,7 @@ The platform separates model routing from governance state management:
 
 - **LiteLLM gateway** normalizes and routes OpenAI-compatible requests across providers.
 - **Policy sidecar** enforces request policy, budget reservation, settlement, and replay protection.
+- **Policy sidecar** also exposes internal-auth operational surfaces for metrics and governance diligence reads.
 - **Postgres** serves as the exact-decimal ledger and audit system of record.
 - **Redis** provides volatile runtime guardrails such as trace depth, concurrency, and rate-limit counters.
 - **Reconciler** claims expired work, expires safe holds, preserves stranded holds, and appends deterministic correction events.
@@ -73,6 +74,19 @@ modelgovernor.v01 is designed around a ledger-backed reserve-before-dispatch con
 - Append-only audit trail for all state transitions
 - Deterministic reconciliation of stale reservations
 - Conservative fallback when adaptive confidence degrades
+
+## Internal operational surfaces
+
+All operational read and metrics routes are internal-auth protected with the same sidecar token gate used by mutation routes.
+
+- `GET /metrics`: Prometheus-style counters/gauges derived from ledger and trace-budget system-of-record state.
+- `GET /internal/wallet/{user_id}`: wallet balance and lock posture.
+- `GET /internal/operation/{idempotency_key}`: logical operation state plus provider dispatch attempts.
+- `GET /internal/operation/by-provider/{provider_request_id}`: provider-driven operation lookup.
+- `GET /internal/trace/{trace_id}`: cap/reserved/settled trace budget state.
+- `GET /internal/events/recent?limit=N`: most recent append-only audit events.
+
+These routes are read-only and intentionally governance-oriented so operators can perform diligence without direct SQL access while preserving Postgres as the single source of truth.
 
 ## Adaptive Reservation Sizing
 
