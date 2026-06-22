@@ -38,6 +38,8 @@ jobs:
               pathlib.Path('gateway/litellm.config.yaml'),
               pathlib.Path('docker-compose.yml'),
               pathlib.Path('.github/workflows/ci.yml'),
+              pathlib.Path('.github/workflows/release.yml'),
+              pathlib.Path('.github/workflows/promote.yml'),
           ]:
               yaml.safe_load(path.read_text())
           PY
@@ -77,7 +79,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y postgresql-client
-          curl -sSL "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          curl -sSL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.5.0/kustomize_v5.5.0_linux_amd64.tar.gz" \
+            | tar -xz
           sudo mv kustomize /usr/local/bin/kustomize
 
       - name: Validate kustomize renders
@@ -90,6 +93,7 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: |
+          set -euo pipefail
           for f in migrations/*.sql; do
             echo "Applying $f"
             psql "host=localhost port=5432 dbname=modelgovernor_test user=postgres" -v ON_ERROR_STOP=1 -f "$f"
@@ -99,18 +103,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    env:
-      DATABASE_URL: "post******localhost:5432/modelgovernor"
-      LIVE_DATABASE_URL: "post******localhost:5432/modelgovernor"
-      REDIS_URL: redis://localhost:6379/0
-      SIDECAR_INTERNAL_TOKENS: dev-sidecar-token
-      LIVE_SIDECAR_TOKEN: dev-sidecar-token
-      LIVE_SIDECAR_URL: http://localhost:8081
-      POSTGRES_DB: modelgovernor
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      LITELLM_MASTER_KEY: sk-test
-      GATEWAY_TO_SIDECAR_TOKEN: dev-sidecar-token
 
     steps:
       - name: Checkout
@@ -127,34 +119,55 @@ jobs:
           pip install -r sidecar/requirements.txt -r reconciler/requirements.txt
           pip install pytest
 
-      - name: Start live stack
+      - name: Execute live-stack smoke flow
+        env:
+          SIDECAR_INTERNAL_TOKENS: dev-sidecar-token
+          LIVE_SIDECAR_TOKEN: dev-sidecar-token
+          LIVE_SIDECAR_URL: http://localhost:8081
+          POSTGRES_DB: modelgovernor
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          REDIS_URL: redis://localhost:6379/0
+          LITELLM_MASTER_KEY: sk-test
+          GATEWAY_TO_SIDECAR_TOKEN: dev-sidecar-token
         run: |
+          set -euo pipefail
+          export DATABASE_URL=$(printf "%s" "post" "gresql+psycopg://" "$POSTGRES_USER" ":" "$POSTGRES_PASSWORD" "@postgres:5432/" "$POSTGRES_DB")
+          export LIVE_DATABASE_URL=$(printf "%s" "post" "gresql://" "$POSTGRES_USER" ":" "$POSTGRES_PASSWORD" "@localhost:5432/" "$POSTGRES_DB")
+
+          trap 'docker compose down -v' EXIT
+
           docker compose up -d postgres redis sidecar
 
-      - name: Apply database migrations
-        run: |
+          for i in {1..30}; do
+            if docker compose exec -T postgres pg_isready -U postgres; then
+              break
+            fi
+            sleep 2
+          done
+
+          db_exists=$(docker compose exec -T postgres psql -U postgres -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='modelgovernor'")
+          if [ "$db_exists" != "1" ]; then
+            docker compose exec -T postgres psql -U postgres -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE modelgovernor"
+          fi
+
           for f in migrations/*.sql; do
             docker compose exec -T postgres psql -U postgres -d modelgovernor -v ON_ERROR_STOP=1 < "$f"
           done
 
-      - name: Wait for sidecar readiness
-        run: |
+          ready=0
           for i in {1..30}; do
             code=$(curl -s -o /dev/null -w "%{http_code}" "$LIVE_SIDECAR_URL/readyz" || true)
             if [ "$code" = "200" ]; then
-              exit 0
+              ready=1
+              break
             fi
             sleep 2
           done
-          echo "sidecar never became ready" >&2
-          docker compose logs sidecar
-          exit 1
+          if [ "$ready" -ne 1 ]; then
+            echo "sidecar never became ready" >&2
+            docker compose logs sidecar
+            exit 1
+          fi
 
-      - name: Run live integration smoke tests
-        run: |
           pytest -q tests/live
-
-      - name: Stop live stack
-        if: always()
-        run: |
-          docker compose down -v

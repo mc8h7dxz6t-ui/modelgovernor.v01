@@ -60,12 +60,24 @@ docker-compose.yml
 
 deploy/
   kustomization.yaml
-  namespace.yaml
-  configmap.yaml
-  sidecar-deployment.yaml
-  sidecar-service.yaml
-  reconciler-deployment.yaml
-  migration-job.yaml
+  base/
+    kustomization.yaml
+    namespace.yaml
+    configmap.yaml
+    sidecar-deployment.yaml
+    sidecar-service.yaml
+    reconciler-deployment.yaml
+    migration-job.yaml
+    sidecar-hpa.yaml
+    sidecar-pdb.yaml
+    ingress-sidecar-internal.yaml
+    networkpolicy-default-deny-ingress.yaml
+    networkpolicy-sidecar-allow-ingress.yaml
+    networkpolicy-sidecar-egress.yaml
+    networkpolicy-reconciler-egress.yaml
+  overlays/
+    staging/
+    production/
 
 docs/
   architecture.md
@@ -114,6 +126,7 @@ reconciler/
 
 tests/
   integration/
+  live/
   fixtures/
 ```
 

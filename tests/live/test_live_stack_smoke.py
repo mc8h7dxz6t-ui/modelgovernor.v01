@@ -11,7 +11,7 @@ import psycopg
 
 SIDECAR_URL = os.environ.get("LIVE_SIDECAR_URL", "http://localhost:8081")
 SIDECAR_TOKEN = os.environ.get("LIVE_SIDECAR_TOKEN", "dev-sidecar-token")
-DATABASE_URL = os.environ.get("LIVE_DATABASE_URL", "post******localhost:5432/modelgovernor")
+DATABASE_URL = os.environ["LIVE_DATABASE_URL"]
 
 
 def _post(path: str, payload: dict[str, object]) -> tuple[int, dict[str, object]]:
