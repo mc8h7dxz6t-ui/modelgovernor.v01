@@ -56,6 +56,12 @@ modelgovernor.v01 is designed around a ledger-backed reserve-before-dispatch con
 2. Rows are claimed using `FOR UPDATE SKIP LOCKED`.
 3. Reconciler refunds balance, marks the row `EXPIRED`, and appends an `EXPIRED_SWEEP` event.
 
+### 5. Provider reconciliation and correction
+1. An internal reconciliation workflow compares settled ledger rows against provider-reported usage.
+2. The sidecar records the provider view as an auditable reconciliation event and marks the ledger row as reviewed.
+3. When a discrepancy exists, an internal admin workflow applies a deterministic wallet correction to align the ledger with the provider-reported amount.
+4. Every correction is preserved as a separate append-only audit event instead of overwriting the historical reconciliation evidence.
+
 ## Core control invariants
 
 - No direct provider egress from application or agent subnets

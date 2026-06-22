@@ -125,3 +125,4 @@ All changes should meet the repository quality bar in `docs/quality-bar.md`.
 ## Status
 
 Repository scaffold in progress on branch `copilot/scaffold-institutional-v1`.
+Phase 3 has started with provider reconciliation capture and admin correction workflows.

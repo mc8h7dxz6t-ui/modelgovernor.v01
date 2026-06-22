@@ -3,6 +3,7 @@ from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from app.config import get_settings
 from app.metrics import registry as metrics_registry
+from app.routes_reconcile import router as reconcile_router
 from app.routes_reserve import router as reserve_router
 from app.routes_settle import router as settle_router
 from app.schemas import HealthResponse
@@ -30,3 +31,4 @@ def metrics() -> Response:
 
 app.include_router(reserve_router)
 app.include_router(settle_router)
+app.include_router(reconcile_router)
