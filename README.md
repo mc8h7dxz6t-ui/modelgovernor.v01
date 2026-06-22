@@ -1,136 +1,109 @@
 # modelgovernor.v01
 
-## Institutional-Grade AI Governance Gateway
+A production-grade, ledger-backed AI governance control plane for reliable spend control, policy enforcement, and auditable reconciliation across multi-provider and agentic workloads.
 
-Reliable, robust, and policy-enforced multi-provider LLM control with auditable ledger-backed accounting and deterministic spend governance.
+## What this repository demonstrates
 
-modelgovernor.v01 is an institutional-grade AI governance gateway for organizations that require strict spend control, enforceable model policy, auditable ledger-backed accounting, and provider-agnostic multi-provider routing.
+- Reserve-before-dispatch governance semantics
+- Append-only ledger event trail for material state transitions
+- Replay-safe reserve/settle lifecycle
+- Per-trace atomic cap enforcement
+- Drift enforcement with deterministic wallet lockout
+- Reconciler handling for expiry, stranded holds, and late settlement
 
-It combines:
-- an OpenAI-compatible gateway layer,
-- a hardened policy enforcement sidecar,
-- a Postgres-backed escrow and audit ledger,
-- Redis-based runtime guardrails,
-- and portable local-to-production deployment.
+## Quick local demo (Docker Compose first)
 
-The system is designed to support serious governance standards for AI infrastructure across laptops, VPS deployments, cloud environments, and enterprise platforms.
+Prerequisites: Docker + Docker Compose plugin, `make`, `curl`.
 
-## Core capabilities
+```bash
+make demo-up
+make demo-smoke
+make demo-drift-lock
+make demo-status
+```
 
-- OpenAI-compatible multi-provider gateway
-- Strict model policy registry
-- Reserve-before-dispatch spend controls
-- Postgres-backed escrow ledger
-- Append-only audit trail
-- Replay-safe idempotency controls
-- Per-trace atomic budget enforcement
-- Provider-attempt tracking and late-settlement recovery
-- Drift anomaly enforcement with wallet lockout
-- Runtime trace and concurrency guardrails
-- Deterministic stale-reservation reconciliation
-- Portable Docker-first deployment
+Then inspect:
 
-## Architecture overview
+```bash
+make demo-ledger
+make demo-events
+```
 
-modelgovernor.v01 is built as a layered control plane:
+Shutdown:
 
-1. **Gateway layer** using LiteLLM for provider normalization and routing.
-2. **Policy sidecar** for reserve, settle, refund workflows and policy enforcement.
-3. **Postgres ledger** as the system of record for balances, reservations, and audit events.
-4. **Redis guardrails** for trace depth, concurrency controls, and short-window rate limits.
-5. **Reconciler worker** for stale reservation cleanup, stranded-hold transitions, and append-only operational repair.
+```bash
+make demo-down
+```
 
-## Institutional-grade design principles
+See `docs/demo.md` for full walkthrough and troubleshooting.
 
-- Provider-agnostic routing through a centralized gateway
-- Strict model allowlists and policy registry enforcement
-- Reserve-before-dispatch cost controls
-- Exact-decimal ledger accounting in PostgreSQL
-- Append-only audit event history
-- Idempotent settlement and replay protection
-- Trace-cap enforcement on an authoritative trace state row
-- Separate logical-operation identity from provider dispatch attempts
-- Runtime guardrails for traces, concurrency, and request velocity
-- Deterministic reconciliation for stale reservations
-- Portable deployment across local, VPS, and cloud environments
+## Proof / reliability validation
 
-## Operational note
+### Lightweight local checks
 
-Scaled deployments should use intentionally small application-side SQLAlchemy pools and a database proxy such as PgBouncer or RDS Proxy in front of Postgres. The sidecar and reconciler expose environment-driven pool settings, but the design assumes transaction-level pooling for horizontally scaled fleets.
+```bash
+pytest -q tests/integration/test_ledger_hardening.py
+pytest -q tests/load/test_load_harness.py
+```
+
+### Postgres-backed proof checks (real migrations)
+
+```bash
+export POSTGRES_TEST_URL=<postgres-test-url>
+pytest -q tests/integration/test_postgres_reliability.py
+```
+
+### Generate machine-readable invariant report
+
+```bash
+python scripts/generate_invariant_report.py --operations 120 --workers 12
+```
+
+Output: `artifacts/reliability/latest_invariant_report.json`
+
+See `docs/reliability-testing.md` for scope, scenarios, and interpretation notes.
+
+## Command surface
+
+```bash
+make demo-up
+make demo-down
+make demo-reset
+make demo-smoke
+make demo-drift-lock
+make demo-status
+make demo-ledger
+make demo-events
+make proof-test
+make load-test
+```
+
+## Diligence-oriented docs
+
+- `LICENSE` (license posture)
+- `docs/dependency-licenses.md` (dependency/license visibility)
+- `docs/transferability.md` (portability and operational cleanliness)
+- `docs/reliability-testing.md` (proof tiers and invariant artifacts)
 
 ## Repository layout
 
 ```text
 README.md
+LICENSE
+Makefile
 .env.example
 docker-compose.yml
 
+artifacts/reliability/
 docs/
-  architecture.md
-  build-plan.md
-  quality-bar.md
-
 gateway/
-  litellm.config.yaml
-  README.md
-
 migrations/
-  0001_init.sql
-  0002_seed_model_policy.sql
-
-sidecar/
-  Dockerfile
-  requirements.txt
-  app/
-    main.py
-    config.py
-    schemas.py
-    auth.py
-    db.py
-    policy.py
-    routes_reserve.py
-    routes_settle.py
-
 reconciler/
-  Dockerfile
-  requirements.txt
-  app/
-    main.py
-    db.py
-    sweeper.py
-
+scripts/
+sidecar/
 tests/
-  integration/
-  fixtures/
 ```
 
-## Development roadmap
+## Precision note
 
-### Phase 1
-- Monorepo scaffold
-- Docker Compose local stack
-- Postgres schema and seed policies
-- Sidecar reserve and settle APIs
-- Reconciler daemon
-- LiteLLM gateway configuration
-
-### Phase 2
-- Metrics and alerts
-- Per-trace spend caps
-- Provider request ID capture
-- Hardened degraded-mode policies
-- Admin workflows and operational tooling
-
-### Phase 3
-- Provider reconciliation workflows
-- Enterprise deployment automation
-- Advanced reporting and anomaly detection
-- Multi-region operational strategies
-
-## Quality standard
-
-All changes should meet the repository quality bar in `docs/quality-bar.md`.
-
-## Status
-
-Repository scaffold in progress on branch `copilot/scaffold-institutional-v1`.
+Load-harness outputs in this repository are correctness/invariant artifacts. They are intentionally not presented as universal throughput or latency claims.

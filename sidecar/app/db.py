@@ -14,6 +14,9 @@ _SESSION_FACTORY = sessionmaker(autoflush=False, autocommit=False, future=True)
 
 
 def build_engine(database_url: str) -> Engine:
+    if database_url.startswith("postgresql://"):
+        database_url = database_url.replace("postgresql://", "postgresql+psycopg://", 1)
+
     settings = get_settings()
     engine_kwargs = {
         "future": True,

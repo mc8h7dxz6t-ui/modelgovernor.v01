@@ -1,0 +1,22 @@
+{
+  "harness": {
+    "operations": 20,
+    "reserved_amount": "1.000000",
+    "settled_amount": "0.800000",
+    "workers": 4
+  },
+  "invariants": {
+    "all_operations_ok": true,
+    "all_rows_settled": true,
+    "event_counts_match": true,
+    "wallet_matches_settled_cost": true
+  },
+  "results": {
+    "expected_wallet_balance": "984.000000",
+    "operation_statuses_ok": 20,
+    "reserve_events": 20,
+    "settled_events": 20,
+    "settled_rows": 20,
+    "wallet_balance": "984.000000"
+  }
+}
