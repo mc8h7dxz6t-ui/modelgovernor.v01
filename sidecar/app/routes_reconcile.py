@@ -14,6 +14,8 @@ from app.policy import (
     validate_provider_reconciliation_request,
 )
 from app.schemas import (
+    ModelPolicyEntry,
+    ModelPolicyRegistryResponse,
     ProviderAdjustmentRequest,
     ProviderAdjustmentResponse,
     ProviderReconciliationRequest,
@@ -539,4 +541,64 @@ def reconciliation_summary() -> ReconciliationSummaryResponse:
         resolved_count=counts_row[2] if counts_row else 0,
         total_unresolved_discrepancy=quantize_money(Decimal(str(counts_row[3]))) if counts_row else Decimal("0"),
         anomalies=anomalies,
+    )
+
+
+@router.get(
+    "/admin/models",
+    response_model=ModelPolicyRegistryResponse,
+    dependencies=[Depends(require_internal_auth)],
+)
+def list_model_policy() -> ModelPolicyRegistryResponse:
+    try:
+        with get_db_session() as session:
+            rows = session.execute(
+                text(
+                    """
+                    SELECT model_name, provider, governance_tier, enabled,
+                           max_input_tokens, max_output_tokens, max_cost_per_request,
+                           max_cost_per_trace, stream_allowed, fallback_price_per_token
+                    FROM model_policy_registry
+                    ORDER BY
+                        CASE governance_tier
+                            WHEN 'FRONTIER' THEN 1
+                            WHEN 'STANDARD' THEN 2
+                            WHEN 'BUDGET'   THEN 3
+                            ELSE 4
+                        END,
+                        provider,
+                        model_name
+                    """
+                )
+            ).mappings().all()
+
+    except (OperationalError, DatabaseError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="governance service temporarily unavailable",
+        ) from exc
+
+    models = [
+        ModelPolicyEntry(
+            model_name=row["model_name"],
+            provider=row["provider"],
+            governance_tier=row["governance_tier"],
+            enabled=row["enabled"],
+            max_input_tokens=row["max_input_tokens"],
+            max_output_tokens=row["max_output_tokens"],
+            max_cost_per_request=quantize_money(Decimal(str(row["max_cost_per_request"]))),
+            max_cost_per_trace=quantize_money(Decimal(str(row["max_cost_per_trace"]))),
+            stream_allowed=row["stream_allowed"],
+            fallback_price_per_token=quantize_money(Decimal(str(row["fallback_price_per_token"]))),
+        )
+        for row in rows
+    ]
+
+    return ModelPolicyRegistryResponse(
+        models=models,
+        total_count=len(models),
+        enabled_count=sum(1 for m in models if m.enabled),
+        budget_count=sum(1 for m in models if m.governance_tier == "BUDGET"),
+        standard_count=sum(1 for m in models if m.governance_tier == "STANDARD"),
+        frontier_count=sum(1 for m in models if m.governance_tier == "FRONTIER"),
     )

@@ -84,6 +84,7 @@ migrations/
   0004_phase2_hardening.sql
   0005_phase3_reconciliation.sql
   0006_expand_model_policy.sql
+  0007_governance_tiers.sql
 
 sidecar/
   Dockerfile
@@ -145,3 +146,5 @@ All changes should meet the repository quality bar in `docs/quality-bar.md`.
 Phase 3 complete. Provider reconciliation workflows, admin correction workflows, reporting endpoints, Kubernetes deployment artifacts, and HA documentation are in place.
 
 Model policy registry covers all industry-leading providers: OpenAI, Anthropic, Google, Meta (via Groq), Mistral AI, Cohere, DeepSeek, and xAI. Each model carries explicit governance parameters — token caps, cost ceilings, stream permissions, and fallback pricing — applied uniformly across providers.
+
+Governance tier classification (BUDGET / STANDARD / FRONTIER) is enforced at the schema level with per-tier `max_cost_per_trace` ceilings (25 / 50 / 150) and a CHECK constraint. Reasoning models enforce `stream_allowed = FALSE` for deterministic audit coverage. The full governed registry is inspectable at `GET /admin/models`.

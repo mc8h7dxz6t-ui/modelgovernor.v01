@@ -67,6 +67,28 @@ class ProviderAdjustmentResponse(BaseModel):
     wallet_delta: Decimal
 
 
+class ModelPolicyEntry(BaseModel):
+    model_name: str
+    provider: str
+    governance_tier: str
+    enabled: bool
+    max_input_tokens: int
+    max_output_tokens: int
+    max_cost_per_request: Decimal
+    max_cost_per_trace: Decimal
+    stream_allowed: bool
+    fallback_price_per_token: Decimal
+
+
+class ModelPolicyRegistryResponse(BaseModel):
+    models: list[ModelPolicyEntry]
+    total_count: int
+    enabled_count: int
+    budget_count: int
+    standard_count: int
+    frontier_count: int
+
+
 class ReconciliationAnomalySummary(BaseModel):
     reconciliation_key: str
     idempotency_key: str
