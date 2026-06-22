@@ -40,6 +40,8 @@ All financial or usage-accounting logic must be institutional-grade.
 - Append-only style event capture for all material transitions
 - Deterministic reconciliation behavior
 - Clear terminal reasons for failures or expiry
+- Drift above tolerance must trigger explicit enforcement, not passive metadata only
+- Per-trace caps must be enforced by an authoritative atomic control, not unsynchronized scans
 
 ### Must never happen
 - Floating-point billing math
@@ -71,6 +73,7 @@ Every change must improve or preserve operational robustness.
 - Explicit degraded-mode behavior where needed
 - No hidden dependency on manual intervention for normal operation
 - Clear recovery path for partial failure
+- Database connection pools sized for horizontal scaling and paired with a transaction-pooling proxy in production
 
 ## Security and governance quality bar
 
