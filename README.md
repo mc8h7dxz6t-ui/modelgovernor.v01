@@ -23,6 +23,9 @@ The system is designed to support serious governance standards for AI infrastruc
 - Postgres-backed escrow ledger
 - Append-only audit trail
 - Replay-safe idempotency controls
+- Per-trace atomic budget enforcement
+- Provider-attempt tracking and late-settlement recovery
+- Drift anomaly enforcement with wallet lockout
 - Runtime trace and concurrency guardrails
 - Deterministic stale-reservation reconciliation
 - Portable Docker-first deployment
@@ -35,7 +38,7 @@ modelgovernor.v01 is built as a layered control plane:
 2. **Policy sidecar** for reserve, settle, refund workflows and policy enforcement.
 3. **Postgres ledger** as the system of record for balances, reservations, and audit events.
 4. **Redis guardrails** for trace depth, concurrency controls, and short-window rate limits.
-5. **Reconciler worker** for stale reservation cleanup and operational repair.
+5. **Reconciler worker** for stale reservation cleanup, stranded-hold transitions, and append-only operational repair.
 
 ## Institutional-grade design principles
 
@@ -45,9 +48,15 @@ modelgovernor.v01 is built as a layered control plane:
 - Exact-decimal ledger accounting in PostgreSQL
 - Append-only audit event history
 - Idempotent settlement and replay protection
+- Trace-cap enforcement on an authoritative trace state row
+- Separate logical-operation identity from provider dispatch attempts
 - Runtime guardrails for traces, concurrency, and request velocity
 - Deterministic reconciliation for stale reservations
 - Portable deployment across local, VPS, and cloud environments
+
+## Operational note
+
+Scaled deployments should use intentionally small application-side SQLAlchemy pools and a database proxy such as PgBouncer or RDS Proxy in front of Postgres. The sidecar and reconciler expose environment-driven pool settings, but the design assumes transaction-level pooling for horizontally scaled fleets.
 
 ## Repository layout
 

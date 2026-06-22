@@ -1,5 +1,5 @@
-from app.db import get_db_session
-from app.sweeper import sweep_expired_reservations
+from .db import get_db_session
+from .sweeper import sweep_expired_reservations
 
 
 def main() -> None:

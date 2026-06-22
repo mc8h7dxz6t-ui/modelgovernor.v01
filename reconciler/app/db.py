@@ -1,18 +1,59 @@
-import os
+from __future__ import annotations
+
 from contextlib import contextmanager
+from typing import Iterator
 
 from sqlalchemy import create_engine
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
-DATABASE_URL = os.environ["DATABASE_URL"]
-engine = create_engine(DATABASE_URL, future=True, pool_pre_ping=True)
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
+from .config import get_settings
+
+_ENGINE: Engine | None = None
+_SESSION_FACTORY = sessionmaker(autoflush=False, autocommit=False, future=True)
+
+
+def build_engine(database_url: str) -> Engine:
+    settings = get_settings()
+    engine_kwargs = {
+        "future": True,
+        "pool_pre_ping": True,
+    }
+
+    if database_url.startswith("sqlite"):
+        engine_kwargs["connect_args"] = {"check_same_thread": False}
+    else:
+        engine_kwargs.update(
+            {
+                "pool_size": settings.db_pool_size,
+                "max_overflow": settings.db_max_overflow,
+                "pool_timeout": settings.db_pool_timeout_seconds,
+                "pool_recycle": settings.db_pool_recycle_seconds,
+            }
+        )
+
+    return create_engine(database_url, **engine_kwargs)
+
+
+def get_engine() -> Engine:
+    global _ENGINE
+    if _ENGINE is None:
+        _ENGINE = build_engine(get_settings().database_url)
+    return _ENGINE
+
+
+def override_engine(engine: Engine) -> None:
+    global _ENGINE
+    _ENGINE = engine
 
 
 @contextmanager
-def get_db_session() -> Session:
-    session = SessionLocal()
+def get_db_session() -> Iterator[Session]:
+    session = _SESSION_FACTORY(bind=get_engine())
     try:
         yield session
+    except Exception:
+        session.rollback()
+        raise
     finally:
         session.close()

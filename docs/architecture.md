@@ -10,7 +10,7 @@ The platform separates model routing from governance state management:
 - **Policy sidecar** enforces request policy, budget reservation, settlement, and replay protection.
 - **Postgres** serves as the exact-decimal ledger and audit system of record.
 - **Redis** provides volatile runtime guardrails such as trace depth, concurrency, and rate-limit counters.
-- **Reconciler** expires stale reservations and restores balances deterministically.
+- **Reconciler** claims expired work, expires safe holds, preserves stranded holds, and appends deterministic correction events.
 
 ## Primary differentiation
 
@@ -34,27 +34,32 @@ modelgovernor.v01 is designed around a ledger-backed reserve-before-dispatch con
 5. Sidecar selects conservative or adaptive reservation mode.
 6. Sidecar estimates reserve requirement.
 7. Sidecar opens a Postgres transaction.
-8. Sidecar enforces idempotency using the request fingerprint and idempotency key.
-9. Sidecar locks the wallet row, debits available balance, inserts a `RESERVED` ledger row, and appends a `RESERVE_CREATED` audit event.
+8. Sidecar enforces logical-operation idempotency using the request fingerprint and idempotency key.
+9. Sidecar updates the authoritative `trace_budget_state` row atomically so concurrent reservations cannot oversubscribe a trace cap.
+10. Sidecar debits the wallet, inserts a `RESERVED` ledger row, and appends a `RESERVE_CREATED` audit event in the same transaction.
 10. Gateway dispatches upstream only after reservation commit succeeds.
 
 ### 2. In-flight execution
 1. Gateway proxies the provider request.
-2. Streaming or long-running calls may be monitored using provider-aware output growth estimation.
-3. If policy permits and projected usage threatens to exhaust reserve headroom, the sidecar may attempt a bounded uplift transaction.
-4. If uplift is denied, the gateway terminates upstream execution and records a governed termination event.
+2. Gateway records a provider dispatch attempt using a distinct `dispatch_attempt_key` and optional `provider_request_id`.
+3. The logical operation transitions from `RESERVED` to `IN_FLIGHT`; timed-out or disconnected calls move to `PROVIDER_TIMEOUT`, not a false failure state.
+4. Multiple provider attempts may exist beneath one logical operation when legitimate failover occurs.
 
 ### 3. Settlement
 1. Gateway or callback path invokes sidecar settlement.
-2. Sidecar loads the ledger row by idempotency key.
+2. Sidecar resolves the logical operation by idempotency key or provider request id.
 3. Sidecar locks the ledger row and verifies eligibility.
 4. Sidecar computes final cost using authoritative provider usage when available.
-5. Sidecar credits unused balance, marks the row `SETTLED`, and appends `SETTLED_FINAL` and drift events.
+5. Sidecar credits unused reserve or appends correction debits when authoritative spend exceeds the reserved amount.
+6. Material positive drift appends deterministic anomaly events and locks the wallet pending review.
+7. Late authoritative settlement after `STRANDED` or `EXPIRED` state is recorded as `RECONCILED_LATE_SETTLE`, preserving audit meaning instead of overwriting history.
 
 ### 4. Expiry and repair
-1. Reconciler scans for expired `RESERVED` rows in micro-batches.
+1. Reconciler scans expiring rows in micro-batches and claims them with `FOR UPDATE SKIP LOCKED` on PostgreSQL.
 2. Rows are claimed using `FOR UPDATE SKIP LOCKED`.
-3. Reconciler refunds balance, marks the row `EXPIRED`, and appends an `EXPIRED_SWEEP` event.
+3. Never-dispatched `RESERVED` rows are refunded, transitioned to `EXPIRED`, and recorded with `EXPIRED_SWEEP`.
+4. Expired `IN_FLIGHT` or `PROVIDER_TIMEOUT` rows become `STRANDED` so ambiguous provider outcomes retain their hold until an authoritative late settle or explicit correction arrives.
+5. Reconciler never rewrites financial history; it only appends reason-coded events and applies deterministic balance corrections.
 
 ## Core control invariants
 
@@ -95,6 +100,7 @@ See `docs/adaptive-reservation.md` for the full specification.
 ### Production baseline
 - Container orchestration platform
 - Managed or HA Postgres
+- PgBouncer, RDS Proxy, or equivalent transaction-pooling proxy in front of Postgres
 - Redis for runtime counters only
 - Private networking between gateway and sidecar
 - Secrets managed externally

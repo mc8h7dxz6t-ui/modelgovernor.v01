@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 
-from app.routes_reserve import router as reserve_router
-from app.routes_settle import router as settle_router
-from app.schemas import HealthResponse
+from .routes_reserve import router as reserve_router
+from .routes_settle import router as settle_router
+from .schemas import HealthResponse
 
 app = FastAPI(title="modelgovernor sidecar", version="0.1.0")
 
