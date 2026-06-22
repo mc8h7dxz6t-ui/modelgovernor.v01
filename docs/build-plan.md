@@ -52,6 +52,23 @@ Deliver a portable, institutional-grade AI governance gateway that can be reprod
 - Provider-side discrepancies can be surfaced and resolved deterministically
 - Deployment artifacts support repeatable installation across environments
 
+## Phase 4: platform operations maturity
+
+### Deliverables
+- Kubernetes hardening manifests (HPA, PDB, ingress, network policies)
+- Staging and production kustomize overlays
+- Release image publication workflow
+- Promotion workflow with environment gating
+- Live-stack smoke tests using real Postgres and Redis
+- Alert rules, dashboard baseline, and operations runbook
+
+### Success criteria
+- Base and overlay manifests render cleanly in CI
+- Release tags produce versioned, published container images
+- Promotion workflow renders environment manifests with explicit image tags
+- Live-stack tests validate reserve/settle behavior against real infrastructure dependencies
+- Alert and runbook assets cover reserve failures, settle anomalies, and reconciliation drift
+
 ## Build order
 
 1. Repository documentation
@@ -61,6 +78,7 @@ Deliver a portable, institutional-grade AI governance gateway that can be reprod
 5. Reconciler worker skeleton
 6. Gateway configuration
 7. Integration test scaffolding
+8. Platform operations maturity hardening
 
 ## Non-goals for initial scaffold
 

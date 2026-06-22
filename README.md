@@ -72,6 +72,9 @@ docs/
   build-plan.md
   quality-bar.md
   adaptive-reservation.md
+  operations/runbook.md
+  observability/prometheus-rules.yaml
+  observability/grafana-dashboard-modelgovernor.json
 
 gateway/
   litellm.config.yaml
@@ -137,6 +140,13 @@ tests/
 - Kubernetes deployment manifests with kustomize support
 - HA and multi-region deployment strategy documentation
 
+### Phase 4 (Platform Operations Maturity)
+- Environment overlays for staging and production
+- Kubernetes hardening objects (HPA, PDB, ingress, and network policies)
+- Release and promotion workflows for image publication and gated rollout
+- Live-stack smoke tests with real Postgres and Redis
+- Observability assets (Prometheus alert rules, dashboard baseline, and runbook)
+
 ## Quality standard
 
 All changes should meet the repository quality bar in `docs/quality-bar.md`.
@@ -144,6 +154,8 @@ All changes should meet the repository quality bar in `docs/quality-bar.md`.
 ## Status
 
 Phase 3 complete. Provider reconciliation workflows, admin correction workflows, reporting endpoints, Kubernetes deployment artifacts, and HA documentation are in place.
+
+Phase 4 platform-operations maturity baseline is now in progress with Kubernetes hardening objects, overlays, release/promotion workflows, live-stack smoke tests, and operational observability assets included in-repo.
 
 Model policy registry covers all industry-leading providers: OpenAI, Anthropic, Google, Meta (via Groq), Mistral AI, Cohere, DeepSeek, and xAI. Each model carries explicit governance parameters — token caps, cost ceilings, stream permissions, and fallback pricing — applied uniformly across providers.
 

@@ -155,6 +155,12 @@ Multi-region deployment is an optional operational posture. The platform is desi
 
 Deploy an independent modelgovernor stack per region. Each region operates its own Postgres primary, reconciler, and sidecar fleet. Cross-region balance synchronization is not supported natively and is deferred to a higher-layer infrastructure concern.
 
+### Operating model declaration
+
+The production operating model for this repository is **multi-region independent stacks**. Each region is a complete governance boundary with local wallet balances, local ledger state, and local reconciliation workflows.
+
+Cross-region wallet coherence is intentionally out of scope for this phase. Any global balance or quota posture must be handled by an external aggregation and orchestration layer that does not bypass reserve-before-dispatch controls in each region.
+
 ### Read replica offloading
 
 Reporting and audit queries can be directed to a read replica without affecting the financial control path. The summary reporting endpoint (`GET /admin/reconciliation-summary`) is suitable for execution against a replica. Reserve, settle, and reconciliation write paths must target the Postgres primary.
@@ -170,3 +176,12 @@ Reporting and audit queries can be directed to a read replica without affecting 
 - Recovery point objective (RPO) is bounded by Postgres replication lag and PITR granularity.
 - Recovery time objective (RTO) depends on failover automation and sidecar health-check convergence.
 - Reconciler idempotency ensures that re-running sweeps after a failover does not corrupt balance state.
+
+## HA and DR operating drills
+
+A production deployment should operationalize the following recurring drills:
+
+- **Quarterly failover drill:** force controlled Postgres primary failover and validate sidecar readiness recovery and reconciler continuity.
+- **Monthly restore drill:** restore from backup/PITR into isolated environment and validate ledger/event integrity against sampled reconciliation keys.
+- **Release rollback drill:** deploy a candidate image, roll back to previous signed tag, and validate reserve/settle correctness and reconciliation summary stability.
+- **Regional isolation drill:** withdraw one region from traffic and verify nearest-region routing policy and incident runbook execution.

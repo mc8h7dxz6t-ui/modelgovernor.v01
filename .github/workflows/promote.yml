@@ -1,0 +1,51 @@
+name: promote
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment overlay"
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      image_tag:
+        description: "Release image tag to promote"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  render-release-manifests:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install kustomize
+        run: |
+          curl -sSL "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          sudo mv kustomize /usr/local/bin/kustomize
+
+      - name: Render environment manifest for promoted tag
+        env:
+          TARGET_ENV: ${{ inputs.environment }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          tmp_dir="$(mktemp -d)"
+          cp -R "deploy/overlays/${TARGET_ENV}" "$tmp_dir/overlay"
+          cd "$tmp_dir/overlay"
+          kustomize edit set image modelgovernor/sidecar=modelgovernor/sidecar:${IMAGE_TAG}
+          kustomize edit set image modelgovernor/reconciler=modelgovernor/reconciler:${IMAGE_TAG}
+          kustomize build . > "$GITHUB_WORKSPACE/rendered-${TARGET_ENV}.yaml"
+
+      - name: Upload rendered manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: rendered-${{ inputs.environment }}-${{ inputs.image_tag }}
+          path: rendered-${{ inputs.environment }}.yaml
