@@ -11,3 +11,15 @@ model_list:
 
 general_settings:
   master_key: os.environ/LITELLM_MASTER_KEY
+
+# Internal auth boundary
+# ----------------------
+# Before dispatching any governed request, the gateway must call the policy
+# sidecar /reserve endpoint and pass the X-Internal-Token header using the
+# value from GATEWAY_TO_SIDECAR_TOKEN.  After the provider returns, the
+# gateway must call /settle with the same header and the provider_request_id
+# captured from the response.  Requests where reserve fails must not be
+# dispatched upstream.
+#
+# Example header for sidecar calls:
+#   X-Internal-Token: <value of GATEWAY_TO_SIDECAR_TOKEN>

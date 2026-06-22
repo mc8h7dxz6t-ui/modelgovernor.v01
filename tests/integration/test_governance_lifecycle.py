@@ -57,7 +57,7 @@ class FakeSidecarSession:
             "demo-user": {"user_id": "demo-user", "balance": Decimal("100.000000"), "active": True}
         }
         self.policies: dict[str, dict[str, Any]] = {
-            "gpt-4o-mini": {"enabled": True, "max_cost_per_request": Decimal("5.000000")}
+            "gpt-4o-mini": {"enabled": True, "max_cost_per_request": Decimal("5.000000"), "max_cost_per_trace": None}
         }
         self.ledger: dict[str, dict[str, Any]] = {}
         self.ledger_events: list[dict[str, Any]] = []
@@ -80,6 +80,19 @@ class FakeSidecarSession:
         if "from model_policy_registry" in q:
             row = self.policies.get(params["model_name"])
             return QueryResult([row] if row else [])
+
+        if "coalesce(sum(" in q and "from escrow_ledger" in q and "trace_id" in q:
+            # Per-trace spend cap aggregation query
+            user_id = params["user_id"]
+            trace_id = params["trace_id"]
+            trace_spend = Decimal("0.000000")
+            for row in self.ledger.values():
+                if row["user_id"] == user_id and row["trace_id"] == trace_id and row["status"] in ("RESERVED", "SETTLED"):
+                    if row["status"] == "RESERVED":
+                        trace_spend += row["reserved_amount"]
+                    else:
+                        trace_spend += row["actual_amount"]
+            return QueryResult([{"trace_spend": trace_spend}])
 
         if "from user_wallets" in q and "for update" in q:
             row = self.wallets.get(params["user_id"])
