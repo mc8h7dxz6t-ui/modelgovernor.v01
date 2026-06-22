@@ -56,6 +56,12 @@ modelgovernor.v01 is designed around a ledger-backed reserve-before-dispatch con
 2. Rows are claimed using `FOR UPDATE SKIP LOCKED`.
 3. Reconciler refunds balance, marks the row `EXPIRED`, and appends an `EXPIRED_SWEEP` event.
 
+### 5. Provider reconciliation and correction
+1. An internal reconciliation workflow compares settled ledger rows against provider-reported usage.
+2. The sidecar records the provider view as an auditable reconciliation event and marks the ledger row as reviewed.
+3. When a discrepancy exists, an internal admin workflow applies a deterministic wallet correction to align the ledger with the provider-reported amount.
+4. Every correction is preserved as a separate append-only audit event instead of overwriting the historical reconciliation evidence.
+
 ## Core control invariants
 
 - No direct provider egress from application or agent subnets
@@ -116,3 +122,66 @@ Portability is achieved by keeping the core stack limited to:
 - PostgreSQL
 - Redis
 - Docker-first packaging
+
+## High availability design
+
+### Sidecar
+
+The sidecar is stateless between requests. All reservation, settlement, and reconciliation state resides in Postgres. Running multiple sidecar replicas behind a load balancer is safe and requires no additional coordination. Readiness is declared via `/readyz` only after a successful database connectivity check.
+
+### Reconciler
+
+The reconciler must run as a single replica per deployment. Its expiry sweep uses `FOR UPDATE SKIP LOCKED` so concurrent instances would not produce incorrect state, but would duplicate sweep work and add unnecessary lock contention. Scale reconciler throughput by increasing batch size and reducing sweep interval, not by increasing replica count.
+
+### Postgres
+
+Production deployments should use a managed or self-managed HA Postgres cluster with synchronous streaming replication and automated failover. The platform relies on Postgres transaction semantics for all financial guarantees. A replication lag that promotes an out-of-date standby during failover creates a window of inconsistency. Use a replication mode that prevents promotion of standbys that are materially behind the primary.
+
+Recommended configuration:
+- Synchronous replication to at least one standby
+- Automated failover via Patroni, pg_auto_failover, or managed provider equivalent
+- Point-in-time recovery (PITR) retention of at least 7 days
+- Connection pooling via PgBouncer in transaction mode in front of the primary
+
+### Redis
+
+Redis provides volatile runtime guardrails only. No financial state resides in Redis. Redis Sentinel or Redis Cluster provides HA sufficient for this use case. A Redis failure degrades rate-limit and concurrency enforcement but must not block governance-critical paths. The sidecar degrades gracefully when Redis is unavailable and falls back to policy-only enforcement.
+
+## Multi-region strategy
+
+Multi-region deployment is an optional operational posture. The platform is designed for single-region deployment by default, with multi-region treated as an infrastructure layer concern.
+
+### Recommended approach
+
+Deploy an independent modelgovernor stack per region. Each region operates its own Postgres primary, reconciler, and sidecar fleet. Cross-region balance synchronization is not supported natively and is deferred to a higher-layer infrastructure concern.
+
+### Operating model declaration
+
+The production operating model for this repository is **multi-region independent stacks**. Each region is a complete governance boundary with local wallet balances, local ledger state, and local reconciliation workflows.
+
+Cross-region wallet coherence is intentionally out of scope for this phase. Any global balance or quota posture must be handled by an external aggregation and orchestration layer that does not bypass reserve-before-dispatch controls in each region.
+
+### Read replica offloading
+
+Reporting and audit queries can be directed to a read replica without affecting the financial control path. The summary reporting endpoint (`GET /admin/reconciliation-summary`) is suitable for execution against a replica. Reserve, settle, and reconciliation write paths must target the Postgres primary.
+
+### Latency and routing considerations
+
+- Route governed inference requests to the nearest regional gateway to minimize reserve-settle round-trip latency.
+- Wallet balances and escrow ledger state are per-region. Cross-region wallet aggregation requires an explicit aggregation layer not included in this release.
+- Provider reconciliation workflows operate against settled rows in the local regional ledger.
+
+### Disaster recovery
+
+- Recovery point objective (RPO) is bounded by Postgres replication lag and PITR granularity.
+- Recovery time objective (RTO) depends on failover automation and sidecar health-check convergence.
+- Reconciler idempotency ensures that re-running sweeps after a failover does not corrupt balance state.
+
+## HA and DR operating drills
+
+A production deployment should operationalize the following recurring drills:
+
+- **Quarterly failover drill:** force controlled Postgres primary failover and validate sidecar readiness recovery and reconciler continuity.
+- **Monthly restore drill:** restore from backup/PITR into isolated environment and validate ledger/event integrity against sampled reconciliation keys.
+- **Release rollback drill:** deploy a candidate image, roll back to previous signed tag, and validate reserve/settle correctness and reconciliation summary stability.
+- **Regional isolation drill:** withdraw one region from traffic and verify nearest-region routing policy and incident runbook execution.

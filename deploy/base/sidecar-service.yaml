@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sidecar
+  namespace: modelgovernor
+  labels:
+    app: sidecar
+    component: governance
+spec:
+  selector:
+    app: sidecar
+  ports:
+    - name: http
+      port: 8081
+      targetPort: http
+      protocol: TCP
+  type: ClusterIP

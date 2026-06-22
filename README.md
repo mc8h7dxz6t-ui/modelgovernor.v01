@@ -18,14 +18,16 @@ The system is designed to support serious governance standards for AI infrastruc
 ## Core capabilities
 
 - OpenAI-compatible multi-provider gateway
-- Strict model policy registry
+- Strict model policy registry covering all industry-leading providers
 - Reserve-before-dispatch spend controls
 - Postgres-backed escrow ledger
 - Append-only audit trail
 - Replay-safe idempotency controls
 - Runtime trace and concurrency guardrails
 - Deterministic stale-reservation reconciliation
-- Portable Docker-first deployment
+- Provider reconciliation and admin correction workflows
+- Reconciliation anomaly reporting
+- Portable Docker-first and Kubernetes deployment
 
 ## Architecture overview
 
@@ -56,10 +58,35 @@ README.md
 .env.example
 docker-compose.yml
 
+deploy/
+  kustomization.yaml
+  base/
+    kustomization.yaml
+    namespace.yaml
+    configmap.yaml
+    sidecar-deployment.yaml
+    sidecar-service.yaml
+    reconciler-deployment.yaml
+    migration-job.yaml
+    sidecar-hpa.yaml
+    sidecar-pdb.yaml
+    ingress-sidecar-internal.yaml
+    networkpolicy-default-deny-ingress.yaml
+    networkpolicy-sidecar-allow-ingress.yaml
+    networkpolicy-sidecar-egress.yaml
+    networkpolicy-reconciler-egress.yaml
+  overlays/
+    staging/
+    production/
+
 docs/
   architecture.md
   build-plan.md
   quality-bar.md
+  adaptive-reservation.md
+  operations/runbook.md
+  observability/prometheus-rules.yaml
+  observability/grafana-dashboard-modelgovernor.json
 
 gateway/
   litellm.config.yaml
@@ -68,6 +95,11 @@ gateway/
 migrations/
   0001_init.sql
   0002_seed_model_policy.sql
+  0003_harden_ledger_constraints.sql
+  0004_phase2_hardening.sql
+  0005_phase3_reconciliation.sql
+  0006_expand_model_policy.sql
+  0007_governance_tiers.sql
 
 sidecar/
   Dockerfile
@@ -79,8 +111,10 @@ sidecar/
     auth.py
     db.py
     policy.py
+    metrics.py
     routes_reserve.py
     routes_settle.py
+    routes_reconcile.py
 
 reconciler/
   Dockerfile
@@ -92,6 +126,7 @@ reconciler/
 
 tests/
   integration/
+  live/
   fixtures/
 ```
 
@@ -113,10 +148,17 @@ tests/
 - Admin workflows and operational tooling
 
 ### Phase 3
-- Provider reconciliation workflows
-- Enterprise deployment automation
-- Advanced reporting and anomaly detection
-- Multi-region operational strategies
+- Provider reconciliation and admin correction workflows
+- Reconciliation anomaly reporting and summary endpoint
+- Kubernetes deployment manifests with kustomize support
+- HA and multi-region deployment strategy documentation
+
+### Phase 4 (Platform Operations Maturity)
+- Environment overlays for staging and production
+- Kubernetes hardening objects (HPA, PDB, ingress, and network policies)
+- Release and promotion workflows for image publication and gated rollout
+- Live-stack smoke tests with real Postgres and Redis
+- Observability assets (Prometheus alert rules, dashboard baseline, and runbook)
 
 ## Quality standard
 
@@ -124,4 +166,10 @@ All changes should meet the repository quality bar in `docs/quality-bar.md`.
 
 ## Status
 
-Repository scaffold in progress on branch `copilot/scaffold-institutional-v1`.
+Phase 3 complete. Provider reconciliation workflows, admin correction workflows, reporting endpoints, Kubernetes deployment artifacts, and HA documentation are in place.
+
+Phase 4 platform-operations maturity baseline is now in progress with Kubernetes hardening objects, overlays, release/promotion workflows, live-stack smoke tests, and operational observability assets included in-repo.
+
+Model policy registry covers all industry-leading providers: OpenAI, Anthropic, Google, Meta (via Groq), Mistral AI, Cohere, DeepSeek, and xAI. Each model carries explicit governance parameters — token caps, cost ceilings, stream permissions, and fallback pricing — applied uniformly across providers.
+
+Governance tier classification (BUDGET / STANDARD / FRONTIER) is enforced at the schema level with per-tier `max_cost_per_trace` ceilings (25 / 50 / 150) and a CHECK constraint. Reasoning models enforce `stream_allowed = FALSE` for deterministic audit coverage. The full governed registry is inspectable at `GET /admin/models`.

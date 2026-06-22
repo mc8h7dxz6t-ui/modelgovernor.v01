@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: modelgovernor-config
+  namespace: modelgovernor
+data:
+  # Override these values via environment-specific overlays or sealed secrets.
+  # DATABASE_URL and SIDECAR_INTERNAL_TOKENS must be supplied via Secrets.
+  REDIS_URL: "redis://redis:6379/0"
+  RECONCILER_INTERVAL_SECONDS: "30"
+  RECONCILER_BATCH_SIZE: "100"
+  METRICS_ENABLED: "true"
+  RESERVE_TTL_SECONDS: "300"

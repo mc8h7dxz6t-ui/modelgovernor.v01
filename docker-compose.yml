@@ -30,6 +30,21 @@ services:
     ports:
       - "8081:8081"
 
+  gateway:
+    image: ghcr.io/berriai/litellm:main-stable
+    environment:
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # Passed as X-Internal-Token when the gateway calls the sidecar.
+      GATEWAY_TO_SIDECAR_TOKEN: ${GATEWAY_TO_SIDECAR_TOKEN}
+    volumes:
+      - ./gateway/litellm.config.yaml:/app/config.yaml:ro
+    command: ["--config", "/app/config.yaml", "--port", "8080"]
+    depends_on:
+      - sidecar
+    ports:
+      - "8080:8080"
+
   reconciler:
     build:
       context: ./reconciler

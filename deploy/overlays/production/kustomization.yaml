@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+patches:
+  - path: patch-configmap.yaml
+  - path: patch-sidecar-deployment.yaml
+  - path: patch-sidecar-hpa.yaml
+  - path: patch-reconciler-deployment.yaml
+
+images:
+  - name: modelgovernor/sidecar
+    newTag: stable
+  - name: modelgovernor/reconciler
+    newTag: stable
