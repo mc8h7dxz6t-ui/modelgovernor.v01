@@ -18,6 +18,8 @@ from app.schemas import (
     ProviderAdjustmentResponse,
     ProviderReconciliationRequest,
     ProviderReconciliationResponse,
+    ReconciliationAnomalySummary,
+    ReconciliationSummaryResponse,
 )
 
 router = APIRouter(tags=["reconciliation"])
@@ -474,4 +476,67 @@ def apply_provider_adjustment(request: ProviderAdjustmentRequest) -> ProviderAdj
         status="RESOLVED",
         corrected_actual_amount=corrected_actual_amount,
         wallet_delta=wallet_delta,
+    )
+
+
+@router.get(
+    "/admin/reconciliation-summary",
+    response_model=ReconciliationSummaryResponse,
+    dependencies=[Depends(require_internal_auth)],
+)
+def reconciliation_summary() -> ReconciliationSummaryResponse:
+    try:
+        with get_db_session() as session:
+            counts_row = session.execute(
+                text(
+                    """
+                    SELECT
+                        COUNT(*) FILTER (WHERE status = 'MATCHED')   AS matched_count,
+                        COUNT(*) FILTER (WHERE status = 'MISMATCHED') AS mismatched_count,
+                        COUNT(*) FILTER (WHERE status = 'RESOLVED')  AS resolved_count,
+                        COALESCE(
+                            SUM(discrepancy_amount) FILTER (WHERE status = 'MISMATCHED'),
+                            0
+                        ) AS total_unresolved_discrepancy
+                    FROM provider_reconciliations
+                    """
+                )
+            ).first()
+
+            anomaly_rows = session.execute(
+                text(
+                    """
+                    SELECT reconciliation_key, idempotency_key, provider,
+                           discrepancy_amount, created_at
+                    FROM provider_reconciliations
+                    WHERE status = 'MISMATCHED'
+                    ORDER BY created_at DESC
+                    LIMIT 100
+                    """
+                )
+            ).mappings().all()
+
+    except (OperationalError, DatabaseError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="governance service temporarily unavailable",
+        ) from exc
+
+    anomalies = [
+        ReconciliationAnomalySummary(
+            reconciliation_key=row["reconciliation_key"],
+            idempotency_key=row["idempotency_key"],
+            provider=row["provider"],
+            discrepancy_amount=quantize_money(Decimal(str(row["discrepancy_amount"]))),
+            created_at=row["created_at"].isoformat() if hasattr(row["created_at"], "isoformat") else str(row["created_at"]),
+        )
+        for row in anomaly_rows
+    ]
+
+    return ReconciliationSummaryResponse(
+        matched_count=counts_row[0] if counts_row else 0,
+        mismatched_count=counts_row[1] if counts_row else 0,
+        resolved_count=counts_row[2] if counts_row else 0,
+        total_unresolved_discrepancy=quantize_money(Decimal(str(counts_row[3]))) if counts_row else Decimal("0"),
+        anomalies=anomalies,
     )

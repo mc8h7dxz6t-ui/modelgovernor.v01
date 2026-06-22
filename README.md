@@ -25,7 +25,9 @@ The system is designed to support serious governance standards for AI infrastruc
 - Replay-safe idempotency controls
 - Runtime trace and concurrency guardrails
 - Deterministic stale-reservation reconciliation
-- Portable Docker-first deployment
+- Provider reconciliation and admin correction workflows
+- Reconciliation anomaly reporting
+- Portable Docker-first and Kubernetes deployment
 
 ## Architecture overview
 
@@ -56,10 +58,20 @@ README.md
 .env.example
 docker-compose.yml
 
+deploy/
+  kustomization.yaml
+  namespace.yaml
+  configmap.yaml
+  sidecar-deployment.yaml
+  sidecar-service.yaml
+  reconciler-deployment.yaml
+  migration-job.yaml
+
 docs/
   architecture.md
   build-plan.md
   quality-bar.md
+  adaptive-reservation.md
 
 gateway/
   litellm.config.yaml
@@ -68,6 +80,9 @@ gateway/
 migrations/
   0001_init.sql
   0002_seed_model_policy.sql
+  0003_harden_ledger_constraints.sql
+  0004_phase2_hardening.sql
+  0005_phase3_reconciliation.sql
 
 sidecar/
   Dockerfile
@@ -79,8 +94,10 @@ sidecar/
     auth.py
     db.py
     policy.py
+    metrics.py
     routes_reserve.py
     routes_settle.py
+    routes_reconcile.py
 
 reconciler/
   Dockerfile
@@ -113,10 +130,10 @@ tests/
 - Admin workflows and operational tooling
 
 ### Phase 3
-- Provider reconciliation workflows
-- Enterprise deployment automation
-- Advanced reporting and anomaly detection
-- Multi-region operational strategies
+- Provider reconciliation and admin correction workflows
+- Reconciliation anomaly reporting and summary endpoint
+- Kubernetes deployment manifests with kustomize support
+- HA and multi-region deployment strategy documentation
 
 ## Quality standard
 
@@ -124,5 +141,4 @@ All changes should meet the repository quality bar in `docs/quality-bar.md`.
 
 ## Status
 
-Repository scaffold in progress on branch `copilot/scaffold-institutional-v1`.
-Phase 3 has started with provider reconciliation capture and admin correction workflows.
+Phase 3 complete. Provider reconciliation workflows, admin correction workflows, reporting endpoints, Kubernetes deployment artifacts, and HA documentation are in place.

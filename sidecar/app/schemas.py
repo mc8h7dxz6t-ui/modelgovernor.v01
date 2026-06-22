@@ -65,3 +65,19 @@ class ProviderAdjustmentResponse(BaseModel):
     status: str
     corrected_actual_amount: Decimal
     wallet_delta: Decimal
+
+
+class ReconciliationAnomalySummary(BaseModel):
+    reconciliation_key: str
+    idempotency_key: str
+    provider: str
+    discrepancy_amount: Decimal
+    created_at: str
+
+
+class ReconciliationSummaryResponse(BaseModel):
+    matched_count: int
+    mismatched_count: int
+    resolved_count: int
+    total_unresolved_discrepancy: Decimal
+    anomalies: list[ReconciliationAnomalySummary]

@@ -23,7 +23,7 @@ os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
 os.environ.setdefault("SIDECAR_INTERNAL_TOKENS", "test-token")
 
 from app.config import get_settings
-from app.routes_reconcile import apply_provider_adjustment, reconcile_provider
+from app.routes_reconcile import apply_provider_adjustment, reconcile_provider, reconciliation_summary
 from app.schemas import ProviderAdjustmentRequest, ProviderReconciliationRequest
 from fastapi import HTTPException
 
@@ -161,6 +161,31 @@ class FakePhase3Session:
                 }
             )
             return QueryResult([])
+
+        if "count(*) filter" in q and "from provider_reconciliations" in q and "coalesce" in q:
+            matched = sum(1 for r in self.provider_reconciliations.values() if r["status"] == "MATCHED")
+            mismatched = sum(1 for r in self.provider_reconciliations.values() if r["status"] == "MISMATCHED")
+            resolved = sum(1 for r in self.provider_reconciliations.values() if r["status"] == "RESOLVED")
+            total_disc = sum(
+                r["discrepancy_amount"]
+                for r in self.provider_reconciliations.values()
+                if r["status"] == "MISMATCHED"
+            )
+            return QueryResult([(matched, mismatched, resolved, total_disc)])
+
+        if "from provider_reconciliations" in q and "where status = 'mismatched'" in q:
+            anomalies = [
+                {
+                    "reconciliation_key": r["reconciliation_key"],
+                    "idempotency_key": r["idempotency_key"],
+                    "provider": r["provider"],
+                    "discrepancy_amount": r["discrepancy_amount"],
+                    "created_at": datetime.utcnow(),
+                }
+                for r in self.provider_reconciliations.values()
+                if r["status"] == "MISMATCHED"
+            ]
+            return QueryResult(anomalies)
 
         raise AssertionError(f"Unexpected SQL: {query}")
 
@@ -325,3 +350,58 @@ def test_provider_adjustment_rejects_insufficient_balance(monkeypatch) -> None:
         assert "insufficient wallet balance" in str(exc.detail)
     else:
         raise AssertionError("expected insufficient-balance adjustment to fail")
+
+
+def test_reconciliation_summary_empty_state(monkeypatch) -> None:
+    configure_env(monkeypatch)
+    session = FakePhase3Session()
+    bind_session(monkeypatch, session)
+
+    result = reconciliation_summary()
+
+    assert result.matched_count == 0
+    assert result.mismatched_count == 0
+    assert result.resolved_count == 0
+    assert result.total_unresolved_discrepancy == Decimal("0")
+    assert result.anomalies == []
+
+
+def test_reconciliation_summary_reflects_current_state(monkeypatch) -> None:
+    configure_env(monkeypatch)
+    session = FakePhase3Session()
+    bind_session(monkeypatch, session)
+
+    reconcile_provider(make_reconciliation_request(reconciliation_key="s1", provider_actual_cost="0.800000"))
+    reconcile_provider(make_reconciliation_request(reconciliation_key="s2", provider_actual_cost="1.200000"))
+    reconcile_provider(make_reconciliation_request(reconciliation_key="s3", provider_actual_cost="1.500000"))
+    apply_provider_adjustment(make_adjustment_request(adjustment_key="a3", reconciliation_key="s3"))
+
+    result = reconciliation_summary()
+
+    assert result.matched_count == 1
+    assert result.mismatched_count == 1
+    assert result.resolved_count == 1
+    assert result.total_unresolved_discrepancy == Decimal("0.400000")
+    assert len(result.anomalies) == 1
+    assert result.anomalies[0].reconciliation_key == "s2"
+    assert result.anomalies[0].discrepancy_amount == Decimal("0.400000")
+
+
+def test_reconciliation_summary_anomalies_include_provider(monkeypatch) -> None:
+    configure_env(monkeypatch)
+    session = FakePhase3Session()
+    bind_session(monkeypatch, session)
+
+    reconcile_provider(
+        make_reconciliation_request(
+            reconciliation_key="s4",
+            provider="anthropic",
+            provider_actual_cost="2.000000",
+        )
+    )
+
+    result = reconciliation_summary()
+
+    assert result.mismatched_count == 1
+    assert result.anomalies[0].provider == "anthropic"
+    assert result.anomalies[0].idempotency_key == "settled-1"

@@ -122,3 +122,51 @@ Portability is achieved by keeping the core stack limited to:
 - PostgreSQL
 - Redis
 - Docker-first packaging
+
+## High availability design
+
+### Sidecar
+
+The sidecar is stateless between requests. All reservation, settlement, and reconciliation state resides in Postgres. Running multiple sidecar replicas behind a load balancer is safe and requires no additional coordination. Readiness is declared via `/readyz` only after a successful database connectivity check.
+
+### Reconciler
+
+The reconciler must run as a single replica per deployment. Its expiry sweep uses `FOR UPDATE SKIP LOCKED` so concurrent instances would not produce incorrect state, but would duplicate sweep work and add unnecessary lock contention. Scale reconciler throughput by increasing batch size and reducing sweep interval, not by increasing replica count.
+
+### Postgres
+
+Production deployments should use a managed or self-managed HA Postgres cluster with synchronous streaming replication and automated failover. The platform relies on Postgres transaction semantics for all financial guarantees. A replication lag that promotes an out-of-date standby during failover creates a window of inconsistency. Use a replication mode that prevents promotion of standbys that are materially behind the primary.
+
+Recommended configuration:
+- Synchronous replication to at least one standby
+- Automated failover via Patroni, pg_auto_failover, or managed provider equivalent
+- Point-in-time recovery (PITR) retention of at least 7 days
+- Connection pooling via PgBouncer in transaction mode in front of the primary
+
+### Redis
+
+Redis provides volatile runtime guardrails only. No financial state resides in Redis. Redis Sentinel or Redis Cluster provides HA sufficient for this use case. A Redis failure degrades rate-limit and concurrency enforcement but must not block governance-critical paths. The sidecar degrades gracefully when Redis is unavailable and falls back to policy-only enforcement.
+
+## Multi-region strategy
+
+Multi-region deployment is an optional operational posture. The platform is designed for single-region deployment by default, with multi-region treated as an infrastructure layer concern.
+
+### Recommended approach
+
+Deploy an independent modelgovernor stack per region. Each region operates its own Postgres primary, reconciler, and sidecar fleet. Cross-region balance synchronization is not supported natively and is deferred to a higher-layer infrastructure concern.
+
+### Read replica offloading
+
+Reporting and audit queries can be directed to a read replica without affecting the financial control path. The summary reporting endpoint (`GET /admin/reconciliation-summary`) is suitable for execution against a replica. Reserve, settle, and reconciliation write paths must target the Postgres primary.
+
+### Latency and routing considerations
+
+- Route governed inference requests to the nearest regional gateway to minimize reserve-settle round-trip latency.
+- Wallet balances and escrow ledger state are per-region. Cross-region wallet aggregation requires an explicit aggregation layer not included in this release.
+- Provider reconciliation workflows operate against settled rows in the local regional ledger.
+
+### Disaster recovery
+
+- Recovery point objective (RPO) is bounded by Postgres replication lag and PITR granularity.
+- Recovery time objective (RTO) depends on failover automation and sidecar health-check convergence.
+- Reconciler idempotency ensures that re-running sweeps after a failover does not corrupt balance state.

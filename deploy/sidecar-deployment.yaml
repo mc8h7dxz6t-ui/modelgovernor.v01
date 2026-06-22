@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sidecar
+  namespace: modelgovernor
+  labels:
+    app: sidecar
+    component: governance
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sidecar
+  template:
+    metadata:
+      labels:
+        app: sidecar
+        component: governance
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: sidecar
+          image: modelgovernor/sidecar:latest
+          ports:
+            - name: http
+              containerPort: 8081
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: modelgovernor-config
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: modelgovernor-secrets
+                  key: database-url
+            - name: SIDECAR_INTERNAL_TOKENS
+              valueFrom:
+                secretKeyRef:
+                  name: modelgovernor-secrets
+                  key: sidecar-internal-tokens
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+      terminationGracePeriodSeconds: 30
