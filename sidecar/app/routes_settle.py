@@ -1,3 +1,5 @@
+import json
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import text
 
@@ -131,10 +133,8 @@ def settle(request: SettleRequest) -> SettleResponse:
                 "idempotency_key": request.idempotency_key,
                 "user_id": ledger_row["user_id"],
                 "amount_delta": refund_amount,
-                "metadata": '{"provider_request_id": %s, "actual_amount": "%s"}'
-                % (
-                    'null' if request.provider_request_id is None else '"%s"' % request.provider_request_id,
-                    str(actual_amount),
+                "metadata": json.dumps(
+                    {"provider_request_id": request.provider_request_id, "actual_amount": str(actual_amount)}
                 ),
             },
         )
@@ -163,8 +163,9 @@ def settle(request: SettleRequest) -> SettleResponse:
                     "idempotency_key": request.idempotency_key,
                     "user_id": ledger_row["user_id"],
                     "amount_delta": drift_amount,
-                    "metadata": '{"reserved_amount": "%s", "actual_amount": "%s"}'
-                    % (str(reserved_amount), str(actual_amount)),
+                    "metadata": json.dumps(
+                        {"reserved_amount": str(reserved_amount), "actual_amount": str(actual_amount)}
+                    ),
                 },
             )
 

@@ -1,4 +1,5 @@
 from decimal import Decimal
+import json
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import text
@@ -184,7 +185,7 @@ def reserve(request: ReserveRequest) -> ReserveResponse:
                 "idempotency_key": request.idempotency_key,
                 "user_id": request.user_id,
                 "amount_delta": -reserve_amount,
-                "metadata": '{"trace_id": "%s", "model": "%s"}' % (request.trace_id, request.model),
+                "metadata": json.dumps({"trace_id": request.trace_id, "model": request.model}),
             },
         )
 
