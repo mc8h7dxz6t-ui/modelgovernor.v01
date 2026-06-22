@@ -1,17 +1,18 @@
-from contextlib import contextmanager
 import os
+from contextlib import contextmanager
 
-import psycopg
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+
+DATABASE_URL = os.environ["DATABASE_URL"]
+engine = create_engine(DATABASE_URL, future=True, pool_pre_ping=True)
+SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
 
 
 @contextmanager
-def get_db_connection():
-    database_url = os.getenv("DATABASE_URL")
-    if not database_url:
-        raise RuntimeError("DATABASE_URL is required")
-
-    conn = psycopg.connect(database_url)
+def get_db_session() -> Session:
+    session = SessionLocal()
     try:
-        yield conn
+        yield session
     finally:
-        conn.close()
+        session.close()

@@ -1,181 +1,198 @@
-from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 
-from .auth import require_internal_auth
-from .config import settings
-from .db import get_db_connection
-from .schemas import ReserveRequest, ReserveResponse
-from .policy import compute_reservation_amount
+from app.auth import require_internal_auth
+from app.config import get_settings
+from app.db import get_db_session
+from app.policy import (
+    PolicyDecisionError,
+    calculate_reserve_amount,
+    quantize_money,
+    validate_reserve_request,
+)
+from app.schemas import ReserveRequest, ReserveResponse
 
-router = APIRouter(prefix="/v1/governance", tags=["reserve"])
+router = APIRouter(tags=["reserve"])
 
 
 @router.post("/reserve", response_model=ReserveResponse, dependencies=[Depends(require_internal_auth)])
-def reserve_funds(request: ReserveRequest) -> ReserveResponse:
-    reservation_amount: Decimal = compute_reservation_amount(request.estimated_cost)
-    reserved_until = datetime.now(UTC) + timedelta(seconds=settings.default_reservation_ttl_seconds)
+def reserve(request: ReserveRequest) -> ReserveResponse:
+    try:
+        validate_reserve_request(request)
+    except PolicyDecisionError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
-    with get_db_connection() as conn:
-        with conn.transaction():
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    SELECT wallet_id, balance_available
-                    FROM wallets
-                    WHERE tenant_id = %s
-                      AND wallet_ref = %s
-                      AND is_active = TRUE
-                    FOR UPDATE
-                    """,
-                    (request.tenant_id, request.wallet_ref),
-                )
-                wallet = cur.fetchone()
-                if not wallet:
-                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wallet not found")
+    settings = get_settings()
+    reserve_amount = calculate_reserve_amount(request.estimated_cost)
 
-                wallet_id, balance_available = wallet
+    with get_db_session() as session:
+        existing = session.execute(
+            text(
+                """
+                SELECT idempotency_key, user_id, trace_id, model, reserved_amount, status, expires_at
+                FROM escrow_ledger
+                WHERE idempotency_key = :idempotency_key
+                """
+            ),
+            {"idempotency_key": request.idempotency_key},
+        ).mappings().first()
 
-                cur.execute(
-                    """
-                    SELECT policy_id, enabled, max_cost_per_request
-                    FROM model_policies
-                    WHERE tenant_id = %s
-                      AND provider = %s
-                      AND model_name = %s
-                    """,
-                    (request.tenant_id, request.provider, request.model_name),
-                )
-                policy = cur.fetchone()
-                if not policy:
-                    raise HTTPException(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        detail="Model policy not found for tenant/provider/model",
-                    )
-
-                policy_id, enabled, max_cost_per_request = policy
-                if not enabled:
-                    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Model policy disabled")
-                if reservation_amount > max_cost_per_request:
-                    raise HTTPException(
-                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                        detail="Estimated cost exceeds policy max cost per request",
-                    )
-
-                cur.execute(
-                    """
-                    SELECT ledger_entry_id, reservation_status, amount_reserved, reserved_until
-                    FROM ledger_entries
-                    WHERE wallet_id = %s
-                      AND idempotency_key = %s
-                    FOR UPDATE
-                    """,
-                    (wallet_id, request.idempotency_key),
-                )
-                existing_entry = cur.fetchone()
-                if existing_entry:
-                    ledger_entry_id, reservation_status, amount_reserved, existing_reserved_until = existing_entry
-                    if reservation_status != "RESERVED":
-                        raise HTTPException(
-                            status_code=status.HTTP_409_CONFLICT,
-                            detail="Idempotency key already finalized",
-                        )
-                    return ReserveResponse(
-                        ledger_entry_id=str(ledger_entry_id),
-                        reservation_status=reservation_status,
-                        amount_reserved=amount_reserved,
-                        reserved_until=existing_reserved_until.isoformat(),
-                    )
-
-                if balance_available < reservation_amount:
-                    raise HTTPException(
-                        status_code=status.HTTP_409_CONFLICT,
-                        detail="Insufficient wallet balance for reservation",
-                    )
-
-                cur.execute(
-                    """
-                    UPDATE wallets
-                    SET balance_available = balance_available - %s,
-                        balance_reserved = balance_reserved + %s,
-                        updated_at = NOW()
-                    WHERE wallet_id = %s
-                    """,
-                    (reservation_amount, reservation_amount, wallet_id),
+        if existing is not None:
+            if (
+                existing["user_id"] != request.user_id
+                or existing["trace_id"] != request.trace_id
+                or existing["model"] != request.model
+                or quantize_money(existing["reserved_amount"]) != reserve_amount
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="idempotency_key already exists with different reserve parameters",
                 )
 
-                cur.execute(
+            expires_in_seconds = max(
+                0,
+                int((existing["expires_at"] - existing["expires_at"].tzinfo.fromutc(existing["expires_at"].replace(tzinfo=existing["expires_at"].tzinfo))).total_seconds())
+                if existing["expires_at"].tzinfo is not None
+                else settings.reserve_ttl_seconds,
+            )
+            return ReserveResponse(
+                idempotency_key=existing["idempotency_key"],
+                status=existing["status"],
+                reserved_amount=quantize_money(existing["reserved_amount"]),
+                expires_in_seconds=expires_in_seconds or settings.reserve_ttl_seconds,
+            )
+
+        model_policy = session.execute(
+            text(
+                """
+                SELECT enabled, max_cost_per_request
+                FROM model_policy_registry
+                WHERE model_name = :model_name
+                """
+            ),
+            {"model_name": request.model},
+        ).mappings().first()
+
+        if model_policy is None or not model_policy["enabled"]:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="model is not enabled")
+
+        if reserve_amount > quantize_money(model_policy["max_cost_per_request"]):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="reserve exceeds model policy maximum")
+
+        wallet = session.execute(
+            text(
+                """
+                SELECT user_id, balance, active
+                FROM user_wallets
+                WHERE user_id = :user_id
+                FOR UPDATE
+                """
+            ),
+            {"user_id": request.user_id},
+        ).mappings().first()
+
+        if wallet is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="wallet not found")
+
+        if not wallet["active"]:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="wallet is inactive")
+
+        wallet_balance = quantize_money(wallet["balance"])
+        if wallet_balance < reserve_amount:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="insufficient wallet balance")
+
+        request_fingerprint = f"{request.user_id}:{request.trace_id}:{request.model}:{reserve_amount}"
+
+        try:
+            session.execute(
+                text(
                     """
-                    INSERT INTO ledger_entries (
-                        wallet_id,
-                        policy_id,
-                        request_id,
+                    INSERT INTO escrow_ledger (
                         idempotency_key,
-                        reservation_status,
-                        amount_reserved,
-                        amount_settled,
-                        amount_released,
-                        reserved_until,
-                        metadata
-                    ) VALUES (
-                        %s, %s, %s, %s, 'RESERVED', %s, 0, 0, %s,
-                        jsonb_build_object(
-                            'tenant_id', %s,
-                            'provider', %s,
-                            'model_name', %s
-                        )
+                        user_id,
+                        trace_id,
+                        model,
+                        request_fingerprint,
+                        reserved_amount,
+                        actual_amount,
+                        status,
+                        expires_at
                     )
-                    RETURNING ledger_entry_id, reservation_status, amount_reserved, reserved_until
-                    """,
-                    (
-                        wallet_id,
-                        policy_id,
-                        request.request_id,
-                        request.idempotency_key,
-                        reservation_amount,
-                        reserved_until,
-                        request.tenant_id,
-                        request.provider,
-                        request.model_name,
-                    ),
-                )
-                ledger_entry_id, reservation_status, amount_reserved, reserved_until_db = cur.fetchone()
-
-                cur.execute(
+                    VALUES (
+                        :idempotency_key,
+                        :user_id,
+                        :trace_id,
+                        :model,
+                        :request_fingerprint,
+                        :reserved_amount,
+                        :actual_amount,
+                        'RESERVED',
+                        CURRENT_TIMESTAMP + (:reserve_ttl_seconds * INTERVAL '1 second')
+                    )
                     """
-                    INSERT INTO audit_events (
-                        ledger_entry_id,
-                        wallet_id,
-                        event_type,
-                        actor_type,
-                        actor_id,
-                        event_payload
-                    ) VALUES (
-                        %s,
-                        %s,
-                        'RESERVE_CREATED',
-                        'service',
-                        'sidecar',
-                        jsonb_build_object(
-                            'request_id', %s,
-                            'idempotency_key', %s,
-                            'amount_reserved', %s
-                        )
-                    )
-                    """,
-                    (
-                        ledger_entry_id,
-                        wallet_id,
-                        request.request_id,
-                        request.idempotency_key,
-                        amount_reserved,
-                    ),
+                ),
+                {
+                    "idempotency_key": request.idempotency_key,
+                    "user_id": request.user_id,
+                    "trace_id": request.trace_id,
+                    "model": request.model,
+                    "request_fingerprint": request_fingerprint,
+                    "reserved_amount": reserve_amount,
+                    "actual_amount": Decimal("0.000000"),
+                    "reserve_ttl_seconds": settings.reserve_ttl_seconds,
+                },
+            )
+        except IntegrityError as exc:
+            session.rollback()
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="idempotency_key already exists") from exc
+
+        session.execute(
+            text(
+                """
+                UPDATE user_wallets
+                SET balance = balance - :reserved_amount,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE user_id = :user_id
+                """
+            ),
+            {"reserved_amount": reserve_amount, "user_id": request.user_id},
+        )
+
+        session.execute(
+            text(
+                """
+                INSERT INTO ledger_events (
+                    idempotency_key,
+                    user_id,
+                    event_type,
+                    amount_delta,
+                    metadata
                 )
+                VALUES (
+                    :idempotency_key,
+                    :user_id,
+                    'RESERVE_CREATED',
+                    :amount_delta,
+                    CAST(:metadata AS JSONB)
+                )
+                """
+            ),
+            {
+                "idempotency_key": request.idempotency_key,
+                "user_id": request.user_id,
+                "amount_delta": -reserve_amount,
+                "metadata": '{"trace_id": "%s", "model": "%s"}' % (request.trace_id, request.model),
+            },
+        )
+
+        session.commit()
 
     return ReserveResponse(
-        ledger_entry_id=str(ledger_entry_id),
-        reservation_status=reservation_status,
-        amount_reserved=amount_reserved,
-        reserved_until=reserved_until_db.isoformat(),
+        idempotency_key=request.idempotency_key,
+        status="RESERVED",
+        reserved_amount=reserve_amount,
+        expires_in_seconds=settings.reserve_ttl_seconds,
     )

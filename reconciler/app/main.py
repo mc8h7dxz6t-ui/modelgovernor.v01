@@ -1,16 +1,12 @@
-import os
-import time
-
-from .sweeper import sweep_expired_reservations
+from app.db import get_db_session
+from app.sweeper import sweep_expired_reservations
 
 
-def run() -> None:
-    interval_seconds = int(os.getenv("RECONCILER_SWEEP_INTERVAL_SECONDS", "30"))
-    while True:
-        swept = sweep_expired_reservations()
-        print(f"reconciler_sweep_completed swept={swept}")
-        time.sleep(interval_seconds)
+def main() -> None:
+    with get_db_session() as session:
+        swept = sweep_expired_reservations(session)
+        print(f"reconciler completed; expired reservations scanned={swept}")
 
 
 if __name__ == "__main__":
-    run()
+    main()

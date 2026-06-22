@@ -1,29 +1,35 @@
 from decimal import Decimal, ROUND_HALF_UP
 
+from app.schemas import ReserveRequest, SettleRequest
 
-SIX_DP = Decimal("0.000001")
-MIN_RESERVE = Decimal("0.010000")
-DEFAULT_ADAPTIVE_MULTIPLIER = Decimal("1.1000")
-MAX_MULTIPLIER = Decimal("2.0000")
-
-
-def _quantize(value: Decimal) -> Decimal:
-    return value.quantize(SIX_DP, rounding=ROUND_HALF_UP)
+MONEY_QUANTUM = Decimal("0.000001")
+MINIMUM_RESERVE = Decimal("0.010000")
+MAX_RESERVE_MULTIPLIER = Decimal("1.250000")
 
 
-def compute_reservation_amount(
-    estimated_cost: Decimal,
-    adaptive_multiplier: Decimal = DEFAULT_ADAPTIVE_MULTIPLIER,
-) -> Decimal:
-    """Compute a policy-bounded reserve amount.
+class PolicyDecisionError(Exception):
+    pass
 
-    Uses a bounded adaptive multiplier with conservative floor behavior:
-    - multiplier clamped to [1.0, 2.0]
-    - non-zero requests reserve at least a minimum floor
-    """
-    if estimated_cost <= 0:
-        return Decimal("0")
 
-    bounded_multiplier = max(Decimal("1.0"), min(adaptive_multiplier, MAX_MULTIPLIER))
-    reserve = _quantize(estimated_cost * bounded_multiplier)
-    return max(reserve, MIN_RESERVE)
+def quantize_money(amount: Decimal) -> Decimal:
+    return amount.quantize(MONEY_QUANTUM, rounding=ROUND_HALF_UP)
+
+
+def calculate_reserve_amount(estimated_cost: Decimal) -> Decimal:
+    normalized_cost = quantize_money(estimated_cost)
+    if normalized_cost < 0:
+        raise PolicyDecisionError("estimated_cost must be non-negative")
+
+    bounded_reserve = quantize_money(normalized_cost * MAX_RESERVE_MULTIPLIER)
+    return max(bounded_reserve, MINIMUM_RESERVE)
+
+
+def validate_reserve_request(request: ReserveRequest) -> None:
+    if quantize_money(request.estimated_cost) < 0:
+        raise PolicyDecisionError("estimated_cost must be non-negative")
+
+
+
+def validate_settle_request(request: SettleRequest) -> None:
+    if quantize_money(request.actual_cost) < 0:
+        raise PolicyDecisionError("actual_cost must be non-negative")

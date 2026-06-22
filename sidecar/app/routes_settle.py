@@ -1,159 +1,177 @@
-from decimal import Decimal
-
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import text
 
-from .auth import require_internal_auth
-from .db import get_db_connection
-from .schemas import SettleRequest, SettleResponse
+from app.auth import require_internal_auth
+from app.db import get_db_session
+from app.policy import PolicyDecisionError, quantize_money, validate_settle_request
+from app.schemas import SettleRequest, SettleResponse
 
-router = APIRouter(prefix="/v1/governance", tags=["settle"])
+router = APIRouter(tags=["settle"])
 
 
 @router.post("/settle", response_model=SettleResponse, dependencies=[Depends(require_internal_auth)])
-def settle_funds(request: SettleRequest) -> SettleResponse:
-    with get_db_connection() as conn:
-        with conn.transaction():
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    SELECT wallet_id
-                    FROM wallets
-                    WHERE tenant_id = %s
-                      AND wallet_ref = %s
-                    FOR UPDATE
-                    """,
-                    (request.tenant_id, request.wallet_ref),
+def settle(request: SettleRequest) -> SettleResponse:
+    try:
+        validate_settle_request(request)
+    except PolicyDecisionError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    actual_amount = quantize_money(request.actual_cost)
+
+    with get_db_session() as session:
+        ledger_row = session.execute(
+            text(
+                """
+                SELECT idempotency_key, user_id, reserved_amount, actual_amount, status, provider_request_id, expired_at
+                FROM escrow_ledger
+                WHERE idempotency_key = :idempotency_key
+                FOR UPDATE
+                """
+            ),
+            {"idempotency_key": request.idempotency_key},
+        ).mappings().first()
+
+        if ledger_row is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="reservation not found")
+
+        if ledger_row["status"] == "SETTLED":
+            persisted_actual_amount = quantize_money(ledger_row["actual_amount"])
+            persisted_provider_request_id = ledger_row["provider_request_id"]
+            if persisted_actual_amount != actual_amount or persisted_provider_request_id != request.provider_request_id:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="idempotency_key already settled with different parameters",
                 )
-                wallet = cur.fetchone()
-                if not wallet:
-                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wallet not found")
-                wallet_id = wallet[0]
+            return SettleResponse(
+                idempotency_key=ledger_row["idempotency_key"],
+                status="SETTLED",
+                actual_amount=persisted_actual_amount,
+            )
 
-                cur.execute(
+        if ledger_row["status"] == "EXPIRED" or ledger_row["expired_at"] is not None:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="expired reservations cannot be settled")
+
+        if ledger_row["status"] != "RESERVED":
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="reservation is not eligible for settlement")
+
+        wallet_row = session.execute(
+            text(
+                """
+                SELECT user_id, balance, active
+                FROM user_wallets
+                WHERE user_id = :user_id
+                FOR UPDATE
+                """
+            ),
+            {"user_id": ledger_row["user_id"]},
+        ).mappings().first()
+
+        if wallet_row is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="wallet not found")
+
+        if not wallet_row["active"]:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="wallet is inactive")
+
+        reserved_amount = quantize_money(ledger_row["reserved_amount"])
+        refund_amount = quantize_money(max(reserved_amount - actual_amount, 0))
+        drift_amount = quantize_money(actual_amount - reserved_amount)
+
+        session.execute(
+            text(
+                """
+                UPDATE escrow_ledger
+                SET actual_amount = :actual_amount,
+                    status = 'SETTLED',
+                    provider_request_id = :provider_request_id,
+                    settled_at = CURRENT_TIMESTAMP,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE idempotency_key = :idempotency_key
+                """
+            ),
+            {
+                "actual_amount": actual_amount,
+                "provider_request_id": request.provider_request_id,
+                "idempotency_key": request.idempotency_key,
+            },
+        )
+
+        if refund_amount > 0:
+            session.execute(
+                text(
                     """
-                    SELECT ledger_entry_id, reservation_status, amount_reserved, amount_settled, amount_released
-                    FROM ledger_entries
-                    WHERE wallet_id = %s
-                      AND idempotency_key = %s
-                    FOR UPDATE
-                    """,
-                    (wallet_id, request.idempotency_key),
+                    UPDATE user_wallets
+                    SET balance = balance + :refund_amount,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE user_id = :user_id
+                    """
+                ),
+                {"refund_amount": refund_amount, "user_id": ledger_row["user_id"]},
+            )
+
+        session.execute(
+            text(
+                """
+                INSERT INTO ledger_events (
+                    idempotency_key,
+                    user_id,
+                    event_type,
+                    amount_delta,
+                    metadata
                 )
-                entry = cur.fetchone()
-                if not entry:
-                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ledger entry not found")
-
-                ledger_entry_id, reservation_status, amount_reserved, amount_settled, amount_released = entry
-
-                if reservation_status == "SETTLED":
-                    return SettleResponse(
-                        ledger_entry_id=str(ledger_entry_id),
-                        reservation_status=reservation_status,
-                        amount_settled=amount_settled,
-                        amount_released=amount_released,
-                    )
-                if reservation_status != "RESERVED":
-                    raise HTTPException(
-                        status_code=status.HTTP_409_CONFLICT,
-                        detail=f"Cannot settle entry in {reservation_status} state",
-                    )
-
-                settled_amount: Decimal = request.realized_cost
-                if settled_amount > amount_reserved:
-                    raise HTTPException(
-                        status_code=status.HTTP_409_CONFLICT,
-                        detail="Realized cost exceeds reserved amount; uplift path not implemented",
-                    )
-                released_amount = amount_reserved - settled_amount
-
-                cur.execute(
-                    """
-                    UPDATE ledger_entries
-                    SET reservation_status = 'SETTLED',
-                        amount_settled = %s,
-                        amount_released = %s,
-                        settled_at = NOW(),
-                        updated_at = NOW(),
-                        metadata = CASE
-                            WHEN %s IS NULL THEN metadata
-                            ELSE metadata || jsonb_build_object('provider_request_id', %s)
-                        END
-                    WHERE ledger_entry_id = %s
-                    """,
-                    (
-                        settled_amount,
-                        released_amount,
-                        request.provider_request_id,
-                        request.provider_request_id,
-                        ledger_entry_id,
-                    ),
+                VALUES (
+                    :idempotency_key,
+                    :user_id,
+                    'SETTLED_FINAL',
+                    :amount_delta,
+                    CAST(:metadata AS JSONB)
                 )
+                """
+            ),
+            {
+                "idempotency_key": request.idempotency_key,
+                "user_id": ledger_row["user_id"],
+                "amount_delta": refund_amount,
+                "metadata": '{"provider_request_id": %s, "actual_amount": "%s"}'
+                % (
+                    'null' if request.provider_request_id is None else '"%s"' % request.provider_request_id,
+                    str(actual_amount),
+                ),
+            },
+        )
 
-                cur.execute(
+        if drift_amount != 0:
+            session.execute(
+                text(
                     """
-                    UPDATE wallets
-                    SET balance_reserved = balance_reserved - %s,
-                        balance_available = balance_available + %s,
-                        updated_at = NOW()
-                    WHERE wallet_id = %s
-                    """,
-                    (amount_reserved, released_amount, wallet_id),
-                )
-
-                cur.execute(
-                    """
-                    INSERT INTO audit_events (
-                        ledger_entry_id,
-                        wallet_id,
+                    INSERT INTO ledger_events (
+                        idempotency_key,
+                        user_id,
                         event_type,
-                        actor_type,
-                        actor_id,
-                        event_payload
-                    ) VALUES (
-                        %s,
-                        %s,
-                        'SETTLED_FINAL',
-                        'service',
-                        'sidecar',
-                        jsonb_build_object(
-                            'idempotency_key', %s,
-                            'amount_settled', %s,
-                            'amount_released', %s
-                        )
+                        amount_delta,
+                        metadata
                     )
-                    """,
-                    (ledger_entry_id, wallet_id, request.idempotency_key, settled_amount, released_amount),
-                )
+                    VALUES (
+                        :idempotency_key,
+                        :user_id,
+                        'SETTLEMENT_DRIFT',
+                        :amount_delta,
+                        CAST(:metadata AS JSONB)
+                    )
+                    """
+                ),
+                {
+                    "idempotency_key": request.idempotency_key,
+                    "user_id": ledger_row["user_id"],
+                    "amount_delta": drift_amount,
+                    "metadata": '{"reserved_amount": "%s", "actual_amount": "%s"}'
+                    % (str(reserved_amount), str(actual_amount)),
+                },
+            )
 
-                if released_amount > Decimal("0"):
-                    cur.execute(
-                        """
-                        INSERT INTO audit_events (
-                            ledger_entry_id,
-                            wallet_id,
-                            event_type,
-                            actor_type,
-                            actor_id,
-                            event_payload
-                        ) VALUES (
-                            %s,
-                            %s,
-                            'SETTLEMENT_DRIFT',
-                            'service',
-                            'sidecar',
-                            jsonb_build_object(
-                                'reserved_amount', %s,
-                                'settled_amount', %s,
-                                'released_amount', %s
-                            )
-                        )
-                        """,
-                        (ledger_entry_id, wallet_id, amount_reserved, settled_amount, released_amount),
-                    )
+        session.commit()
 
     return SettleResponse(
-        ledger_entry_id=str(ledger_entry_id),
-        reservation_status="SETTLED",
-        amount_settled=settled_amount,
-        amount_released=released_amount,
+        idempotency_key=request.idempotency_key,
+        status="SETTLED",
+        actual_amount=actual_amount,
     )

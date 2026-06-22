@@ -1,94 +1,60 @@
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- PostgreSQL is the sole financial source of truth for wallet balances and ledger lifecycle state.
-
-CREATE TABLE IF NOT EXISTS wallets (
-    wallet_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id TEXT NOT NULL,
-    wallet_ref TEXT NOT NULL,
-    currency_code TEXT NOT NULL DEFAULT 'USD',
-    balance_available NUMERIC(20, 6) NOT NULL DEFAULT 0,
-    balance_reserved NUMERIC(20, 6) NOT NULL DEFAULT 0,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT wallets_balance_available_non_negative CHECK (balance_available >= 0),
-    CONSTRAINT wallets_balance_reserved_non_negative CHECK (balance_reserved >= 0),
-    CONSTRAINT wallets_currency_code_format CHECK (currency_code ~ '^[A-Z]{3}$'),
-    CONSTRAINT wallets_tenant_wallet_unique UNIQUE (tenant_id, wallet_ref)
+CREATE TABLE user_wallets (
+    user_id VARCHAR(255) PRIMARY KEY,
+    balance NUMERIC(18, 6) NOT NULL DEFAULT 100.000000,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_wallets_tenant_lookup ON wallets (tenant_id, wallet_ref);
+CREATE TYPE escrow_status AS ENUM ('RESERVED', 'SETTLED', 'EXPIRED', 'REFUNDED');
 
-CREATE TABLE IF NOT EXISTS model_policies (
-    policy_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id TEXT NOT NULL,
-    provider TEXT NOT NULL,
-    model_name TEXT NOT NULL,
+CREATE TABLE model_policy_registry (
+    model_name VARCHAR(255) PRIMARY KEY,
+    provider VARCHAR(100) NOT NULL,
     enabled BOOLEAN NOT NULL DEFAULT TRUE,
-    max_input_tokens INTEGER NOT NULL,
-    max_output_tokens INTEGER NOT NULL,
-    max_cost_per_request NUMERIC(20, 6) NOT NULL,
+    max_input_tokens INT NOT NULL,
+    max_output_tokens INT NOT NULL,
+    max_cost_per_request NUMERIC(18, 6) NOT NULL,
     stream_allowed BOOLEAN NOT NULL DEFAULT TRUE,
-    fallback_price_per_token NUMERIC(20, 8) NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT model_policies_cost_non_negative CHECK (max_cost_per_request >= 0),
-    CONSTRAINT model_policies_fallback_price_non_negative CHECK (fallback_price_per_token >= 0),
-    CONSTRAINT model_policies_max_input_positive CHECK (max_input_tokens > 0),
-    CONSTRAINT model_policies_max_output_positive CHECK (max_output_tokens > 0),
-    CONSTRAINT model_policies_unique_per_tenant_model UNIQUE (tenant_id, provider, model_name)
+    fallback_price_per_token NUMERIC(18, 6) NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_model_policies_lookup ON model_policies (tenant_id, provider, model_name);
-
-CREATE TYPE ledger_entry_status AS ENUM ('RESERVED', 'SETTLED', 'EXPIRED', 'REVERSED', 'CANCELLED');
-
-CREATE TABLE IF NOT EXISTS ledger_entries (
-    ledger_entry_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    wallet_id UUID NOT NULL REFERENCES wallets(wallet_id),
-    policy_id UUID REFERENCES model_policies(policy_id),
-    request_id TEXT NOT NULL,
-    idempotency_key TEXT NOT NULL,
-    reservation_status ledger_entry_status NOT NULL DEFAULT 'RESERVED',
-    amount_reserved NUMERIC(20, 6) NOT NULL,
-    amount_settled NUMERIC(20, 6) NOT NULL DEFAULT 0,
-    amount_released NUMERIC(20, 6) NOT NULL DEFAULT 0,
-    reserved_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    reserved_until TIMESTAMPTZ,
+CREATE TABLE escrow_ledger (
+    idempotency_key VARCHAR(255) PRIMARY KEY,
+    user_id VARCHAR(255) NOT NULL REFERENCES user_wallets(user_id),
+    trace_id VARCHAR(255) NOT NULL,
+    model VARCHAR(255) NOT NULL REFERENCES model_policy_registry(model_name),
+    request_fingerprint VARCHAR(64) NOT NULL,
+    reserved_amount NUMERIC(18, 6) NOT NULL,
+    actual_amount NUMERIC(18, 6) NOT NULL DEFAULT 0.000000,
+    status escrow_status NOT NULL DEFAULT 'RESERVED',
+    provider_request_id VARCHAR(255),
+    terminal_reason VARCHAR(255),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMPTZ NOT NULL,
     settled_at TIMESTAMPTZ,
+    expired_at TIMESTAMPTZ,
+    reconciled BOOLEAN NOT NULL DEFAULT FALSE,
+    CONSTRAINT escrow_nonnegative_reserved CHECK (reserved_amount >= 0),
+    CONSTRAINT escrow_nonnegative_actual CHECK (actual_amount >= 0)
+);
+
+CREATE TABLE ledger_events (
+    event_id BIGSERIAL PRIMARY KEY,
+    idempotency_key VARCHAR(255) NOT NULL,
+    user_id VARCHAR(255) NOT NULL,
+    event_type VARCHAR(50) NOT NULL,
+    amount_delta NUMERIC(18, 6) NOT NULL,
     metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT ledger_entries_amount_reserved_non_negative CHECK (amount_reserved >= 0),
-    CONSTRAINT ledger_entries_amount_settled_non_negative CHECK (amount_settled >= 0),
-    CONSTRAINT ledger_entries_amount_released_non_negative CHECK (amount_released >= 0),
-    CONSTRAINT ledger_entries_amount_accounting_consistent CHECK (amount_settled + amount_released <= amount_reserved),
-    CONSTRAINT ledger_entries_reserved_requires_expiry CHECK (
-        reservation_status <> 'RESERVED' OR reserved_until IS NOT NULL
-    ),
-    CONSTRAINT ledger_entries_settlement_timestamp_when_settled CHECK (
-        reservation_status <> 'SETTLED' OR settled_at IS NOT NULL
-    ),
-    CONSTRAINT ledger_entries_wallet_request_idempotency UNIQUE (wallet_id, idempotency_key)
+    recorded_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_ledger_entries_wallet_status ON ledger_entries (wallet_id, reservation_status, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_ledger_entries_expiry_sweep ON ledger_entries (reserved_until) WHERE reservation_status = 'RESERVED';
-CREATE INDEX IF NOT EXISTS idx_ledger_entries_request_lookup ON ledger_entries (request_id);
+CREATE INDEX idx_escrow_reconciliation_sweep
+ON escrow_ledger (status, expires_at)
+INCLUDE (idempotency_key, user_id, reserved_amount)
+WHERE status = 'RESERVED';
 
-CREATE TABLE IF NOT EXISTS audit_events (
-    audit_event_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    ledger_entry_id UUID NOT NULL REFERENCES ledger_entries(ledger_entry_id),
-    wallet_id UUID NOT NULL REFERENCES wallets(wallet_id),
-    event_type TEXT NOT NULL,
-    actor_type TEXT NOT NULL,
-    actor_id TEXT,
-    event_payload JSONB NOT NULL DEFAULT '{}'::jsonb,
-    occurred_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_audit_events_ledger_join ON audit_events (ledger_entry_id, occurred_at DESC);
-CREATE INDEX IF NOT EXISTS idx_audit_events_wallet_join ON audit_events (wallet_id, occurred_at DESC);
-CREATE INDEX IF NOT EXISTS idx_audit_events_type_time ON audit_events (event_type, occurred_at DESC);
+CREATE INDEX idx_ledger_events_audit_trail
+ON ledger_events (idempotency_key, recorded_at);

@@ -1,1 +1,2 @@
-psycopg[binary]==3.2.3
+sqlalchemy==2.0.35
+psycopg[binary]==3.2.1
