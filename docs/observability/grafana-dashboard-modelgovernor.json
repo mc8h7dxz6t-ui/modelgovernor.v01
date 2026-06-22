@@ -1,0 +1,47 @@
+{
+  "title": "ModelGovernor Governance Control Plane",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "tags": ["modelgovernor", "governance"],
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Reserve Requests by Outcome",
+      "id": 1,
+      "targets": [
+        {
+          "expr": "sum by (outcome) (rate(sidecar_reserve_requests_total[5m]))",
+          "legendFormat": "{{outcome}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Settle Requests by Outcome",
+      "id": 2,
+      "targets": [
+        {
+          "expr": "sum by (outcome) (rate(sidecar_settle_requests_total[5m]))",
+          "legendFormat": "{{outcome}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Reserve vs Settle Dollar Throughput",
+      "id": 3,
+      "targets": [
+        {
+          "expr": "rate(sidecar_reserve_amount_dollars_total[5m])",
+          "legendFormat": "reserve"
+        },
+        {
+          "expr": "rate(sidecar_settle_amount_dollars_total[5m])",
+          "legendFormat": "settle"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+groups:
+  - name: modelgovernor-governance-alerts
+    rules:
+      - alert: ModelGovernorReserveErrorRateHigh
+        expr: sum(rate(sidecar_reserve_requests_total{outcome="error"}[5m])) > 0
+        for: 10m
+        labels:
+          severity: warning
+          service: sidecar
+        annotations:
+          summary: Reserve path is returning governance service errors.
+          description: Reserve requests are failing with transient backend errors for at least 10 minutes.
+
+      - alert: ModelGovernorSettleErrorRateHigh
+        expr: sum(rate(sidecar_settle_requests_total{outcome="error"}[5m])) > 0
+        for: 10m
+        labels:
+          severity: warning
+          service: sidecar
+        annotations:
+          summary: Settle path is returning governance service errors.
+          description: Settlement requests are failing with transient backend errors for at least 10 minutes.
+
+      - alert: ModelGovernorSettlementDriftDetected
+        expr: increase(sidecar_settle_amount_dollars_total[15m]) > increase(sidecar_reserve_amount_dollars_total[15m])
+        for: 15m
+        labels:
+          severity: critical
+          service: sidecar
+        annotations:
+          summary: Settlement amount exceeds reserved amount trend.
+          description: Settlement volume is outpacing reserved volume, indicating potential drift or delayed reserve behavior.

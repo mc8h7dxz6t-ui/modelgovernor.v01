@@ -1,0 +1,17 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reconciler
+  namespace: modelgovernor
+spec:
+  template:
+    spec:
+      containers:
+        - name: reconciler
+          resources:
+            requests:
+              cpu: "150m"
+              memory: "192Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"

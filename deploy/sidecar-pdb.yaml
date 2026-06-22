@@ -1,0 +1,13 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: sidecar
+  namespace: modelgovernor
+  labels:
+    app: sidecar
+    component: governance
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: sidecar

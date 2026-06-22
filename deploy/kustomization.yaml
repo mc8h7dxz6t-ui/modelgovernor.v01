@@ -8,3 +8,16 @@ resources:
   - sidecar-service.yaml
   - reconciler-deployment.yaml
   - migration-job.yaml
+  - sidecar-hpa.yaml
+  - sidecar-pdb.yaml
+  - ingress-sidecar-internal.yaml
+  - networkpolicy-default-deny-ingress.yaml
+  - networkpolicy-sidecar-allow-ingress.yaml
+  - networkpolicy-sidecar-egress.yaml
+  - networkpolicy-reconciler-egress.yaml
+
+images:
+  - name: modelgovernor/sidecar
+    newTag: latest
+  - name: modelgovernor/reconciler
+    newTag: latest
