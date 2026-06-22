@@ -46,7 +46,12 @@ make demo-ledger
 make demo-events
 ```
 
-These expose wallet, trace budget, escrow ledger, and append-only event state for verification.
+`make demo-status` now also calls the sidecar's internal-auth read and metrics surfaces:
+- `/internal/wallet/demo-user`
+- `/internal/events/recent`
+- `/metrics`
+
+This gives an API-first diligence path in addition to direct SQL views.
 
 ## Tear down
 

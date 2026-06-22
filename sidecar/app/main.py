@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 
+from .routes_admin import router as admin_router
+from .routes_metrics import router as metrics_router
 from .routes_reserve import router as reserve_router
 from .routes_settle import router as settle_router
 from .schemas import HealthResponse
@@ -19,3 +21,5 @@ def readyz() -> HealthResponse:
 
 app.include_router(reserve_router)
 app.include_router(settle_router)
+app.include_router(admin_router)
+app.include_router(metrics_router)
