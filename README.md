@@ -88,6 +88,7 @@ sidecar/
     auth.py
     db.py
     policy.py
+    metrics.py
     routes_reserve.py
     routes_settle.py
 
@@ -101,8 +102,60 @@ reconciler/
 
 tests/
   integration/
-  fixtures/
+    test_ledger_hardening.py    # fast SQLite-backed correctness tests
+    test_postgres_vigorous.py   # institutional-grade Postgres proof tests
+  load/
+    test_load_harness.py        # reproducible benchmark/load harness
+
+docs/
+  architecture.md
+  reliability-testing.md        # test-tier guide and CI integration
 ```
+
+## Testing
+
+modelgovernor.v01 has two clearly separated testing tiers.  See
+[`docs/reliability-testing.md`](docs/reliability-testing.md) for the full guide.
+
+### Tier 1 — Fast correctness tests (SQLite, no infra needed)
+
+```bash
+pytest tests/integration/test_ledger_hardening.py -v
+```
+
+Runs in under one second.  Covers all state-machine transitions, trace-cap
+enforcement, reconciler sweep, late settlement, drift lockout, and concurrent
+reserve safety.
+
+### Tier 2 — Institutional-grade Postgres proof tests
+
+```bash
+# Start ephemeral Postgres
+docker-compose -f docker-compose.test.yml up -d postgres-test
+
+# Run against real Postgres semantics
+POSTGRES_TEST_URL=******localhost:5433/mg_test \
+    pytest tests/integration/test_postgres_vigorous.py -v
+```
+
+Validates: atomic UPDATE-RETURNING for trace-cap, `FOR UPDATE SKIP LOCKED`
+preventing duplicate reconciler refunds, ENUM type enforcement, JSONB metadata,
+`provider_request_id` uniqueness, concurrent reconciler race safety, and
+post-session invariant consistency.
+
+### Load / benchmark harness
+
+```bash
+# SQLite (fast):
+python tests/load/test_load_harness.py
+
+# Postgres (institutional proof):
+POSTGRES_TEST_URL=******localhost:5433/mg_test python tests/load/test_load_harness.py
+```
+
+Exercises hot-trace contention, distributed contention, and mixed
+reserve/settle/sweep activity.  Captures p50/p95/p99 latency and writes a
+machine-readable JSON report artifact to `tests/load/reports/`.
 
 ## Development roadmap
 
