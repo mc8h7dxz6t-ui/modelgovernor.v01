@@ -11,6 +11,8 @@ import psycopg
 
 SIDECAR_URL = os.environ.get("LIVE_SIDECAR_URL", "http://localhost:8081")
 SIDECAR_TOKEN = os.environ.get("LIVE_SIDECAR_TOKEN", "dev-sidecar-token")
+GATEWAY_URL = os.environ.get("LIVE_GATEWAY_URL", "http://localhost:8080")
+GATEWAY_KEY = os.environ.get("LIVE_GATEWAY_KEY", "sk-test")
 DATABASE_URL = os.environ["LIVE_DATABASE_URL"]
 
 
@@ -34,6 +36,17 @@ def _get(path: str) -> tuple[int, dict[str, object]]:
         f"{SIDECAR_URL}{path}",
         method="GET",
         headers={"X-Internal-Token": SIDECAR_TOKEN},
+    )
+    with request.urlopen(req, timeout=10) as response:
+        body = json.loads(response.read().decode("utf-8"))
+        return response.status, body
+
+
+def _gateway_get(path: str) -> tuple[int, dict[str, object]]:
+    req = request.Request(
+        f"{GATEWAY_URL}{path}",
+        method="GET",
+        headers={"Authorization": "Bearer " + GATEWAY_KEY},
     )
     with request.urlopen(req, timeout=10) as response:
         body = json.loads(response.read().decode("utf-8"))
@@ -105,3 +118,10 @@ def test_live_reconciliation_summary_endpoint_available() -> None:
     assert "matched_count" in body
     assert "mismatched_count" in body
     assert "resolved_count" in body
+
+
+def test_live_gateway_models_endpoint_available() -> None:
+    status_code, body = _gateway_get("/v1/models")
+    assert status_code == 200
+    assert isinstance(body.get("data"), list)
+    assert any(model.get("id") == "gpt-4o-mini" for model in body["data"])

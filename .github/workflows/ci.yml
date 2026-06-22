@@ -124,6 +124,8 @@ jobs:
           SIDECAR_INTERNAL_TOKENS: dev-sidecar-token
           LIVE_SIDECAR_TOKEN: dev-sidecar-token
           LIVE_SIDECAR_URL: http://localhost:8081
+          LIVE_GATEWAY_URL: http://localhost:8080
+          LIVE_GATEWAY_KEY: sk-test
           POSTGRES_DB: modelgovernor
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -137,7 +139,7 @@ jobs:
 
           trap 'docker compose down -v' EXIT
 
-          docker compose up -d postgres redis sidecar
+          docker compose up -d postgres redis sidecar gateway
 
           for i in {1..30}; do
             if docker compose exec -T postgres pg_isready -U postgres; then
@@ -167,6 +169,23 @@ jobs:
           if [ "$ready" -ne 1 ]; then
             echo "sidecar never became ready" >&2
             docker compose logs sidecar
+            exit 1
+          fi
+
+          gateway_ready=0
+          for i in {1..30}; do
+            gateway_code=$(curl -s -o /dev/null -w "%{http_code}" \
+              -H "Authorization: ******" \
+              "$LIVE_GATEWAY_URL/v1/models" || true)
+            if [ "$gateway_code" = "200" ]; then
+              gateway_ready=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$gateway_ready" -ne 1 ]; then
+            echo "gateway never became ready" >&2
+            docker compose logs gateway
             exit 1
           fi
 
