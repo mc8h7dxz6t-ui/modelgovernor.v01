@@ -1,4 +1,6 @@
 model_list:
+
+  # ── OpenAI ────────────────────────────────────────────────────────────────
   - model_name: gpt-4o-mini
     litellm_params:
       model: openai/gpt-4o-mini
@@ -8,6 +10,118 @@ model_list:
     litellm_params:
       model: openai/gpt-4.1-mini
       api_key: os.environ/OPENAI_API_KEY
+
+  - model_name: gpt-4o
+    litellm_params:
+      model: openai/gpt-4o
+      api_key: os.environ/OPENAI_API_KEY
+
+  - model_name: gpt-4.1
+    litellm_params:
+      model: openai/gpt-4.1
+      api_key: os.environ/OPENAI_API_KEY
+
+  - model_name: o3
+    litellm_params:
+      model: openai/o3
+      api_key: os.environ/OPENAI_API_KEY
+
+  - model_name: o4-mini
+    litellm_params:
+      model: openai/o4-mini
+      api_key: os.environ/OPENAI_API_KEY
+
+  # ── Anthropic ─────────────────────────────────────────────────────────────
+  - model_name: claude-opus-4
+    litellm_params:
+      model: anthropic/claude-opus-4-5
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+  - model_name: claude-sonnet-4-5
+    litellm_params:
+      model: anthropic/claude-sonnet-4-5
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+  - model_name: claude-3-5-haiku-20241022
+    litellm_params:
+      model: anthropic/claude-3-5-haiku-20241022
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+  # ── Google ────────────────────────────────────────────────────────────────
+  - model_name: gemini-2.5-pro
+    litellm_params:
+      model: gemini/gemini-2.5-pro
+      api_key: os.environ/GOOGLE_API_KEY
+
+  - model_name: gemini-2.5-flash
+    litellm_params:
+      model: gemini/gemini-2.5-flash
+      api_key: os.environ/GOOGLE_API_KEY
+
+  - model_name: gemini-2.0-flash
+    litellm_params:
+      model: gemini/gemini-2.0-flash
+      api_key: os.environ/GOOGLE_API_KEY
+
+  # ── Meta via Groq ─────────────────────────────────────────────────────────
+  - model_name: llama-3.3-70b-versatile
+    litellm_params:
+      model: groq/llama-3.3-70b-versatile
+      api_key: os.environ/GROQ_API_KEY
+
+  - model_name: llama-3.1-8b-instant
+    litellm_params:
+      model: groq/llama-3.1-8b-instant
+      api_key: os.environ/GROQ_API_KEY
+
+  # ── Mistral AI ────────────────────────────────────────────────────────────
+  - model_name: mistral-large-2411
+    litellm_params:
+      model: mistral/mistral-large-2411
+      api_key: os.environ/MISTRAL_API_KEY
+
+  - model_name: mistral-small-3.1
+    litellm_params:
+      model: mistral/mistral-small-3.1
+      api_key: os.environ/MISTRAL_API_KEY
+
+  - model_name: codestral-2501
+    litellm_params:
+      model: mistral/codestral-2501
+      api_key: os.environ/MISTRAL_API_KEY
+
+  # ── Cohere ────────────────────────────────────────────────────────────────
+  - model_name: command-r-plus-08-2024
+    litellm_params:
+      model: cohere/command-r-plus-08-2024
+      api_key: os.environ/COHERE_API_KEY
+
+  - model_name: command-r-08-2024
+    litellm_params:
+      model: cohere/command-r-08-2024
+      api_key: os.environ/COHERE_API_KEY
+
+  # ── DeepSeek ──────────────────────────────────────────────────────────────
+  - model_name: deepseek-chat
+    litellm_params:
+      model: deepseek/deepseek-chat
+      api_key: os.environ/DEEPSEEK_API_KEY
+
+  - model_name: deepseek-reasoner
+    litellm_params:
+      model: deepseek/deepseek-reasoner
+      api_key: os.environ/DEEPSEEK_API_KEY
+
+  # ── xAI ───────────────────────────────────────────────────────────────────
+  - model_name: grok-2-1212
+    litellm_params:
+      model: xai/grok-2-1212
+      api_key: os.environ/XAI_API_KEY
+
+  - model_name: grok-3-mini
+    litellm_params:
+      model: xai/grok-3-mini
+      api_key: os.environ/XAI_API_KEY
 
 general_settings:
   master_key: os.environ/LITELLM_MASTER_KEY

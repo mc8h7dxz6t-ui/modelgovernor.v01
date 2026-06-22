@@ -24,5 +24,14 @@ The gateway must never dispatch to a provider without a committed reservation in
 | `LITELLM_MASTER_KEY` | Client-facing gateway master key |
 | `GATEWAY_TO_SIDECAR_TOKEN` | Internal token for gateway→sidecar calls |
 | `OPENAI_API_KEY` | OpenAI provider credential |
+| `ANTHROPIC_API_KEY` | Anthropic provider credential |
+| `GOOGLE_API_KEY` | Google Gemini provider credential |
+| `GROQ_API_KEY` | Groq provider credential (Meta Llama models) |
+| `MISTRAL_API_KEY` | Mistral AI provider credential |
+| `COHERE_API_KEY` | Cohere provider credential |
+| `DEEPSEEK_API_KEY` | DeepSeek provider credential |
+| `XAI_API_KEY` | xAI (Grok) provider credential |
+
+Populate only the keys for providers enabled in a given deployment. Unused provider entries in `litellm.config.yaml` can be removed or left with empty keys; governed requests to a model without a valid key will fail at the sidecar reserve step before any provider call is made.
 
 Use `litellm.config.yaml` as the routing baseline. Adjust models and providers per deployment.
