@@ -2,6 +2,21 @@
 
 A production-grade, ledger-backed AI governance control plane for reliable spend control, policy enforcement, and auditable reconciliation across multi-provider and agentic workloads.
 
+## Sales demo (start here — plug and play)
+
+**No API keys. No cloud. ~5 minutes.** Full institutional++ walkthrough for prospects and evaluators.
+
+```bash
+make demo-gold-up
+make demo-gold
+```
+
+See [SALES-DEMO.md](SALES-DEMO.md) for the talk track, capability matrix, and production upgrade path (`docs/plug-and-play.md`).
+
+```bash
+make demo-gold-down   # teardown
+```
+
 ## What this repository demonstrates
 
 - Reserve-before-dispatch governance semantics

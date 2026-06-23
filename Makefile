@@ -1,4 +1,14 @@
-.PHONY: demo-up demo-down demo-reset demo-smoke demo-drift-lock demo-status demo-ledger demo-events proof-test load-test
+.PHONY: demo-up demo-down demo-reset demo-smoke demo-drift-lock demo-status demo-ledger demo-events \
+	demo-gold-up demo-gold demo-gold-down proof-test load-test
+
+demo-gold-up:
+	./scripts/demo-gold-up.sh
+
+demo-gold:
+	./scripts/demo-gold.sh
+
+demo-gold-down:
+	./scripts/demo-gold-down.sh
 
 demo-up:
 	./scripts/demo-up.sh

@@ -1,5 +1,7 @@
 # Local demo (Docker Compose first)
 
+> **Sales / evaluator walkthrough:** prefer the gold-standard scripted demo — `make demo-gold-up` then `make demo-gold` ([SALES-DEMO.md](../SALES-DEMO.md)).
+
 This demo path is for evaluator walkthroughs, not performance claims.
 
 ## Prerequisites

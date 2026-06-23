@@ -58,6 +58,7 @@ services:
     environment:
       SIDECAR_INTERNAL_TOKEN: ${SIDECAR_PRIMARY_TOKEN:-dev-token}
       SIDECAR_URL: http://sidecar:8081
+      PROVIDER_MODE: mock
       MOCK_DISPATCH_COST: ${MOCK_DISPATCH_COST:-1.000000}
     depends_on:
       - sidecar
