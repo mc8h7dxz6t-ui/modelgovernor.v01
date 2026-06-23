@@ -204,44 +204,29 @@ are incremented by the production code paths:
 | `reconciler_expired_total` | Rows transitioned to EXPIRED |
 | `reconciler_stranded_total` | Rows transitioned to STRANDED |
 
-Zero-value counters for future use:
+Phase 4 anomaly enforcement counters (live and tested):
 
-| Counter | Purpose |
+| Counter | Incremented by |
 |---|---|
-| `negative_wallet_detected_total` | Future: post-operation invariant check |
-| `duplicate_refund_anomaly_total` | Future: anomaly detection hook |
-| `duplicate_settlement_anomaly_total` | Future: anomaly detection hook |
+| `negative_wallet_detected_total` | Negative-balance invariant probe |
+| `duplicate_refund_anomaly_total` | Duplicate refund attempt detection |
+| `duplicate_settlement_anomaly_total` | Duplicate settlement attempt detection |
 
 ---
 
 ## CI integration
 
-The lightweight tests run on every push in CI without any external services.
+All three tiers run on every push:
 
-To add Postgres-backed Tier 2 tests to CI, add a service container to your
-workflow:
-
-```yaml
-services:
-  postgres:
-    image: postgres:16
-    env:
-      POSTGRES_DB: mg_test
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - 5432:5432
-    options: >-
-      --health-cmd pg_isready
-      --health-interval 2s
-      --health-retries 15
-
-steps:
-  - name: Vigorous Postgres tests
-    env:
-      POSTGRES_TEST_URL: ******localhost:5432/mg_test
-    run: pytest tests/integration/test_postgres_vigorous.py -v
-```
+- **Tier 1** (`test-tier1`): SQLite fast tests with no external dependencies.
+  Covers ledger hardening, Phase 3 reconciliation, Phase 4 anomaly and
+  reporting, and Phase 5 orchestration plane.
+- **Tier 2** (`test-tier2`): Postgres vigorous proof tests against a
+  `postgres:16` service container.
+- **Tier 3** (`test-load`): Load harness gate that validates zero invariant
+  violations; uploads a machine-readable JSON artifact.
+- **Promotion gate** (`promote.yml`): Tier 1 + Tier 2 + Tier 3 must all pass
+  before a production image tag is dry-run applied.
 
 ---
 
@@ -255,3 +240,6 @@ steps:
 | Late settlement | Correct correction debit after EXPIRED / STRANDED | Multiple tests in both tiers |
 | Load invariants | No negative balances under 20-worker mixed load | `test_load_mixed_activity_no_negative_balances` |
 | No cap overruns under load | Zero violations in hot-trace scenario | `test_load_hot_trace_contention_invariants` |
+| Anomaly counters | Negative wallet, duplicate settlement/refund probes | `test_phase4_anomaly.py` |
+| Admin reporting | Audit log, spend report, wallet summary behind internal auth | `test_phase4_reporting.py` |
+| Orchestration plane | Standalone/co-existing workflow, critic, semantic cache | `test_orchestration_plane.py` |

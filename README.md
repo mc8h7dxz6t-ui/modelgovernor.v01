@@ -103,6 +103,7 @@ sidecar/
     routes_reserve.py
     routes_settle.py
     routes_reconcile.py       ← Phase 3
+    routes_audit.py           ← Phase 4
     routes_orchestration.py   ← Phase 5
 
 reconciler/
@@ -128,6 +129,9 @@ tests/
   integration/
     test_ledger_hardening.py        # Tier 1: fast SQLite correctness tests
     test_phase3_reconciliation.py   # Tier 1: Phase 3 reconciliation tests
+    test_phase4_anomaly.py          # Tier 1: Phase 4 anomaly counter tests
+    test_phase4_reporting.py        # Tier 1: Phase 4 admin reporting tests
+    test_orchestration_plane.py     # Tier 1: Phase 5 orchestration plane tests
     test_postgres_vigorous.py       # Tier 2: institutional Postgres proof tests
   load/
     test_load_harness.py            # Tier 3: reproducible benchmark harness
@@ -135,18 +139,20 @@ tests/
 
 ## Testing
 
-modelgovernor.v01 has two clearly separated testing tiers.  See
+modelgovernor.v01 has three testing tiers.  See
 [`docs/reliability-testing.md`](docs/reliability-testing.md) for the full guide.
 
 ### Tier 1 — Fast correctness tests (SQLite, no infra needed)
 
 ```bash
-pytest tests/integration/test_ledger_hardening.py -v
+pytest tests/integration/ -v --ignore tests/integration/test_postgres_vigorous.py
 ```
 
-Runs in under one second.  Covers all state-machine transitions, trace-cap
-enforcement, reconciler sweep, late settlement, drift lockout, and concurrent
-reserve safety.
+Runs in under five seconds.  Covers all state-machine transitions, trace-cap
+enforcement, reconciler sweep, late settlement, drift lockout, concurrent
+reserve safety, Phase 3 reconciliation and admin correction workflows, Phase 4
+anomaly counters and reporting endpoints, and Phase 5 orchestration plane
+correctness.
 
 ### Tier 2 — Institutional-grade Postgres proof tests
 

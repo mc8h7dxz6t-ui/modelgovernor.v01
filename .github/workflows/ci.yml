@@ -39,6 +39,7 @@ jobs:
             tests/integration/test_phase3_reconciliation.py \
             tests/integration/test_phase4_anomaly.py \
             tests/integration/test_phase4_reporting.py \
+            tests/integration/test_orchestration_plane.py \
             -q
 
   # ---------------------------------------------------------------------------

@@ -35,6 +35,7 @@ _MIGRATION_FILES = [
     "0004_ledger_control_plane_hardening.sql",
     "0005_phase3_reconciliation.sql",
     "0006_audit_report_indexes.sql",
+    "0007_orchestration_plane.sql",
 ]
 
 _TRUNCATE_TABLES = [
