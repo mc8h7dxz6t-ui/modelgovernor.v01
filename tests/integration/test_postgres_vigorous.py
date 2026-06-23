@@ -21,7 +21,7 @@ Set ``POSTGRES_TEST_URL`` to a live Postgres connection string, e.g.::
 
 or start the bundled test stack first::
 
-    docker-compose -f docker-compose.test.yml up -d
+    docker compose -f docker-compose.test.yml up -d
 
 All tests in this module are automatically skipped when the env-var is absent.
 """

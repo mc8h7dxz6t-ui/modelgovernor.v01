@@ -6,7 +6,7 @@
 #
 # Usage:
 #   docker compose -f docker-compose.test.yml up -d
-#   POSTGRES_TEST_URL=******localhost:5432/mg_test pytest tests/integration/test_postgres_vigorous.py -v
+#   POSTGRES_TEST_URL=******localhost:5433/mg_test pytest tests/integration/test_postgres_vigorous.py -v
 #   docker compose -f docker-compose.test.yml down
 #
 # Or run everything in one command:

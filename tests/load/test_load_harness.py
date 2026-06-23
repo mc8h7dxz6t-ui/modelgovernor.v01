@@ -17,15 +17,15 @@ Usage
 -----
 Run against SQLite (fast, always available)::
 
-    python tests/load/load_harness.py
+    python tests/load/test_load_harness.py
 
 Run against Postgres (institutional proof)::
 
-    POSTGRES_TEST_URL=******localhost:5432/mg_test python tests/load/load_harness.py
+    POSTGRES_TEST_URL=******localhost:5432/mg_test python tests/load/test_load_harness.py
 
 Run as pytest targets::
 
-    pytest tests/load/load_harness.py -v
+    pytest tests/load/test_load_harness.py -v
 
 Configuration via environment variables
 -----------------------------------------

@@ -62,7 +62,7 @@ def pg_engine() -> Engine:
         pytest.skip(
             "POSTGRES_TEST_URL is not set — Postgres vigorous tests skipped. "
             "Set POSTGRES_TEST_URL=******host:port/dbname "
-            "or run `docker-compose -f docker-compose.test.yml up -d` first."
+            "or run `docker compose -f docker-compose.test.yml up -d` first."
         )
     engine = create_engine(pg_url, future=True)
     _apply_migrations(engine)
