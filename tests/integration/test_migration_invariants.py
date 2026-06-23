@@ -61,11 +61,11 @@ def test_postgres_unique_expired_sweep_index(pg_engine) -> None:
                 INSERT INTO escrow_ledger (
                     idempotency_key, user_id, trace_id, model, request_fingerprint,
                     reserved_amount, actual_amount, status, terminal_reason,
-                    trace_cap_amount, created_at, expires_at
+                    trace_cap_amount, created_at, expires_at, expired_at
                 ) VALUES (
                     'inv-op', 'inv-user', 'inv-trace', 'gpt-4o-mini', 'fp',
                     5, 0, 'EXPIRED', 'TTL_EXPIRED', 25,
-                    CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                    CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
                 )
                 ON CONFLICT (idempotency_key) DO NOTHING
                 """

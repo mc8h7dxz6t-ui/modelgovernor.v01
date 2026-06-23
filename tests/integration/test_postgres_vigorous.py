@@ -85,6 +85,7 @@ def _pg_settings(
         default_trace_cap_amount=default_trace_cap_amount,
         drift_absolute_tolerance=drift_absolute_tolerance,
         drift_ratio_tolerance=drift_ratio_tolerance,
+        manual_approval_cost_threshold=Decimal("1000000"),
         db_pool_size=4,
         db_max_overflow=4,
         db_pool_timeout_seconds=10,

@@ -29,6 +29,7 @@ def _sidecar_settings(pg_url: str) -> SidecarSettings:
         default_trace_cap_amount=Decimal("100"),
         drift_absolute_tolerance=Decimal("1"),
         drift_ratio_tolerance=Decimal("1"),
+        manual_approval_cost_threshold=Decimal("1000000"),
         db_pool_size=3,
         db_max_overflow=2,
         db_pool_timeout_seconds=5,

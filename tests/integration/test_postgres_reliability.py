@@ -111,6 +111,7 @@ def _settings(database_url: str, *, default_trace_cap_amount: Decimal = Decimal(
         default_trace_cap_amount=default_trace_cap_amount,
         drift_absolute_tolerance=Decimal("0.500000"),
         drift_ratio_tolerance=Decimal("0.050000"),
+        manual_approval_cost_threshold=Decimal("1000000"),
         db_pool_size=5,
         db_max_overflow=5,
         db_pool_timeout_seconds=5,
