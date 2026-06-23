@@ -36,13 +36,13 @@ services:
     volumes:
       - .:/app
     environment:
-      POSTGRES_TEST_URL: ******postgres-test:5432/mg_test
+      POSTGRES_TEST_URL: "******postgres-test:5432/mg_test"
       PYTHONPATH: /app
     command: >
       bash -c "
         pip install -q pytest sqlalchemy 'psycopg[binary]' pydantic-settings &&
         pytest tests/integration/test_postgres_vigorous.py
-               tests/load/load_harness.py -v
+               tests/load/test_load_harness.py -v
       "
     depends_on:
       postgres-test:

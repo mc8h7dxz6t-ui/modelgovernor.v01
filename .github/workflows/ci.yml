@@ -182,14 +182,13 @@ jobs:
       - name: Apply all migrations against SQLite
         run: |
           python - <<'EOF'
-          import sqlite3, pathlib
+          import pathlib
+          import re
+          import sqlite3
 
           migrations_dir = pathlib.Path("migrations")
           conn = sqlite3.connect(":memory:")
 
-          # SQLite does not support ALTER TYPE or Postgres-specific DDL; skip those
-          # statements gracefully — the point is to catch syntax errors in the portable
-          # DDL that both dialects share.
           skip_prefixes = (
               "alter type",
               "create extension",
@@ -197,29 +196,83 @@ jobs:
               "create type",
           )
 
-          for path in sorted(migrations_dir.glob("*.sql")):
-              sql = path.read_text()
-              for stmt in sql.split(";"):
-                  stripped = stmt.strip().lower()
-                  if not stripped:
-                      continue
-                  if any(stripped.startswith(p) for p in skip_prefixes):
-                      continue
-                  try:
-                      conn.execute(stmt)
-                  except sqlite3.OperationalError as exc:
-                      # Ignore expected Postgres-only DDL and SQL fragments that
-                      # SQLite rejects; the purpose of this check is to catch
-                      # accidental syntax regressions in the portable subset.
-                      msg = f"{stmt}\n{exc}".lower()
-                      known_incompatible = (
-                          "timestamptz", "jsonb", "bigserial", "for update",
-                          "skip locked", "returning", "::jsonb", "::text",
-                          "filter (where", "if not exists", "create type",
-                          "alter type", "include (",
+          def iter_statements(sql: str):
+              buffer: list[str] = []
+              for line in sql.splitlines():
+                  buffer.append(line)
+                  candidate = "\n".join(buffer).strip()
+                  if candidate and sqlite3.complete_statement(candidate):
+                      yield candidate
+                      buffer = []
+
+              candidate = "\n".join(buffer).strip()
+              if candidate:
+                  yield candidate
+
+          def normalize_statement(stmt: str) -> list[str]:
+              stripped = stmt.strip().rstrip(";")
+              if not stripped:
+                  return []
+
+              lowered = stripped.lower()
+              if any(lowered.startswith(prefix) for prefix in skip_prefixes):
+                  return []
+
+              if lowered.startswith("alter table") and (
+                  "drop constraint" in lowered or "add constraint" in lowered
+              ):
+                  return []
+
+              normalized = stripped
+              normalized = re.sub(r"\btimestamptz\b", "TEXT", normalized, flags=re.IGNORECASE)
+              normalized = re.sub(r"\bbigserial\b", "INTEGER", normalized, flags=re.IGNORECASE)
+              normalized = re.sub(r"\bjsonb\b", "TEXT", normalized, flags=re.IGNORECASE)
+              normalized = re.sub(r"'\\{\\}'::jsonb", "'{}'", normalized, flags=re.IGNORECASE)
+              normalized = re.sub(r"::text\b", "", normalized, flags=re.IGNORECASE)
+              normalized = re.sub(r"\bescrow_status\b", "TEXT", normalized, flags=re.IGNORECASE)
+              normalized = re.sub(
+                  r"\s+include\s*\([^)]+\)",
+                  "",
+                  normalized,
+                  flags=re.IGNORECASE | re.DOTALL,
+              )
+              normalized = re.sub(
+                  r"add column if not exists",
+                  "ADD COLUMN",
+                  normalized,
+                  flags=re.IGNORECASE,
+              )
+
+              if lowered.startswith("alter table") and "add column" in lowered:
+                  match = re.match(
+                      r"ALTER TABLE\s+([^\s]+)\s+(.*)",
+                      normalized,
+                      flags=re.IGNORECASE | re.DOTALL,
+                  )
+                  if not match:
+                      return [normalized]
+                  table_name, operations = match.groups()
+                  return [
+                      f"ALTER TABLE {table_name} {operation.strip()}"
+                      for operation in re.split(
+                          r",\s*(?=ADD COLUMN\b)",
+                          operations,
+                          flags=re.IGNORECASE,
                       )
-                      if not any(k in msg for k in known_incompatible):
-                          raise RuntimeError(f"{path.name}: {exc}\nStatement: {stmt[:200]}") from exc
+                      if operation.strip()
+                  ]
+
+              return [normalized]
+
+          for path in sorted(migrations_dir.glob("*.sql")):
+              for stmt in iter_statements(path.read_text()):
+                  for normalized in normalize_statement(stmt):
+                      try:
+                          conn.execute(normalized)
+                      except sqlite3.OperationalError as exc:
+                          raise RuntimeError(
+                              f"{path.name}: {exc}\nStatement: {normalized[:200]}"
+                          ) from exc
 
           print("All migration files parsed successfully.")
           EOF

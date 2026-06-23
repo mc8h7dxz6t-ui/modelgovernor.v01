@@ -192,36 +192,12 @@ before treating a change as production-credible:
 
 ```bash
 python -m compileall -q sidecar/app reconciler/app
-python - <<'EOF'
-import sqlite3, pathlib
-
-migrations_dir = pathlib.Path("migrations")
-conn = sqlite3.connect(":memory:")
-skip_prefixes = ("alter type", "create extension", "comment on", "create type")
-
-for path in sorted(migrations_dir.glob("*.sql")):
-    sql = path.read_text()
-    for stmt in sql.split(";"):
-        stripped = stmt.strip().lower()
-        if not stripped or any(stripped.startswith(prefix) for prefix in skip_prefixes):
-            continue
-        try:
-            conn.execute(stmt)
-        except sqlite3.OperationalError as exc:
-            msg = f"{stmt}\n{exc}".lower()
-            known_incompatible = (
-                "timestamptz", "jsonb", "bigserial", "for update", "skip locked",
-                "returning", "::jsonb", "::text", "filter (where", "if not exists",
-                "create type", "alter type", "include (",
-            )
-            if not any(token in msg for token in known_incompatible):
-                raise
-print("All migration files parsed successfully.")
-EOF
+PYTHONPATH=. pytest tests/load/test_load_harness.py -q
 ```
 
-Kubernetes overlays are also rendered in CI with pinned `kustomize` so staging
-and production manifests stay reproducible.
+CI also runs a SQLite-normalized migration parse pass and renders the staging
+and production overlays with pinned `kustomize` so deployment artifacts stay
+reproducible.
 
 ## Development roadmap
 
