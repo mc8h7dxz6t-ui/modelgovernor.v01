@@ -79,7 +79,24 @@ python tests/load/test_load_harness.py
 
 Reports are written to `tests/load/reports/`.
 
-### Generate machine-readable invariant report (legacy script)
+### Production HA (Finance Ops Finals)
+
+```bash
+docker compose -f docker-compose.ha.yml up -d --scale sidecar=3 --scale reconciler=2
+kustomize build deploy/overlays/production | kubectl apply --dry-run=client -f -
+```
+
+See `docs/ha-strategy.md`, `docs/pgbouncer-runbook.md`, `programs/finance_ops_finals/README.md`.
+
+### Tier 4 — Toxiproxy chaos (Finance Ops, Postgres)
+
+```bash
+docker compose -f docker-compose.chaos.yml up -d
+export POSTGRES_TEST_URL=postgresql+psycopg://postgres:postgres@localhost:5435/mg_chaos
+pytest -q tests/chaos/test_toxiproxy_finance_ops.py
+```
+
+### Invariant report (optional)
 
 ```bash
 python scripts/generate_invariant_report.py --operations 120 --workers 12
@@ -118,8 +135,14 @@ Makefile
 .env.example
 docker-compose.yml
 docker-compose.test.yml
+docker-compose.ha.yml
+docker-compose.chaos.yml
 
-artifacts/reliability/
+deploy/
+  base/                 # K8s manifests, PgBouncer, migration job, Prometheus rules
+  overlays/
+    staging/
+    production/
 docs/
 gateway/
 migrations/
@@ -129,6 +152,9 @@ sidecar/
   app/
     metrics.py          # invariant counter registry
 tests/
+  programs/
+    finance_ops_finals/              # AI Finance Ops Finals for LLMs
+    cost_attribution_accountability/ # AI Cost Attribution & Agent Accountability
   integration/
     conftest.py         # Postgres session fixtures
     test_postgres_vigorous.py

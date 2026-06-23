@@ -10,4 +10,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
 
+EXPOSE 8082
+
+ENV RECONCILER_MODE=daemon
+
 CMD ["python", "-m", "app.main"]

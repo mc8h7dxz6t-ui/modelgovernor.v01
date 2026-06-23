@@ -36,8 +36,8 @@ jobs:
             tests/integration/test_chaos_resilience.py \
             tests/integration/test_property_ledger.py \
             tests/integration/test_migration_invariants.py \
-            tests/programs/finance_ops_finals/test_finance_ops_finals.py \
-            tests/programs/cost_attribution_accountability/test_attribution_accountability.py \
+            tests/programs/finance_ops_finals/ \
+            tests/programs/cost_attribution_accountability/ \
             -q
 
   test-tier2:
@@ -73,9 +73,37 @@ jobs:
       - name: Tier 2 Postgres vigorous tests
         env:
           POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5432/mg_test
-        run: PYTHONPATH=. pytest tests/integration/test_postgres_vigorous.py tests/integration/test_migration_invariants.py -q
+        run: PYTHONPATH=. pytest tests/integration/test_postgres_vigorous.py tests/integration/test_migration_invariants.py tests/programs/finance_ops_finals/test_reconciler_leader_election.py -q
 
-  test-load:
+  validate-manifests:
+    name: Kustomize manifest validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install kustomize
+        run: |
+          curl -sSLo kustomize.tar.gz \
+            https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.5.0/kustomize_v5.5.0_linux_amd64.tar.gz
+          tar xzf kustomize.tar.gz && sudo mv kustomize /usr/local/bin/kustomize
+
+      - name: Stage migrations for kustomize bundle
+        run: |
+          mkdir -p deploy/base/migrations
+          cp migrations/*.sql deploy/base/migrations/
+
+      - name: Render staging overlay
+        run: kustomize build deploy/overlays/staging > /tmp/staging.yaml
+
+      - name: Render production overlay
+        run: kustomize build deploy/overlays/production > /tmp/production.yaml
+
+      - name: kubectl dry-run client validation
+        run: |
+          kubectl apply --dry-run=client -f /tmp/staging.yaml
+          kubectl apply --dry-run=client -f /tmp/production.yaml
+
+  test-tier3:
     name: Tier 3 — Load harness gate
     runs-on: ubuntu-latest
     steps:
@@ -135,3 +163,33 @@ jobs:
 
       - name: Verify invariant migration present
         run: PYTHONPATH=. pytest tests/integration/test_migration_invariants.py::test_invariant_migration_file_present -q
+
+  test-tier4-chaos:
+    name: Tier 4 — Toxiproxy chaos (Finance Ops)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r sidecar/requirements.txt
+          pip install -r reconciler/requirements.txt
+          pip install pytest requests
+
+      - name: Start toxiproxy chaos stack
+        run: docker compose -f docker-compose.chaos.yml up -d --wait
+
+      - name: Tier 4 toxiproxy finance ops tests
+        env:
+          POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5435/mg_chaos
+          TOXIPROXY_API: http://localhost:8474
+        run: PYTHONPATH=. pytest tests/chaos/test_toxiproxy_finance_ops.py -q
+
+      - name: Tear down chaos stack
+        if: always()
+        run: docker compose -f docker-compose.chaos.yml down -v
