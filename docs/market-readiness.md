@@ -12,6 +12,8 @@ evidence alone.
 - evidence-backed validation and testing tiers
 - production-minded deployment artifacts
 - observability, readiness, and recovery documentation
+- hosted Kubernetes packaging blueprint with scaling and probe guidance
+- questionnaire-ready system threat model and security overview
 
 ## What still needs proof
 
@@ -19,17 +21,13 @@ evidence alone.
    - pilots, design partners, references, usage evidence, or revenue
 2. **Pricing and packaging**
    - editions, limits, deployment model, support tiers, and buyer fit
-3. **Hosted operations and SRE maturity**
-   - one named target environment with SLOs, alerting, backup and restore,
-     incident process, upgrade path, and failover rehearsal evidence
-4. **Security and compliance artifacts**
-   - security overview, threat model, access-control summary, secrets handling,
-     logging and audit summary, vulnerability management, and disaster-recovery
-     posture
-5. **Sales, onboarding, and support motion**
+3. **Named environment proof**
+   - one named target environment with SLOs, alerting ownership, backup and
+     restore evidence, incident process, upgrade path, and failover rehearsal
+4. **Sales, onboarding, and support motion**
    - buyer deck, technical overview, deployment guide, onboarding checklist,
      support policy, and escalation path
-6. **Market proof**
+5. **Market proof**
    - competitor positioning, ROI narrative, wedge use case, and why-now
      evidence
 

@@ -72,11 +72,13 @@ docs/
   architecture.md
   buyer-diligence-checklist.md
   build-plan.md
+  helm-chart-architecture-blueprint.md
   investor-memo.md
   market-readiness.md
   operations-runbook.md
   quality-bar.md
   reliability-testing.md
+  system-threat-model-and-corporate-security-overview.md
   ha-strategy.md
 
 gateway/
@@ -249,7 +251,9 @@ Operational startup, rollout, observability, and recovery expectations are
 documented in `docs/operations-runbook.md`.
 
 Commercial-readiness framing is documented in `docs/investor-memo.md`,
-`docs/buyer-diligence-checklist.md`, and `docs/market-readiness.md`.
+`docs/buyer-diligence-checklist.md`, `docs/market-readiness.md`,
+`docs/helm-chart-architecture-blueprint.md`, and
+`docs/system-threat-model-and-corporate-security-overview.md`.
 
 ## Status
 
