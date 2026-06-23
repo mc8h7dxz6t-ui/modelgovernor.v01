@@ -1,0 +1,8 @@
+1. Get the gateway service:
+  kubectl get svc -n {{ .Values.namespace.name }} {{ include "modelgovernor.fullname" . }}-gateway
+
+2. If using a LoadBalancer, wait for the external IP:
+  kubectl get svc -n {{ .Values.namespace.name }} {{ include "modelgovernor.fullname" . }}-gateway -w
+
+3. If using ClusterIP, port-forward locally:
+  kubectl port-forward -n {{ .Values.namespace.name }} svc/{{ include "modelgovernor.fullname" . }}-gateway 4000:{{ .Values.gateway.service.port }}

@@ -1,0 +1,45 @@
+{{- if .Values.redis.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "modelgovernor.fullname" . }}-redis
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "modelgovernor.labels" . | nindent 4 }}
+    app: redis
+spec:
+  replicas: {{ .Values.redis.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "modelgovernor.selectorLabels" . | nindent 6 }}
+      app: redis
+  template:
+    metadata:
+      labels:
+        {{- include "modelgovernor.selectorLabels" . | nindent 8 }}
+        app: redis
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: redis
+          image: {{ default (printf "%s/%s:%s" .Values.global.imageRegistry .Values.redis.image.repository .Values.redis.image.tag) .Values.redis.image.fullImage | quote }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          command:
+            - redis-server
+            - --maxmemory
+            - {{ .Values.redis.maxMemory | quote }}
+            - --maxmemory-policy
+            - allkeys-lru
+            - --save
+            - ""
+          ports:
+            - name: redis
+              containerPort: {{ .Values.redis.port }}
+          resources:
+            {{- toYaml .Values.redis.resources | nindent 12 }}
+{{- end }}

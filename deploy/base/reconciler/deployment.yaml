@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reconciler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reconciler
+  template:
+    metadata:
+      labels:
+        app: reconciler
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+        - name: tmp
+          emptyDir:
+            medium: Memory
+      containers:
+        - name: reconciler
+          image: ghcr.io/mc8h7dxz6t-ui/modelgovernor-reconciler:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - python
+            - -c
+            - |
+              import threading
+              import time
+              from http.server import BaseHTTPRequestHandler, HTTPServer
+              from app.main import main
+
+              class Handler(BaseHTTPRequestHandler):
+                  def do_GET(self):
+                      if self.path == "/healthz":
+                          self.send_response(200)
+                          self.end_headers()
+                          self.wfile.write(b"ok")
+                      else:
+                          self.send_response(404)
+                          self.end_headers()
+
+                  def log_message(self, fmt, *args):
+                      return
+
+              def serve():
+                  HTTPServer(("0.0.0.0", 8082), Handler).serve_forever()
+
+              threading.Thread(target=serve, daemon=True).start()
+              while True:
+                  try:
+                      main()
+                  except Exception as exc:
+                      print(f"reconciler error: {exc}", flush=True)
+                  time.sleep(30)
+          ports:
+            - containerPort: 8082
+              name: http
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: modelgovernor-reconciler-secret
+                  key: DATABASE_URL
+            - name: DB_POOL_SIZE
+              value: "2"
+            - name: DB_MAX_OVERFLOW
+              value: "1"
+            - name: DB_POOL_TIMEOUT_SECONDS
+              value: "5"
+            - name: DB_POOL_RECYCLE_SECONDS
+              value: "1800"
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8082
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8082
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp

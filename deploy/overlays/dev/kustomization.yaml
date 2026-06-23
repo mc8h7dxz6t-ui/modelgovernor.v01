@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: modelgovernor-dev
+resources:
+  - ../../base
+patches:
+  - path: patch-replicas.yaml
+  - path: patch-resources.yaml
+images:
+  - name: ghcr.io/mc8h7dxz6t-ui/modelgovernor-sidecar
+    newTag: dev
+  - name: ghcr.io/mc8h7dxz6t-ui/modelgovernor-reconciler
+    newTag: dev

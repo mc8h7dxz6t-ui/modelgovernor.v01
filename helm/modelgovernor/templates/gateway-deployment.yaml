@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "modelgovernor.fullname" . }}-gateway
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "modelgovernor.labels" . | nindent 4 }}
+    app: gateway
+spec:
+  replicas: {{ .Values.gateway.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "modelgovernor.selectorLabels" . | nindent 6 }}
+      app: gateway
+  template:
+    metadata:
+      labels:
+        {{- include "modelgovernor.selectorLabels" . | nindent 8 }}
+        app: gateway
+    spec:
+      serviceAccountName: {{ include "modelgovernor.serviceAccountName" . }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: gateway
+          image: {{ default (printf "%s/%s:%s" .Values.global.imageRegistry .Values.gateway.image.repository .Values.gateway.image.tag) .Values.gateway.image.fullImage | quote }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          args:
+            - --config
+            - /etc/litellm/config.yaml
+            - --port
+            - "{{ .Values.gateway.port }}"
+          ports:
+            - name: http
+              containerPort: {{ .Values.gateway.port }}
+          env:
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.gateway.secretRef }}
+                  key: OPENAI_API_KEY
+            - name: LITELLM_MASTER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.gateway.secretRef }}
+                  key: LITELLM_MASTER_KEY
+          readinessProbe:
+            httpGet:
+              path: /health/liveliness
+              port: {{ .Values.gateway.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health/liveliness
+              port: {{ .Values.gateway.port }}
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          resources:
+            {{- toYaml .Values.gateway.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: config
+              mountPath: /etc/litellm/config.yaml
+              subPath: config.yaml
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "modelgovernor.fullname" . }}-gateway-config

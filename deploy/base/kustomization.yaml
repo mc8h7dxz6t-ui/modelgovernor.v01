@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: modelgovernor
+resources:
+  - namespace.yaml
+  - sidecar/deployment.yaml
+  - sidecar/service.yaml
+  - sidecar/hpa.yaml
+  - sidecar/network-policy.yaml
+  - reconciler/deployment.yaml
+  - reconciler/service.yaml
+  - reconciler/network-policy.yaml
+  - gateway/deployment.yaml
+  - gateway/service.yaml
+  - gateway/configmap.yaml
+  - gateway/hpa.yaml
+  - gateway/network-policy.yaml
+  - redis/deployment.yaml
+  - redis/service.yaml
+  - redis/network-policy.yaml
+  - secrets/external-secret.yaml
+commonLabels:
+  app.kubernetes.io/part-of: modelgovernor
+  app.kubernetes.io/managed-by: kustomize

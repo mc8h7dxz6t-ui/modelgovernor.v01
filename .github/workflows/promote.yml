@@ -1,0 +1,59 @@
+name: Promote
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag to promote (e.g. v0.1.0)"
+        required: true
+      overlay:
+        description: "Overlay to deploy (dev or prod)"
+        required: true
+        default: prod
+
+jobs:
+  validate-and-promote:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate image tag format
+        run: |
+          if ! echo "${{ github.event.inputs.image_tag }}" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "ERROR: image_tag must match v<M>.<m>.<p> format"
+            exit 1
+          fi
+          if ! echo "${{ github.event.inputs.overlay }}" | grep -qE '^(dev|prod)$'; then
+            echo "ERROR: overlay must be dev or prod"
+            exit 1
+          fi
+      - name: Install kustomize v5.5.0
+        run: |
+          curl -sL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.5.0/kustomize_v5.5.0_linux_amd64.tar.gz" | tar xz
+          sudo mv kustomize /usr/local/bin/
+      - name: Install kubectl v1.31.0
+        run: |
+          curl -sLO "https://dl.k8s.io/release/v1.31.0/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+      - name: Prepare kubeconfig
+        run: |
+          printf '%s' "${{ secrets.KUBECONFIG }}" > "${GITHUB_WORKSPACE}/kubeconfig"
+          chmod 600 "${GITHUB_WORKSPACE}/kubeconfig"
+      - name: Update image tags in overlay
+        env:
+          IMAGE_TAG: ${{ github.event.inputs.image_tag }}
+        run: |
+          cd "deploy/overlays/${{ github.event.inputs.overlay }}"
+          kustomize edit set image ghcr.io/mc8h7dxz6t-ui/modelgovernor-sidecar=ghcr.io/mc8h7dxz6t-ui/modelgovernor-sidecar:${IMAGE_TAG}
+          kustomize edit set image ghcr.io/mc8h7dxz6t-ui/modelgovernor-reconciler=ghcr.io/mc8h7dxz6t-ui/modelgovernor-reconciler:${IMAGE_TAG}
+      - name: Render overlay
+        run: kustomize build deploy/overlays/${{ github.event.inputs.overlay }} > rendered-overlay.yaml
+      - name: Dry-run against cluster
+        run: kubectl apply --dry-run=client -f rendered-overlay.yaml
+        env:
+          KUBECONFIG: ${{ github.workspace }}/kubeconfig
+      - name: Apply to cluster
+        if: github.event.inputs.overlay == 'prod'
+        run: kubectl apply -f rendered-overlay.yaml
+        env:
+          KUBECONFIG: ${{ github.workspace }}/kubeconfig

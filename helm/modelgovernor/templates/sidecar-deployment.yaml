@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "modelgovernor.fullname" . }}-sidecar
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "modelgovernor.labels" . | nindent 4 }}
+    app: sidecar
+spec:
+  replicas: {{ .Values.sidecar.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "modelgovernor.selectorLabels" . | nindent 6 }}
+      app: sidecar
+  template:
+    metadata:
+      labels:
+        {{- include "modelgovernor.selectorLabels" . | nindent 8 }}
+        app: sidecar
+    spec:
+      serviceAccountName: {{ include "modelgovernor.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+        - name: tmp
+          emptyDir:
+            medium: Memory
+      containers:
+        - name: sidecar
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.sidecar.image.repository }}:{{ .Values.sidecar.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.sidecar.port }}
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.sidecar.secretRef }}
+                  key: DATABASE_URL
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.sidecar.secretRef }}
+                  key: REDIS_URL
+            - name: SIDECAR_INTERNAL_TOKENS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.sidecar.secretRef }}
+                  key: SIDECAR_INTERNAL_TOKENS
+            {{- range $key, $value := .Values.sidecar.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: {{ .Values.sidecar.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.sidecar.port }}
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.sidecar.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+            runAsNonRoot: true
+            runAsUser: 1000
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp

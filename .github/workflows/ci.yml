@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "feat/**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install sidecar deps
+        run: pip install -q -r sidecar/requirements.txt
+      - name: Compile check
+        run: python -m compileall sidecar/app reconciler/app
+
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: modelgovernor_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: ******localhost:5432/modelgovernor_test
+      REDIS_URL: redis://localhost:6379/0
+      SIDECAR_INTERNAL_TOKENS: ci-test-token
+      POSTGRES_TEST_URL: ******localhost:5432/modelgovernor_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -q -r sidecar/requirements.txt pytest pytest-asyncio httpx
+      - name: Run integration tests
+        run: pytest -q tests/integration/
+
+  validate-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install kustomize
+        run: |
+          curl -sL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.5.0/kustomize_v5.5.0_linux_amd64.tar.gz" | tar xz
+          sudo mv kustomize /usr/local/bin/
+      - name: Install kubectl
+        run: |
+          curl -sLO "https://dl.k8s.io/release/v1.31.0/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+      - name: Validate dev overlay
+        run: kustomize build deploy/overlays/dev | kubectl apply --dry-run=client -f -
+      - name: Validate prod overlay
+        run: kustomize build deploy/overlays/prod | kubectl apply --dry-run=client -f -
+      - name: Validate helm chart
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+          helm lint helm/modelgovernor
+          helm template modelgovernor helm/modelgovernor --values helm/modelgovernor/values-prod.yaml > /dev/null

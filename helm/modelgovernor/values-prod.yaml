@@ -1,0 +1,30 @@
+sidecar:
+  replicaCount: 3
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  autoscaling:
+    minReplicas: 3
+    maxReplicas: 20
+
+reconciler:
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 400m
+      memory: 512Mi
+
+gateway:
+  replicaCount: 3
+  service:
+    type: LoadBalancer
+  autoscaling:
+    minReplicas: 3
+    maxReplicas: 15

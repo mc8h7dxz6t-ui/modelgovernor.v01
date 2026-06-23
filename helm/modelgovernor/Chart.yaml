@@ -1,0 +1,13 @@
+apiVersion: v2
+name: modelgovernor
+description: Production-grade AI governance control plane
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - ai-governance
+  - llm
+  - spend-control
+  - policy-enforcement
+maintainers:
+  - name: modelgovernor

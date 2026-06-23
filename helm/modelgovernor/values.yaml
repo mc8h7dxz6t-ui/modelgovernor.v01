@@ -1,0 +1,119 @@
+global:
+  imageRegistry: ghcr.io/mc8h7dxz6t-ui
+  imagePullPolicy: IfNotPresent
+
+namespace:
+  create: true
+  name: modelgovernor
+
+serviceAccount:
+  create: false
+  name: modelgovernor-runtime
+
+sidecar:
+  image:
+    repository: modelgovernor-sidecar
+    tag: latest
+  replicaCount: 2
+  port: 8081
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 60
+    targetMemoryUtilizationPercentage: 75
+  env:
+    DEFAULT_TRACE_CAP_AMOUNT: "25.000000"
+    DRIFT_ABSOLUTE_TOLERANCE: "0.500000"
+    DRIFT_RATIO_TOLERANCE: "0.050000"
+    DB_POOL_SIZE: "5"
+    DB_MAX_OVERFLOW: "2"
+    DB_POOL_TIMEOUT_SECONDS: "5"
+    DB_POOL_RECYCLE_SECONDS: "1800"
+  secretRef: modelgovernor-sidecar-secret
+
+reconciler:
+  image:
+    repository: modelgovernor-reconciler
+    tag: latest
+  replicaCount: 1
+  port: 8082
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  autoscaling:
+    enabled: false
+  secretRef: modelgovernor-reconciler-secret
+
+gateway:
+  image:
+    repository: berriai/litellm
+    tag: main-latest
+    fullImage: ghcr.io/berriai/litellm:main-latest
+  replicaCount: 2
+  port: 4000
+  service:
+    type: ClusterIP
+    port: 4000
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 60
+  secretRef: modelgovernor-gateway-secret
+  config:
+    models:
+      - name: gpt-4o-mini
+        provider: openai
+      - name: gpt-4.1-mini
+        provider: openai
+
+redis:
+  enabled: true
+  image:
+    repository: redis
+    tag: 7-alpine
+    fullImage: redis:7-alpine
+  replicaCount: 1
+  port: 6379
+  maxMemory: 256mb
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 320Mi
+
+networkPolicy:
+  enabled: true
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL

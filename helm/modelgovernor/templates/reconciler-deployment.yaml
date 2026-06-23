@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "modelgovernor.fullname" . }}-reconciler
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "modelgovernor.labels" . | nindent 4 }}
+    app: reconciler
+spec:
+  replicas: {{ .Values.reconciler.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "modelgovernor.selectorLabels" . | nindent 6 }}
+      app: reconciler
+  template:
+    metadata:
+      labels:
+        {{- include "modelgovernor.selectorLabels" . | nindent 8 }}
+        app: reconciler
+    spec:
+      serviceAccountName: {{ include "modelgovernor.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+        - name: tmp
+          emptyDir:
+            medium: Memory
+      containers:
+        - name: reconciler
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.reconciler.image.repository }}:{{ .Values.reconciler.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          command:
+            - python
+            - -c
+            - |
+              import threading
+              import time
+              from http.server import BaseHTTPRequestHandler, HTTPServer
+              from app.main import main
+
+              class Handler(BaseHTTPRequestHandler):
+                  def do_GET(self):
+                      if self.path == "/healthz":
+                          self.send_response(200)
+                          self.end_headers()
+                          self.wfile.write(b"ok")
+                      else:
+                          self.send_response(404)
+                          self.end_headers()
+
+                  def log_message(self, fmt, *args):
+                      return
+
+              def serve():
+                  HTTPServer(("0.0.0.0", 8082), Handler).serve_forever()
+
+              threading.Thread(target=serve, daemon=True).start()
+              while True:
+                  try:
+                      main()
+                  except Exception as exc:
+                      print(f"reconciler error: {exc}", flush=True)
+                  time.sleep(30)
+          ports:
+            - name: http
+              containerPort: {{ .Values.reconciler.port }}
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.reconciler.secretRef }}
+                  key: DATABASE_URL
+            - name: DB_POOL_SIZE
+              value: "2"
+            - name: DB_MAX_OVERFLOW
+              value: "1"
+            - name: DB_POOL_TIMEOUT_SECONDS
+              value: "5"
+            - name: DB_POOL_RECYCLE_SECONDS
+              value: "1800"
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.reconciler.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.reconciler.port }}
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          resources:
+            {{- toYaml .Values.reconciler.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+            runAsNonRoot: true
+            runAsUser: 1000
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
