@@ -70,7 +70,10 @@ docker-compose.yml
 
 docs/
   architecture.md
+  buyer-diligence-checklist.md
   build-plan.md
+  investor-memo.md
+  market-readiness.md
   operations-runbook.md
   quality-bar.md
   reliability-testing.md
@@ -244,6 +247,9 @@ reproducible.
 All changes should meet the repository quality bar in `docs/quality-bar.md`.
 Operational startup, rollout, observability, and recovery expectations are
 documented in `docs/operations-runbook.md`.
+
+Commercial-readiness framing is documented in `docs/investor-memo.md`,
+`docs/buyer-diligence-checklist.md`, and `docs/market-readiness.md`.
 
 ## Status
 
