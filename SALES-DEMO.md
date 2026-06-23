@@ -2,6 +2,17 @@
 
 **Plug-and-play institutional++ walkthrough. No API keys. No cloud. ~5 minutes.**
 
+### Prerequisites (bash)
+
+```bash
+make demo-prereqs-install   # Docker + Docker Compose + curl + make (Linux)
+make demo-prereqs             # verify only
+```
+
+Or install manually: Docker Engine, [Compose plugin](https://docs.docker.com/compose/install/linux/), `curl`, `make`.
+
+### Run the demo
+
 ```bash
 make demo-gold-up
 make demo-gold

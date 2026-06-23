@@ -7,6 +7,7 @@ A production-grade, ledger-backed AI governance control plane for reliable spend
 **No API keys. No cloud. ~5 minutes.** Full institutional++ walkthrough for prospects and evaluators.
 
 ```bash
+make demo-prereqs-install   # once: Docker + Compose + curl + make
 make demo-gold-up
 make demo-gold
 ```
@@ -31,6 +32,11 @@ make demo-gold-down   # teardown
 ## Quick local demo (Docker Compose first)
 
 Prerequisites: Docker + Docker Compose plugin, `make`, `curl`.
+
+```bash
+make demo-prereqs-install   # optional: install on Ubuntu/Debian/Fedora/RHEL
+make demo-prereqs             # verify
+```
 
 ```bash
 make demo-up

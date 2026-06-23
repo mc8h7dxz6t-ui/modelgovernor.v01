@@ -3,6 +3,7 @@ set -euo pipefail
 
 source "$(cd "$(dirname "$0")" && pwd)/demo-lib.sh"
 
+require_demo_prereqs
 load_env
 compose up -d --build postgres redis sidecar reconciler
 wait_for_postgres

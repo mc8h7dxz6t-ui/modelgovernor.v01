@@ -6,9 +6,16 @@ This demo path is for evaluator walkthroughs, not performance claims.
 
 ## Prerequisites
 
-- Docker + Docker Compose plugin
+- Docker Engine + Docker Compose plugin
 - `curl`
 - `make`
+
+Install or verify from bash:
+
+```bash
+make demo-prereqs-install
+make demo-prereqs
+```
 
 ## Startup (about 2-5 minutes on first run)
 

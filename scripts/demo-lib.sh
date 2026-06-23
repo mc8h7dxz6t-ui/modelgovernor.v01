@@ -3,6 +3,17 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+require_demo_prereqs() {
+  if ! "$REPO_ROOT/scripts/install-demo-prereqs.sh" --check-only >/dev/null 2>&1; then
+    echo "Demo prerequisites missing (Docker, Docker Compose, curl, make)." >&2
+    echo "Install from bash:" >&2
+    echo "  make demo-prereqs-install" >&2
+    echo "  # or: ./scripts/install-demo-prereqs.sh --install" >&2
+    "$REPO_ROOT/scripts/install-demo-prereqs.sh" --check-only >&2 || true
+    exit 1
+  fi
+}
+
 compose() {
   (cd "$REPO_ROOT" && docker compose "$@")
 }
