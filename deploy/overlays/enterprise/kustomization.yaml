@@ -4,6 +4,9 @@ kind: Kustomization
 namespace: modelgovernor
 
 resources:
+  - ../../base
   - egress-istio.yaml
   - mtls-mesh.yaml
-  - istio-injection-patches.yaml
+
+patches:
+  - path: istio-injection-patches.yaml

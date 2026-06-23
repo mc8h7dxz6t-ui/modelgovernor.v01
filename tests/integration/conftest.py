@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import os
-import sqlite3
 from pathlib import Path
 
 import pytest
@@ -54,24 +53,50 @@ def _apply_migrations(engine: Engine) -> None:
     with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
         for filename in _MIGRATION_FILES:
             sql = (MIGRATIONS_DIR / filename).read_text(encoding="utf-8")
-            for statement in _iter_sql_statements(sql):
-                stripped = statement.strip()
-                if stripped:
-                    conn.execute(text(stripped))
+            for statement in _iter_pg_sql_statements(sql):
+                conn.execute(text(statement))
 
 
-def _iter_sql_statements(sql: str):
-    buffer: list[str] = []
-    for line in sql.splitlines():
-        buffer.append(line)
-        candidate = "\n".join(buffer).strip()
-        if candidate and sqlite3.complete_statement(candidate):
-            yield candidate
-            buffer = []
+def _iter_pg_sql_statements(sql: str):
+    """Split SQL on semicolons outside PostgreSQL dollar-quoted blocks."""
+    statements: list[str] = []
+    buf: list[str] = []
+    i = 0
+    n = len(sql)
+    in_dollar = False
+    dollar_tag = ""
 
-    candidate = "\n".join(buffer).strip()
-    if candidate:
-        yield candidate
+    while i < n:
+        if not in_dollar and sql[i] == "$":
+            j = i + 1
+            while j < n and (sql[j].isalnum() or sql[j] == "_"):
+                j += 1
+            if j < n and sql[j] == "$":
+                dollar_tag = sql[i : j + 1]
+                in_dollar = True
+                buf.append(dollar_tag)
+                i = j + 1
+                continue
+        if in_dollar and sql.startswith(dollar_tag, i):
+            buf.append(dollar_tag)
+            i += len(dollar_tag)
+            in_dollar = False
+            dollar_tag = ""
+            continue
+        if not in_dollar and sql[i] == ";":
+            stmt = "".join(buf).strip()
+            if stmt:
+                statements.append(stmt)
+            buf = []
+            i += 1
+            continue
+        buf.append(sql[i])
+        i += 1
+
+    tail = "".join(buf).strip()
+    if tail:
+        statements.append(tail)
+    return statements
 
 
 @pytest.fixture

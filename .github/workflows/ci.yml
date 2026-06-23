@@ -196,8 +196,11 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install test dependencies
+        run: pip install pytest sqlalchemy psycopg[binary]
+
       - name: Verify invariant migration present
-        run: PYTHONPATH=. pytest tests/integration/test_migration_invariants.py::test_invariant_migration_file_present -q
+        run: PYTHONPATH=. python3 -m pytest tests/integration/test_migration_invariants.py::test_invariant_migration_file_present -q
 
   test-tier4-chaos:
     name: Tier 4 — Toxiproxy chaos (Finance Ops)
@@ -217,7 +220,9 @@ jobs:
           pip install pytest requests
 
       - name: Start toxiproxy chaos stack
-        run: docker compose -f docker-compose.chaos.yml up -d --wait
+        run: |
+          docker compose -f docker-compose.chaos.yml up -d --wait postgres-chaos toxiproxy
+          docker compose -f docker-compose.chaos.yml run --rm toxiproxy-config
 
       - name: Tier 4 toxiproxy finance ops tests
         env:

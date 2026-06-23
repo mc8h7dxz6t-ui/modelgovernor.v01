@@ -6,7 +6,7 @@ Optional Istio egress allowlist for LLM provider domains. Apply on clusters with
 kubectl apply -k deploy/overlays/enterprise
 ```
 
-Includes:
+Includes base workload manifests plus:
 - `ServiceEntry` for `api.openai.com` and `api.anthropic.com`
 - `AuthorizationPolicy` restricting gateway egress to allowlisted hosts + in-cluster sidecar
 

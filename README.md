@@ -11,7 +11,7 @@ make demo-gold-up
 make demo-gold
 ```
 
-See [SALES-DEMO.md](SALES-DEMO.md) for the talk track, capability matrix, and production upgrade path (`docs/plug-and-play.md`).
+See [SALES-DEMO.md](SALES-DEMO.md) for the talk track, capability matrix, production upgrade path (`docs/plug-and-play.md`), and [platform sales sheets with pre-revenue valuation](docs/sales-sheets/).
 
 ```bash
 make demo-gold-down   # teardown
@@ -139,6 +139,7 @@ make load-test
 
 ## Diligence-oriented docs
 
+- `docs/sales-sheets/` — full spec, packaging, and pre-revenue valuation per platform
 - `LICENSE` (license posture)
 - `docs/dependency-licenses.md` (dependency/license visibility)
 - `docs/transferability.md` (portability and operational cleanliness)

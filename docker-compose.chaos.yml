@@ -1,7 +1,8 @@
 # Finance Ops Finals — network chaos harness (Toxiproxy).
 #
 # Usage:
-#   docker compose -f docker-compose.chaos.yml up -d
+#   docker compose -f docker-compose.chaos.yml up -d --wait postgres-chaos toxiproxy
+#   docker compose -f docker-compose.chaos.yml run --rm toxiproxy-config
 #   POSTGRES_TEST_URL=postgresql+psycopg://postgres:postgres@localhost:5435/mg_chaos \
 #     pytest tests/chaos/test_toxiproxy_finance_ops.py -v
 #
