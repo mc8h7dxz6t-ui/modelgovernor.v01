@@ -33,6 +33,7 @@ resources:
   - sidecar-podmonitor.yaml
   - reconciler-podmonitor.yaml
   - synthetic-probe-cronjob.yaml
+  - ledger-verify-cronjob.yaml
 
 labels:
   - pairs:

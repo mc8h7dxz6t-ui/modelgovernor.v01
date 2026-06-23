@@ -151,6 +151,10 @@ syntheticProbe:
   enabled: true
   schedule: "*/5 * * * *"
 
+ledgerChainVerify:
+  enabled: true
+  schedule: "0 * * * *"
+
 networkPolicy:
   enabled: true
 

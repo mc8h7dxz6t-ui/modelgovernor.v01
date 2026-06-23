@@ -41,8 +41,30 @@ class Settings(BaseSettings):
     circuit_breaker_open_seconds: int = 30
     otel_service_name: str = "modelgovernor-sidecar"
     otel_exporter_endpoint: str | None = None
+    oidc_enabled: bool = False
+    oidc_issuer_url: str | None = None
+    oidc_audience: str | None = None
+    oidc_jwks_url: str | None = None
+    oidc_algorithms: str = "RS256"
+    oidc_allow_internal_token_fallback: bool = True
+    oidc_internal_token_is_admin: bool = True
+    oidc_viewer_roles: str = "viewer,modelgovernor-viewer"
+    oidc_financial_admin_roles: str = "financial-admin,modelgovernor-financial-admin"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    def oidc_algorithms_list(self) -> list[str]:
+        return [part.strip() for part in self.oidc_algorithms.split(",") if part.strip()]
+
+    def oidc_viewer_roles_list(self) -> list[str]:
+        return [part.strip().lower() for part in self.oidc_viewer_roles.split(",") if part.strip()]
+
+    def oidc_financial_admin_roles_list(self) -> list[str]:
+        return [
+            part.strip().lower()
+            for part in self.oidc_financial_admin_roles.split(",")
+            if part.strip()
+        ]
 
 
 @lru_cache(maxsize=1)

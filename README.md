@@ -36,6 +36,9 @@ Internal operational surfaces (all require `x-internal-token`):
 ```bash
 curl -H "x-internal-token: $SIDECAR_PRIMARY_TOKEN" http://localhost:8081/internal/wallet/demo-user
 curl -H "x-internal-token: $SIDECAR_PRIMARY_TOKEN" http://localhost:8081/internal/events/recent?limit=20
+curl -H "x-internal-token: $SIDECAR_PRIMARY_TOKEN" http://localhost:8081/internal/diagnostic/status
+curl -X POST -H "x-internal-token: $SIDECAR_PRIMARY_TOKEN" http://localhost:8081/internal/diagnostic/clear
+curl -H "x-internal-token: $SIDECAR_PRIMARY_TOKEN" http://localhost:8081/internal/ledger/verify-chain
 curl -H "x-internal-token: $SIDECAR_PRIMARY_TOKEN" http://localhost:8081/metrics
 ```
 

@@ -7,11 +7,16 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import text
 
-from .auth import require_internal_auth
+from .auth import require_financial_admin, require_internal_auth
 from .db import get_db_session
+from .diagnostic_mode import clear_diagnostic_mode, diagnostic_snapshot
+from .ledger_seal import verify_ledger_chain
+from .metrics import get_counters
 from .schemas import (
     AuditEventResponse,
+    DiagnosticStatusResponse,
     DispatchAttemptResponse,
+    LedgerChainVerificationResponse,
     OperationStatusResponse,
     OperationsListResponse,
     RecentAuditEventsResponse,
@@ -194,6 +199,48 @@ def get_recent_audit_events(
         for row in rows
     ]
     return RecentAuditEventsResponse(events=events)
+
+
+@router.get("/diagnostic/status", response_model=DiagnosticStatusResponse)
+def get_diagnostic_status() -> DiagnosticStatusResponse:
+    snap = diagnostic_snapshot()
+    return DiagnosticStatusResponse(
+        diagnostic_mode=bool(snap.get("diagnostic_mode")),
+        diagnostic_component=snap.get("diagnostic_component"),
+        diagnostic_reason=snap.get("diagnostic_reason"),
+    )
+
+
+@router.post(
+    "/diagnostic/clear",
+    response_model=DiagnosticStatusResponse,
+    dependencies=[Depends(require_financial_admin)],
+)
+def post_clear_diagnostic_mode() -> DiagnosticStatusResponse:
+    clear_diagnostic_mode()
+    get_counters().increment("finance_audit_diagnostic_cleared_total")
+    snap = diagnostic_snapshot()
+    return DiagnosticStatusResponse(
+        diagnostic_mode=bool(snap.get("diagnostic_mode")),
+        diagnostic_component=snap.get("diagnostic_component"),
+        diagnostic_reason=snap.get("diagnostic_reason"),
+    )
+
+
+@router.get("/ledger/verify-chain", response_model=LedgerChainVerificationResponse)
+def get_ledger_verify_chain() -> LedgerChainVerificationResponse:
+    with get_db_session() as session:
+        result = verify_ledger_chain(session)
+
+    if not result.valid:
+        get_counters().increment("ledger_chain_verification_failed_total")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=result.to_dict(),
+        )
+
+    get_counters().increment("ledger_chain_verification_ok_total")
+    return LedgerChainVerificationResponse(**result.to_dict())
 
 
 def _parse_metadata(metadata: Any) -> dict[str, Any]:

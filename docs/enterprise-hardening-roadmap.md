@@ -53,24 +53,35 @@ Prometheus alert: `ModelGovernorFinanceDiagnosticMode` (see `prometheus-rules.ya
   Internal token      OIDC / Keycloak       Istio/Envoy         Sealed audit logs
 ```
 
-### 1. Corporate identity (OIDC / RBAC) — Planned
+### 1. Corporate identity (OIDC / RBAC) — Scaffold shipped ✅
 
 | Today | Target |
 |---|---|
 | `SIDECAR_INTERNAL_TOKENS` static string | OAuth2/OIDC middleware on `/internal/*` |
 | Single token class | RBAC: Viewer vs Financial Admin |
 
-**Scaffold:** Add `sidecar/app/auth_oidc.py` with JWT validation hooks; map roles
-from `realm_access.roles` (Keycloak) or Okta groups.
+**Shipped:** `sidecar/app/auth_oidc.py` — JWT validation via JWKS (`PyJWT`), Keycloak
+`realm_access.roles` and Okta `groups` mapping. Internal token fallback during migration.
 
-### 2. Tamper-evident ledger sealing — Foundation shipped ✅
+| Role | Endpoints |
+|---|---|
+| Viewer | `GET /internal/*` read surfaces |
+| Financial Admin | `POST /internal/diagnostic/clear` and other destructive ops |
+
+Enable with `OIDC_ENABLED=true`, `OIDC_ISSUER_URL`, `OIDC_AUDIENCE`.
+
+**Remaining:** Gateway-level OIDC termination, full audit log of admin actions per subject.
+
+### 2. Tamper-evident ledger sealing — Verification shipped ✅
 
 **Fix (foundation):** Migration `0009_ledger_hash_chain.sql` adds `prev_hash` /
 `row_hash` to `ledger_events`. `sidecar/app/ledger_seal.py` SHA-256 chains each event
 to the previous row on Postgres.
 
-**Remaining:** Verification CronJob, external anchor (S3 Object Lock / transparency log),
-audit API `GET /internal/ledger/verify-chain`.
+**Shipped:** `GET /internal/ledger/verify-chain` (422 on break), hourly
+`ledger-chain-verify` CronJob, alert `ModelGovernorLedgerChainVerificationFailed`.
+
+**Remaining:** External anchor (S3 Object Lock / transparency log).
 
 ### 3. Zero-trust egress — Planned
 
@@ -96,7 +107,7 @@ in `deploy/overlays/enterprise/`.
 
 1. Page on `ModelGovernorFinanceDiagnosticMode`
 2. Use `GET /internal/operations?status=STRANDED` and wallet/trace admin APIs
-3. Repair data, run finance audit manually, `clear_diagnostic_mode()` via admin tooling
+3. Repair data, run finance audit manually, `POST /internal/diagnostic/clear` (Financial Admin)
 4. Confirm sweeps resume and `/reserve` accepts traffic
 
 ### Precision migration

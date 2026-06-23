@@ -177,6 +177,18 @@ spec:
             description: >-
               Restore Redis HA or reduce ingress until guardrails recover.
 
+        - alert: ModelGovernorLedgerChainVerificationFailed
+          expr: increase(modelgovernor_invariant_events_total{event="ledger_chain_verification_failed_total"}[1h]) > 0
+          for: 0m
+          labels:
+            severity: critical
+            pagerduty: "true"
+          annotations:
+            summary: Ledger hash-chain verification failed
+            description: >-
+              Tamper-evident ledger chain check detected a broken prev_hash or row_hash.
+              Investigate ledger_events immediately.
+
         - alert: ModelGovernorStrandedHoldSpike
           expr: increase(modelgovernor_invariant_events_total{event="reconciler_stranded_total"}[15m]) > 10
           for: 5m

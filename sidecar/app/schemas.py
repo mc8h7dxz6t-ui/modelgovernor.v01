@@ -143,6 +143,26 @@ class RecentAuditEventsResponse(BaseModel):
     events: list[AuditEventResponse]
 
 
+class DiagnosticStatusResponse(BaseModel):
+    diagnostic_mode: bool
+    diagnostic_component: Optional[str] = None
+    diagnostic_reason: Optional[str] = None
+
+
+class LedgerChainBreakResponse(BaseModel):
+    event_id: int
+    reason: str
+
+
+class LedgerChainVerificationResponse(BaseModel):
+    valid: bool
+    sealed_count: int
+    unsealed_count: int
+    total_events: int
+    head_hash: Optional[str] = None
+    first_break: Optional[LedgerChainBreakResponse] = None
+
+
 class AttributionSummaryRow(BaseModel):
     group_key: str
     operations: int

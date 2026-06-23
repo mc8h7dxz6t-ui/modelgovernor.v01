@@ -35,6 +35,8 @@ jobs:
             tests/integration/test_readiness.py \
             tests/integration/test_fallback_limiter.py \
             tests/integration/test_diagnostic_mode.py \
+            tests/integration/test_auth_oidc.py \
+            tests/integration/test_ledger_verify_chain.py \
             tests/integration/test_micro_token_precision.py \
             tests/integration/test_guardrails.py \
             tests/integration/test_prometheus_scrape.py \

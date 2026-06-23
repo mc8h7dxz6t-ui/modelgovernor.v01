@@ -121,6 +121,9 @@ Operators should be able to observe:
 - Operation status: `GET /internal/operation/{idempotency_key}`
 - Trace budget: `GET /internal/trace/{trace_id}`
 - Recent audit events: `GET /internal/events/recent`
+- Diagnostic mode status: `GET /internal/diagnostic/status`
+- Clear diagnostic mode (Financial Admin): `POST /internal/diagnostic/clear`
+- Ledger hash-chain verification: `GET /internal/ledger/verify-chain` (422 on tamper)
 - Attribution summary: `GET /internal/attribution/summary`
 - Guardrail incidents: `GET /internal/guardrail/incidents`
 - Execution lineage: `GET /internal/lineage/{idempotency_key}`
