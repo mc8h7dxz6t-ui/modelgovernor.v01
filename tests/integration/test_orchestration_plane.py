@@ -102,6 +102,7 @@ def test_standalone_orchestration_runs_with_critic_and_deterministic_compute(tmp
     assert response.critic_passed is True
     assert response.computations[0].value == Decimal("132.000000")
     assert response.citations
+    assert "deterministic_compute_sandbox" in response.tech_edges
     assert response.agent_decisions[-1].agent == "critic"
 
 

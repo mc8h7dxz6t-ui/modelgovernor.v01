@@ -31,6 +31,13 @@ INJECTION_PATTERNS = (
     "<script",
 )
 PROHIBITED_PAYLOAD_MARKERS = ("private key", "credit card number", "ssn:")
+TECH_EDGES = [
+    "deterministic_compute_sandbox",
+    "dual_pass_critic_validation",
+    "prompt_injection_retrieval_filter",
+    "semantic_cache_first_gate",
+    "adaptive_model_routing",
+]
 
 
 class OrchestrationPolicyError(Exception):
@@ -58,6 +65,7 @@ def run_orchestration_workflow(
     if cached:
         cached_response = cached["response"]
         cached_response["cache_hit"] = True
+        cached_response.setdefault("tech_edges", TECH_EDGES)
         _insert_audit(
             session,
             run_id=cached["run_id"],
@@ -218,6 +226,7 @@ def run_orchestration_workflow(
         cache_hit=False,
         routing_tier=model_tier,
         estimated_cost=estimated_cost,
+        tech_edges=TECH_EDGES,
         citations=citations,
         computations=computations,
         report_payload=report_payload,
@@ -250,6 +259,7 @@ def _reject_workflow(
         cache_hit=False,
         routing_tier=model_tier,  # type: ignore[arg-type]
         estimated_cost=estimated_cost,
+        tech_edges=TECH_EDGES,
         citations=[],
         computations=[],
         report_payload={},

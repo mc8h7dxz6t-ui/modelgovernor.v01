@@ -207,6 +207,7 @@ class OrchestrationWorkflowResponse(BaseModel):
     cache_hit: bool
     routing_tier: Literal["fast-8b", "reasoning-large"]
     estimated_cost: Decimal
+    tech_edges: list[str]
     citations: list[WorkflowCitation]
     computations: list[WorkflowComputationResult]
     report_payload: Dict[str, Any]

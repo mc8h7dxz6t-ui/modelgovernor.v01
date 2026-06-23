@@ -110,6 +110,8 @@ Institutional workflows now run with two explicit planes:
 - semantic cache and model-tier routing for cost/latency control
 - append-only orchestration decision records in `orchestration_audit_log`
 
+These mechanisms are intentionally exposed as explicit `tech_edges` in orchestration responses so regulated operators can verify that institutional controls were active for each run.
+
 ## Deployment modes
 
 ### Local development
