@@ -204,6 +204,13 @@ machine-readable JSON report artifact to `tests/load/reports/`.
 - Kubernetes deployment manifests (`deploy/base` + `deploy/overlays/{staging,production}`)
 - HA and multi-region architecture documentation
 
+### Phase 4 ✓
+- Live anomaly-invariant enforcement counters
+- Prometheus-native metrics exposition with alerting rules
+- Governance reporting and audit export endpoints (internal-auth protected)
+- Adaptive Reservation Sizing specification
+- CI load-harness gate and production promotion gates
+
 ### Phase 5 ✓
 - Dual-plane orchestration API (`/orchestration/workflows/run`)
 - Co-existing and standalone orchestration runtime modes
@@ -217,6 +224,6 @@ All changes should meet the repository quality bar in `docs/quality-bar.md`.
 
 ## Status
 
-All three phases complete.  The platform is production-ready and deployable
+All five phases are complete.  The platform is production-ready and deployable
 from a single Docker Compose command for local development, or via the
 Kubernetes manifests in `deploy/` for container platform deployments.

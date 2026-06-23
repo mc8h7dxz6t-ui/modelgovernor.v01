@@ -52,7 +52,7 @@ Deliver a portable, institutional-grade AI governance gateway that can be reprod
 - Provider-side discrepancies can be surfaced and resolved deterministically ✓
 - Deployment artifacts support repeatable installation across environments ✓
 
-## Phase 4: industry-leading gold standard
+## Phase 4: industry-leading gold standard ✓
 
 ### Deliverables
 - Live anomaly-invariant enforcement counters
@@ -62,11 +62,11 @@ Deliver a portable, institutional-grade AI governance gateway that can be reprod
 - CI load-harness gate and promotion workflow gates
 
 ### Success criteria
-- Negative wallet and duplicate-settlement/refund anomaly counters are live and tested
-- `/metrics` is Prometheus-compatible and scrape-ready
-- Admin audit log export and wallet/spend reporting are available behind internal auth
-- Adaptive Reservation Sizing behavior is fully specified and operationally credible
-- Promotion to production is gated by Tier 1, Tier 2, and Tier 3 reliability tests
+- Negative wallet and duplicate-settlement/refund anomaly counters are live and tested ✓
+- `/metrics` is Prometheus-compatible and scrape-ready ✓
+- Admin audit log export and wallet/spend reporting are available behind internal auth ✓
+- Adaptive Reservation Sizing behavior is fully specified and operationally credible ✓
+- Promotion to production is gated by Tier 1, Tier 2, and Tier 3 reliability tests ✓
 
 ## Build order
 
