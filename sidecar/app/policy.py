@@ -10,6 +10,8 @@ def validate_reserve_request(request: ReserveRequest) -> None:
         raise PolicyDecisionError("estimated_cost must be non-negative")
     if request.trace_cap is not None and request.trace_cap <= 0:
         raise PolicyDecisionError("trace_cap must be positive when provided")
+    if request.requires_manual_approval and not request.manual_approval_id:
+        raise PolicyDecisionError("manual_approval_id is required when requires_manual_approval is true")
 
 
 def validate_settle_request(request: SettleRequest) -> None:
@@ -21,3 +23,5 @@ def validate_settle_request(request: SettleRequest) -> None:
         raise PolicyDecisionError("dispatch_attempt_key is required for non-terminal updates")
     if request.outcome == "SETTLED" and request.actual_cost < 0:
         raise PolicyDecisionError("actual_cost must be non-negative")
+    if request.retry_count < 0 or request.failover_count < 0:
+        raise PolicyDecisionError("retry_count and failover_count must be non-negative")

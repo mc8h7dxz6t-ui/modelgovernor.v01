@@ -16,6 +16,18 @@ class ReserveRequest(BaseModel):
     model: str = Field(..., min_length=1, max_length=255)
     estimated_cost: Decimal = Field(..., ge=0)
     trace_cap: Optional[Decimal] = Field(default=None, gt=0)
+    tenant_id: Optional[str] = Field(default=None, min_length=1, max_length=255)
+    session_id: Optional[str] = Field(default=None, min_length=1, max_length=255)
+    agent_run_id: Optional[str] = Field(default=None, min_length=1, max_length=255)
+    workflow_step: Optional[str] = Field(default=None, min_length=1, max_length=255)
+    policy_version: str = Field(default="v1", min_length=1, max_length=64)
+    run_budget: Optional[Decimal] = Field(default=None, gt=0)
+    session_budget: Optional[Decimal] = Field(default=None, gt=0)
+    tenant_budget: Optional[Decimal] = Field(default=None, gt=0)
+    user_budget: Optional[Decimal] = Field(default=None, gt=0)
+    requires_manual_approval: bool = False
+    manual_approval_id: Optional[str] = Field(default=None, min_length=1, max_length=255)
+    high_cost_tool: Optional[str] = Field(default=None, min_length=1, max_length=255)
 
 
 class ReserveResponse(BaseModel):
@@ -34,6 +46,26 @@ class SettleRequest(BaseModel):
     model: Optional[str] = Field(default=None, max_length=255)
     provider_request_id: Optional[str] = Field(default=None, max_length=255)
     reason: Optional[str] = Field(default=None, max_length=255)
+    tenant_id: Optional[str] = Field(default=None, min_length=1, max_length=255)
+    user_id: Optional[str] = Field(default=None, min_length=1, max_length=255)
+    session_id: Optional[str] = Field(default=None, min_length=1, max_length=255)
+    agent_run_id: Optional[str] = Field(default=None, min_length=1, max_length=255)
+    workflow_step: Optional[str] = Field(default=None, min_length=1, max_length=255)
+    policy_version: str = Field(default="v1", min_length=1, max_length=64)
+    input_tokens: int = Field(default=0, ge=0)
+    output_tokens: int = Field(default=0, ge=0)
+    cached_input_tokens: int = Field(default=0, ge=0)
+    cached_output_tokens: int = Field(default=0, ge=0)
+    latency_ms: int = Field(default=0, ge=0)
+    retry_count: int = Field(default=0, ge=0)
+    failover_count: int = Field(default=0, ge=0)
+    loop_signature: Optional[str] = Field(default=None, min_length=1, max_length=255)
+    prompt_template_version: Optional[str] = Field(default=None, min_length=1, max_length=255)
+    system_context_hash: Optional[str] = Field(default=None, min_length=1, max_length=255)
+    tool_name: Optional[str] = Field(default=None, min_length=1, max_length=255)
+    tool_input: Optional[str] = None
+    raw_tool_output: Optional[str] = None
+    state_snapshot: Optional[dict[str, Any]] = None
 
 
 class SettleResponse(BaseModel):
@@ -58,15 +90,36 @@ class DispatchAttemptResponse(BaseModel):
     provider_name: Optional[str]
     model_name: Optional[str]
     provider_request_id: Optional[str]
+    tenant_id: str
+    user_id: Optional[str]
+    session_id: str
+    agent_run_id: str
+    workflow_step: str
     status: str
     terminal_reason: Optional[str]
+    input_tokens: int
+    output_tokens: int
+    cached_input_tokens: int
+    cached_output_tokens: int
+    latency_ms: int
+    retry_count: int
+    failover_count: int
+    prompt_template_version: Optional[str]
+    system_context_hash: Optional[str]
+    tool_name: Optional[str]
+    raw_tool_output: Optional[str]
     created_at: datetime
     updated_at: datetime
 
 
 class OperationStatusResponse(BaseModel):
     idempotency_key: str
+    tenant_id: str
     user_id: str
+    session_id: str
+    agent_run_id: str
+    workflow_step: str
+    policy_version: str
     trace_id: str
     model: str
     status: str
@@ -74,6 +127,17 @@ class OperationStatusResponse(BaseModel):
     actual_amount: Decimal
     provider_request_id: Optional[str]
     terminal_reason: Optional[str]
+    input_tokens: int
+    output_tokens: int
+    cached_input_tokens: int
+    cached_output_tokens: int
+    latency_ms: int
+    retry_count: int
+    failover_count: int
+    prompt_template_version: Optional[str]
+    system_context_hash: Optional[str]
+    tool_name: Optional[str]
+    raw_tool_output: Optional[str]
     trace_cap_amount: Decimal
     drift_amount: Decimal
     created_at: datetime
@@ -103,3 +167,59 @@ class AuditEventResponse(BaseModel):
 
 class RecentAuditEventsResponse(BaseModel):
     events: list[AuditEventResponse]
+
+
+class AttributionSummaryRow(BaseModel):
+    group_key: str
+    operations: int
+    reserved_total: Decimal
+    settled_total: Decimal
+    input_tokens: int
+    output_tokens: int
+    cached_input_tokens: int
+    cached_output_tokens: int
+
+
+class AttributionSummaryResponse(BaseModel):
+    dimension: str
+    rows: list[AttributionSummaryRow]
+
+
+class GuardrailIncidentResponse(BaseModel):
+    incident_id: int
+    idempotency_key: Optional[str]
+    user_id: Optional[str]
+    tenant_id: Optional[str]
+    session_id: Optional[str]
+    agent_run_id: Optional[str]
+    workflow_step: Optional[str]
+    incident_type: str
+    details: dict[str, Any]
+    recorded_at: datetime
+
+
+class GuardrailIncidentsResponse(BaseModel):
+    incidents: list[GuardrailIncidentResponse]
+
+
+class ExecutionLineageRecordResponse(BaseModel):
+    lineage_id: int
+    idempotency_key: str
+    tenant_id: str
+    user_id: str
+    session_id: str
+    agent_run_id: str
+    workflow_step: str
+    event_type: str
+    prompt_template_version: Optional[str]
+    system_context_hash: Optional[str]
+    tool_name: Optional[str]
+    tool_input: Optional[str]
+    raw_tool_output: Optional[str]
+    provider_request_id: Optional[str]
+    state_snapshot: dict[str, Any]
+    recorded_at: datetime
+
+
+class ExecutionLineageResponse(BaseModel):
+    records: list[ExecutionLineageRecordResponse]

@@ -5,6 +5,7 @@ import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
+from typing import Any
 
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
@@ -48,6 +49,7 @@ class OperationResult:
 
 
 def reserve_operation(session: Session, settings: Settings, request: ReserveRequest) -> OperationResult:
+    identity = _identity_from_reserve(request)
     fingerprint = _fingerprint_reserve_request(request)
     existing = session.execute(
         text(
@@ -69,6 +71,37 @@ def reserve_operation(session: Session, settings: Settings, request: ReserveRequ
         )
 
     now = _utcnow()
+    if request.requires_manual_approval and not request.manual_approval_id:
+        _append_guardrail_incident(
+            session,
+            incident_type="APPROVAL_REQUIRED",
+            idempotency_key=request.idempotency_key,
+            user_id=request.user_id,
+            tenant_id=identity["tenant_id"],
+            session_id=identity["session_id"],
+            agent_run_id=identity["agent_run_id"],
+            workflow_step=identity["workflow_step"],
+            details={"reason": "manual_approval_missing", "high_cost_tool": request.high_cost_tool},
+            now=now,
+        )
+        session.commit()
+        raise PolicyStateError("manual approval is required for this operation")
+    if _money(request.estimated_cost) > _money(settings.manual_approval_cost_threshold) and not request.manual_approval_id:
+        _append_guardrail_incident(
+            session,
+            incident_type="APPROVAL_REQUIRED",
+            idempotency_key=request.idempotency_key,
+            user_id=request.user_id,
+            tenant_id=identity["tenant_id"],
+            session_id=identity["session_id"],
+            agent_run_id=identity["agent_run_id"],
+            workflow_step=identity["workflow_step"],
+            details={"reason": "cost_threshold_exceeded", "estimated_cost": str(_money(request.estimated_cost))},
+            now=now,
+        )
+        session.commit()
+        raise PolicyStateError("manual approval required above configured cost threshold")
+
     expires_at = now + timedelta(seconds=settings.reserve_ttl_seconds)
     trace_cap = _money(request.trace_cap or settings.default_trace_cap_amount)
     reserved_amount = _money(request.estimated_cost)
@@ -110,6 +143,40 @@ def reserve_operation(session: Session, settings: Settings, request: ReserveRequ
     if not trace_claim:
         raise TraceCapExceededError("trace cap exceeded")
 
+    scope_caps = _budget_caps(request, settings)
+    _apply_budget_delta(
+        session,
+        scope_type="run",
+        scope_key=identity["agent_run_id"],
+        cap_amount=scope_caps["run"],
+        delta_amount=reserved_amount,
+        now=now,
+    )
+    _apply_budget_delta(
+        session,
+        scope_type="session",
+        scope_key=identity["session_id"],
+        cap_amount=scope_caps["session"],
+        delta_amount=reserved_amount,
+        now=now,
+    )
+    _apply_budget_delta(
+        session,
+        scope_type="user",
+        scope_key=request.user_id,
+        cap_amount=scope_caps["user"],
+        delta_amount=reserved_amount,
+        now=now,
+    )
+    _apply_budget_delta(
+        session,
+        scope_type="tenant",
+        scope_key=identity["tenant_id"],
+        cap_amount=scope_caps["tenant"],
+        delta_amount=reserved_amount,
+        now=now,
+    )
+
     wallet = session.execute(
         text(
             """
@@ -137,7 +204,12 @@ def reserve_operation(session: Session, settings: Settings, request: ReserveRequ
                 """
                 INSERT INTO escrow_ledger (
                     idempotency_key,
+                    tenant_id,
                     user_id,
+                    session_id,
+                    agent_run_id,
+                    workflow_step,
+                    policy_version,
                     trace_id,
                     model,
                     request_fingerprint,
@@ -150,7 +222,12 @@ def reserve_operation(session: Session, settings: Settings, request: ReserveRequ
                     expires_at
                 ) VALUES (
                     :idempotency_key,
+                    :tenant_id,
                     :user_id,
+                    :session_id,
+                    :agent_run_id,
+                    :workflow_step,
+                    :policy_version,
                     :trace_id,
                     :model,
                     :request_fingerprint,
@@ -166,7 +243,12 @@ def reserve_operation(session: Session, settings: Settings, request: ReserveRequ
             ),
             {
                 "idempotency_key": request.idempotency_key,
+                "tenant_id": identity["tenant_id"],
                 "user_id": request.user_id,
+                "session_id": identity["session_id"],
+                "agent_run_id": identity["agent_run_id"],
+                "workflow_step": identity["workflow_step"],
+                "policy_version": request.policy_version,
                 "trace_id": request.trace_id,
                 "model": request.model,
                 "request_fingerprint": fingerprint,
@@ -189,7 +271,23 @@ def reserve_operation(session: Session, settings: Settings, request: ReserveRequ
             "trace_id": request.trace_id,
             "model": request.model,
             "trace_cap_amount": str(trace_cap),
+            "tenant_id": identity["tenant_id"],
+            "session_id": identity["session_id"],
+            "agent_run_id": identity["agent_run_id"],
+            "workflow_step": identity["workflow_step"],
+            "policy_version": request.policy_version,
         },
+    )
+    _record_lineage(
+        session,
+        idempotency_key=request.idempotency_key,
+        identity=identity,
+        user_id=request.user_id,
+        event_type="RESERVE_CREATED",
+        request=request,
+        provider_request_id=None,
+        state_snapshot={"status": "RESERVED", "reserved_amount": str(reserved_amount)},
+        now=now,
     )
     session.commit()
 
@@ -211,6 +309,7 @@ def apply_settlement(session: Session, settings: Settings, request: SettleReques
 
     if request.idempotency_key and request.idempotency_key != operation["idempotency_key"]:
         raise ConflictError("provider request id resolves to a different logical operation")
+    _validate_settlement_identity(operation, request)
 
     if request.outcome == "SETTLED":
         result = _finalize_settlement(session, settings, operation, request)
@@ -229,6 +328,7 @@ def _record_attempt_state(session: Session, operation: dict, request: SettleRequ
         raise PolicyStateError("dispatch_attempt_key is required for non-terminal execution updates")
 
     now = _utcnow()
+    _enforce_loop_guardrail(session, operation, request, now)
     _upsert_attempt(session, operation["idempotency_key"], request, now)
 
     status = request.outcome
@@ -240,7 +340,18 @@ def _record_attempt_state(session: Session, operation: dict, request: SettleRequ
             SET status = :status,
                 dispatch_started_at = COALESCE(dispatch_started_at, :dispatch_started_at),
                 provider_request_id = COALESCE(:provider_request_id, provider_request_id),
-                terminal_reason = :terminal_reason
+                terminal_reason = :terminal_reason,
+                input_tokens = :input_tokens,
+                output_tokens = :output_tokens,
+                cached_input_tokens = :cached_input_tokens,
+                cached_output_tokens = :cached_output_tokens,
+                latency_ms = :latency_ms,
+                retry_count = :retry_count,
+                failover_count = :failover_count,
+                prompt_template_version = COALESCE(:prompt_template_version, prompt_template_version),
+                system_context_hash = COALESCE(:system_context_hash, system_context_hash),
+                tool_name = COALESCE(:tool_name, tool_name),
+                raw_tool_output = COALESCE(:raw_tool_output, raw_tool_output)
             WHERE idempotency_key = :idempotency_key
             """
         ),
@@ -249,6 +360,17 @@ def _record_attempt_state(session: Session, operation: dict, request: SettleRequ
             "dispatch_started_at": now,
             "provider_request_id": request.provider_request_id,
             "terminal_reason": reason,
+            "input_tokens": request.input_tokens,
+            "output_tokens": request.output_tokens,
+            "cached_input_tokens": request.cached_input_tokens,
+            "cached_output_tokens": request.cached_output_tokens,
+            "latency_ms": request.latency_ms,
+            "retry_count": request.retry_count,
+            "failover_count": request.failover_count,
+            "prompt_template_version": request.prompt_template_version,
+            "system_context_hash": request.system_context_hash,
+            "tool_name": request.tool_name,
+            "raw_tool_output": request.raw_tool_output,
             "idempotency_key": operation["idempotency_key"],
         },
     )
@@ -264,7 +386,35 @@ def _record_attempt_state(session: Session, operation: dict, request: SettleRequ
             "provider_name": request.provider_name,
             "provider_request_id": request.provider_request_id,
             "reason": reason,
+            "tenant_id": operation["tenant_id"],
+            "session_id": operation["session_id"],
+            "agent_run_id": operation["agent_run_id"],
+            "workflow_step": operation["workflow_step"],
+            "input_tokens": request.input_tokens,
+            "output_tokens": request.output_tokens,
+            "cached_input_tokens": request.cached_input_tokens,
+            "cached_output_tokens": request.cached_output_tokens,
+            "latency_ms": request.latency_ms,
+            "retry_count": request.retry_count,
+            "failover_count": request.failover_count,
         },
+    )
+    _record_lineage(
+        session,
+        idempotency_key=operation["idempotency_key"],
+        identity=_identity_from_operation(operation),
+        user_id=operation["user_id"],
+        event_type=event_type,
+        request=request,
+        provider_request_id=request.provider_request_id,
+        state_snapshot=request.state_snapshot
+        or {
+            "status": status,
+            "reason": reason,
+            "retry_count": request.retry_count,
+            "failover_count": request.failover_count,
+        },
+        now=now,
     )
     return OperationResult(
         idempotency_key=operation["idempotency_key"],
@@ -309,6 +459,10 @@ def _finalize_settlement(
             correction_debit = _money(actual_amount - reserved_amount)
     else:
         correction_debit = actual_amount
+
+    budget_delta = actual_amount
+    if reserved_still_held:
+        budget_delta = _money(actual_amount - reserved_amount)
 
     if refund_amount:
         session.execute(
@@ -398,6 +552,41 @@ def _finalize_settlement(
             },
         )
 
+    if budget_delta:
+        scope_caps = _budget_caps_from_operation(operation, settings)
+        _apply_budget_delta(
+            session,
+            scope_type="run",
+            scope_key=operation["agent_run_id"],
+            cap_amount=scope_caps["run"],
+            delta_amount=budget_delta,
+            now=now,
+        )
+        _apply_budget_delta(
+            session,
+            scope_type="session",
+            scope_key=operation["session_id"],
+            cap_amount=scope_caps["session"],
+            delta_amount=budget_delta,
+            now=now,
+        )
+        _apply_budget_delta(
+            session,
+            scope_type="user",
+            scope_key=operation["user_id"],
+            cap_amount=scope_caps["user"],
+            delta_amount=budget_delta,
+            now=now,
+        )
+        _apply_budget_delta(
+            session,
+            scope_type="tenant",
+            scope_key=operation["tenant_id"],
+            cap_amount=scope_caps["tenant"],
+            delta_amount=budget_delta,
+            now=now,
+        )
+
     drift_amount = _money(actual_amount - reserved_amount)
     terminal_reason = "SETTLED_FINAL"
     if late_after_expiry:
@@ -412,7 +601,19 @@ def _finalize_settlement(
                 provider_request_id = COALESCE(:provider_request_id, provider_request_id),
                 terminal_reason = :terminal_reason,
                 settled_at = :settled_at,
-                drift_amount = :drift_amount
+                drift_amount = :drift_amount,
+                policy_version = :policy_version,
+                input_tokens = :input_tokens,
+                output_tokens = :output_tokens,
+                cached_input_tokens = :cached_input_tokens,
+                cached_output_tokens = :cached_output_tokens,
+                latency_ms = :latency_ms,
+                retry_count = :retry_count,
+                failover_count = :failover_count,
+                prompt_template_version = COALESCE(:prompt_template_version, prompt_template_version),
+                system_context_hash = COALESCE(:system_context_hash, system_context_hash),
+                tool_name = COALESCE(:tool_name, tool_name),
+                raw_tool_output = COALESCE(:raw_tool_output, raw_tool_output)
             WHERE idempotency_key = :idempotency_key
             """
         ),
@@ -422,6 +623,18 @@ def _finalize_settlement(
             "terminal_reason": terminal_reason,
             "settled_at": now,
             "drift_amount": drift_amount,
+            "policy_version": request.policy_version or operation.get("policy_version") or "v1",
+            "input_tokens": request.input_tokens,
+            "output_tokens": request.output_tokens,
+            "cached_input_tokens": request.cached_input_tokens,
+            "cached_output_tokens": request.cached_output_tokens,
+            "latency_ms": request.latency_ms,
+            "retry_count": request.retry_count,
+            "failover_count": request.failover_count,
+            "prompt_template_version": request.prompt_template_version,
+            "system_context_hash": request.system_context_hash,
+            "tool_name": request.tool_name,
+            "raw_tool_output": request.raw_tool_output,
             "idempotency_key": operation["idempotency_key"],
         },
     )
@@ -436,7 +649,33 @@ def _finalize_settlement(
             "provider_request_id": request.provider_request_id,
             "dispatch_attempt_key": request.dispatch_attempt_key,
             "previous_status": previous_status,
+            "tenant_id": operation["tenant_id"],
+            "session_id": operation["session_id"],
+            "agent_run_id": operation["agent_run_id"],
+            "workflow_step": operation["workflow_step"],
+            "input_tokens": request.input_tokens,
+            "output_tokens": request.output_tokens,
+            "cached_input_tokens": request.cached_input_tokens,
+            "cached_output_tokens": request.cached_output_tokens,
+            "latency_ms": request.latency_ms,
         },
+    )
+    _record_lineage(
+        session,
+        idempotency_key=operation["idempotency_key"],
+        identity=_identity_from_operation(operation),
+        user_id=operation["user_id"],
+        event_type=terminal_reason,
+        request=request,
+        provider_request_id=request.provider_request_id,
+        state_snapshot=request.state_snapshot
+        or {
+            "status": "SETTLED",
+            "actual_amount": str(actual_amount),
+            "reserved_amount": str(reserved_amount),
+            "drift_amount": str(drift_amount),
+        },
+        now=now,
     )
 
     drift_excess = max(Decimal("0"), drift_amount)
