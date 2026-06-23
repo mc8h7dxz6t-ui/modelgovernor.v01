@@ -29,6 +29,11 @@ _COUNTER_NAMES: tuple[str, ...] = (
     "user_inflight_exceeded_total",
     "provider_circuit_open_total",
     "finance_audit_violation_total",
+    "finance_audit_diagnostic_entered_total",
+    "local_fallback_reserve_total",
+    "local_fallback_rate_limit_total",
+    "local_fallback_inflight_total",
+    "local_fallback_trace_depth_total",
 )
 
 _collector_registered = False

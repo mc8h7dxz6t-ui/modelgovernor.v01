@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 class HealthResponse(BaseModel):
     status: str
-    details: dict[str, str | bool] | None = None
+    details: dict[str, str | bool | None] | None = None
 
 
 class ReserveRequest(BaseModel):

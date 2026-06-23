@@ -9,7 +9,7 @@ from typing import Callable
 
 class _HealthHandler(BaseHTTPRequestHandler):
     is_leader: Callable[[], bool] = lambda: True
-    is_healthy: Callable[[], bool] = lambda: True
+    extra_status: Callable[[], dict] = lambda: {}
 
     def log_message(self, format: str, *args) -> None:  # noqa: A003
         return
@@ -25,13 +25,23 @@ class _HealthHandler(BaseHTTPRequestHandler):
             return
 
         if self.path in {"/healthz", "/readyz"}:
-            healthy = self.is_healthy()
-            leader_ok = self.is_leader() or self.path == "/healthz"
-            body = {
-                "status": "ok" if healthy and leader_ok else ("standby" if healthy else "unhealthy"),
-                "leader": self.is_leader(),
-            }
-            code = 200 if self.path == "/healthz" or (healthy and self.is_leader()) else 503
+            extra = _HealthHandler.extra_status()
+            diagnostic = bool(extra.get("diagnostic_mode"))
+            leader = _HealthHandler.is_leader()
+            if self.path == "/healthz":
+                status = "diagnostic" if diagnostic else "ok"
+                code = 200
+            elif diagnostic:
+                status = "diagnostic"
+                code = 200
+            elif leader:
+                status = "ok"
+                code = 200
+            else:
+                status = "standby"
+                code = 503
+
+            body = {"status": status, "leader": leader, **extra}
             payload = json.dumps(body).encode("utf-8")
             self.send_response(code)
             self.send_header("Content-Type", "application/json")
@@ -76,9 +86,10 @@ def start_health_server(
     port: int,
     is_leader: Callable[[], bool],
     is_healthy: Callable[[], bool] | None = None,
+    extra_status: Callable[[], dict] | None = None,
 ) -> ThreadingHTTPServer:
     _HealthHandler.is_leader = is_leader
-    _HealthHandler.is_healthy = is_healthy or (lambda: True)
+    _HealthHandler.extra_status = extra_status or (lambda: {})
     server = ThreadingHTTPServer(("0.0.0.0", port), _HealthHandler)
     thread = threading.Thread(target=server.serve_forever, daemon=True, name="reconciler-health")
     thread.start()

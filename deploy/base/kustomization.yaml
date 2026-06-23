@@ -13,6 +13,8 @@ configMapGenerator:
       - migrations/0005_invariant_constraints.sql
       - migrations/0006_execution_attribution_guardrails.sql
       - migrations/0007_wallet_nonnegative_backstop.sql
+      - migrations/0008_micro_token_precision.sql
+      - migrations/0009_ledger_hash_chain.sql
 
 resources:
   - namespace.yaml

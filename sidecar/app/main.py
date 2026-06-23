@@ -6,6 +6,7 @@ from sqlalchemy import text
 
 from .config import get_settings
 from .db import get_db_session
+from .diagnostic_mode import diagnostic_snapshot
 from .guardrails import get_guardrails
 from .http_metrics import PrometheusMiddleware
 from .metrics import get_counters
@@ -42,6 +43,7 @@ def readyz() -> HealthResponse:
     except Exception as exc:
         raise HTTPException(status_code=503, detail="database unavailable") from exc
     guardrail_status = get_guardrails().redis_status()
+    guardrail_status.update(diagnostic_snapshot())
     return HealthResponse(status="ready", details=guardrail_status)
 
 

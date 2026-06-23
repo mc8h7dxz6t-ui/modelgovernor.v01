@@ -19,7 +19,7 @@ try:
 except ImportError:  # pragma: no cover
     attribution = None  # type: ignore[assignment]
 
-MONEY_QUANTUM = Decimal("0.000001")
+from .money import quantize_money as _money
 
 
 class LedgerError(Exception):
@@ -837,6 +837,56 @@ def _append_event(
             "metadata": metadata_json,
         },
     )
+    _maybe_seal_event(
+        session,
+        idempotency_key=idempotency_key,
+        user_id=user_id,
+        event_type=event_type,
+        amount_delta=_money(amount_delta),
+        metadata=metadata,
+    )
+
+
+def _maybe_seal_event(
+    session: Session,
+    *,
+    idempotency_key: str,
+    user_id: str,
+    event_type: str,
+    amount_delta: Decimal,
+    metadata: dict,
+) -> None:
+    try:
+        from . import ledger_seal
+
+        if not ledger_seal.schema_supports_ledger_seal(session):
+            return
+        row = session.execute(
+            text(
+                """
+                SELECT event_id, recorded_at::text AS recorded_at
+                FROM ledger_events
+                WHERE idempotency_key = :idempotency_key
+                ORDER BY event_id DESC
+                LIMIT 1
+                """
+            ),
+            {"idempotency_key": idempotency_key},
+        ).mappings().first()
+        if not row:
+            return
+        ledger_seal.seal_ledger_event(
+            session,
+            event_id=int(row["event_id"]),
+            idempotency_key=idempotency_key,
+            user_id=user_id,
+            event_type=event_type,
+            amount_delta=str(amount_delta),
+            metadata=metadata,
+            recorded_at=str(row["recorded_at"]),
+        )
+    except Exception:
+        pass
 
 
 def _fingerprint_reserve_request(request: ReserveRequest) -> str:
@@ -929,9 +979,6 @@ def _record_provider_success(provider_name: str) -> None:
     except Exception:
         pass
 
-
-def _money(value: Decimal | str | int | float | None) -> Decimal:
-    return Decimal(value or 0).quantize(MONEY_QUANTUM)
 
 
 def _utcnow() -> datetime:

@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from .metrics import get_counters
 
-MONEY_QUANTUM = Decimal("0.000001")
+from .money import MONEY_QUANTUM
 
 
 class FinanceOpsInvariantError(Exception):

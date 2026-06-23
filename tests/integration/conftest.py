@@ -20,6 +20,8 @@ _MIGRATION_FILES = [
     "0005_invariant_constraints.sql",
     "0006_execution_attribution_guardrails.sql",
     "0007_wallet_nonnegative_backstop.sql",
+    "0008_micro_token_precision.sql",
+    "0009_ledger_hash_chain.sql",
 ]
 
 _TRUNCATE_TABLES = [

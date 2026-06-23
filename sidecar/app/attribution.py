@@ -13,7 +13,7 @@ from .config import Settings
 from .metrics import get_counters
 from .schemas import ReserveRequest, SettleRequest
 
-MONEY_QUANTUM = Decimal("0.000001")
+from .money import quantize_money as _money
 
 _DEFAULT_IDENTITY = {
     "tenant_id": "default-tenant",
@@ -417,7 +417,3 @@ def schema_supports_attribution(session: Session) -> bool:
         )
     ).first()
     return found is not None
-
-
-def _money(value: Decimal | str | int | float | None) -> Decimal:
-    return Decimal(value or 0).quantize(MONEY_QUANTUM)

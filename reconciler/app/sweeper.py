@@ -12,7 +12,7 @@ try:
 except ImportError:
     _get_counters = None  # type: ignore[assignment]
 
-MONEY_QUANTUM = Decimal("0.000001")
+from sidecar.app.money import quantize_money as _money
 
 
 def sweep_expired_reservations(session: Session, batch_size: int = 100) -> int:
@@ -192,10 +192,6 @@ def _detect_duplicate_refund_events(session: Session, idempotency_key: str) -> N
     ).mappings().first()
     if row and int(row["cnt"]) > 1 and _get_counters is not None:
         _get_counters().increment("duplicate_refund_anomaly_total")
-
-
-def _money(value: Decimal | str | int | float | None) -> Decimal:
-    return Decimal(value or 0).quantize(MONEY_QUANTUM)
 
 
 def _utcnow() -> datetime:

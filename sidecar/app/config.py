@@ -27,6 +27,12 @@ class Settings(BaseSettings):
     rate_limit_per_minute: int = 120
     max_trace_depth: int = 50
     max_user_inflight: int = 10
+    fallback_max_trace_depth: int = 50
+    fallback_max_user_inflight: int = 5
+    fallback_rate_limit_per_minute: int = 60
+    fallback_global_tokens_per_second: float = 20.0
+    fallback_token_bucket_capacity: float = 40.0
+    diagnostic_mode_blocks_writes: bool = True
     redis_connect_timeout_seconds: float = 0.5
     redis_socket_timeout_seconds: float = 0.5
     circuit_breaker_enabled: bool = True

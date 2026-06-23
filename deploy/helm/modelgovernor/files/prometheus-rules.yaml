@@ -155,6 +155,28 @@ spec:
             description: >-
               Reconciler session-wide finance audit detected invariant violations.
 
+        - alert: ModelGovernorFinanceDiagnosticMode
+          expr: increase(modelgovernor_invariant_events_total{event="finance_audit_diagnostic_entered_total"}[5m]) > 0
+          for: 0m
+          labels:
+            severity: critical
+            pagerduty: "true"
+          annotations:
+            summary: Finance plane entered diagnostic mode
+            description: >-
+              Automated sweeps and write paths are halted; admin read APIs remain
+              available for operator recovery. Page financial ops immediately.
+
+        - alert: ModelGovernorLocalFallbackPressure
+          expr: increase(modelgovernor_invariant_events_total{event="local_fallback_rate_limit_total"}[5m]) > 50
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Redis outage — local fallback limiter under pressure
+            description: >-
+              Restore Redis HA or reduce ingress until guardrails recover.
+
         - alert: ModelGovernorStrandedHoldSpike
           expr: increase(modelgovernor_invariant_events_total{event="reconciler_stranded_total"}[15m]) > 10
           for: 5m
