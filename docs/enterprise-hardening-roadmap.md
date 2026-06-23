@@ -83,9 +83,12 @@ Enable with `OIDC_ENABLED=true`, `OIDC_ISSUER_URL`, `OIDC_AUDIENCE` (also in K8s
 **Shipped:** Privileged admin audit log (`0010_admin_audit_log.sql`, hash-chained),
 `GET /internal/admin/audit/recent`.
 
-**Remaining:** Gateway-level OIDC termination.
+**Shipped:** Gateway-edge OIDC on `POST /governed/dispatch` (`gateway/app/auth_oidc.py`).
+Corporate JWT validated at gateway; sidecar still uses internal token for reserve/settle.
 
-### 2. Tamper-evident ledger sealing — Verification shipped ✅
+Enable gateway: `GATEWAY_OIDC_ENABLED=true`, `GATEWAY_OIDC_ISSUER_URL`, `GATEWAY_OIDC_AUDIENCE`.
+
+### 2. Tamper-evident ledger sealing — S3 anchor shipped ✅
 
 **Fix (foundation):** Migration `0009_ledger_hash_chain.sql` adds `prev_hash` /
 `row_hash` to `ledger_events`. `sidecar/app/ledger_seal.py` SHA-256 chains each event
@@ -93,21 +96,28 @@ to the previous row on Postgres.
 
 **Shipped:** `GET /internal/ledger/verify-chain` (422 on break), hourly
 `ledger-chain-verify` CronJob, `ledger-chain-anchor` CronJob, `ledger_chain_anchors`
-table, optional `LEDGER_ANCHOR_WEBHOOK_URL`, alert `ModelGovernorLedgerChainVerificationFailed`.
+table, optional `LEDGER_ANCHOR_WEBHOOK_URL`, **S3 Object Lock** via
+`sidecar/app/ledger_anchor_s3.py` (`LEDGER_ANCHOR_S3_*`), alert
+`ModelGovernorLedgerChainVerificationFailed`.
 
-**Remaining:** S3 Object Lock / transparency log external anchor.
+**Remaining:** Production S3 bucket with Object Lock enabled at provision time.
 
-### 3. Zero-trust egress — Scaffold shipped ✅
+### 3. Zero-trust egress + mTLS — Shipped ✅
 
 | Today | Target |
 |---|---|
 | NetworkPolicy for in-cluster traffic | Egress proxy / service mesh |
 | Gateway needs public LLM APIs | Envoy/Istio allowlist: `api.openai.com`, `api.anthropic.com` only |
 
-**Shipped:** `deploy/overlays/enterprise/` — Istio `ServiceEntry`, `AuthorizationPolicy`
-for gateway egress allowlist.
+**Shipped:** `deploy/overlays/enterprise/` — Istio `ServiceEntry`, `AuthorizationPolicy`,
+`PeerAuthentication` STRICT mTLS, `DestinationRule` ISTIO_MUTUAL, sidecar injection patches.
 
-**Remaining:** mTLS service mesh, production Istio rollout.
+**Remaining:** Production Istio control plane rollout and cert rotation runbooks.
+
+### 4. Live JWKS integration tests — Shipped ✅
+
+`tests/integration/test_oidc_jwks_live.py` spins a real local JWKS HTTP server (RSA 2048),
+mints JWTs with PyJWT, and validates through sidecar + gateway without mocks.
 
 ---
 

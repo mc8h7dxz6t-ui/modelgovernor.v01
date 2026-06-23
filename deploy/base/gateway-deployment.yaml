@@ -31,6 +31,28 @@ spec:
                 secretKeyRef:
                   name: modelgovernor-secrets
                   key: sidecar-internal-tokens
+            - name: OIDC_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: modelgovernor-config
+                  key: GATEWAY_OIDC_ENABLED
+            - name: OIDC_ISSUER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: modelgovernor-config
+                  key: GATEWAY_OIDC_ISSUER_URL
+                  optional: true
+            - name: OIDC_AUDIENCE
+              valueFrom:
+                configMapKeyRef:
+                  name: modelgovernor-config
+                  key: GATEWAY_OIDC_AUDIENCE
+                  optional: true
+            - name: OIDC_DISPATCH_ROLES
+              valueFrom:
+                configMapKeyRef:
+                  name: modelgovernor-config
+                  key: GATEWAY_OIDC_DISPATCH_ROLES
           livenessProbe:
             httpGet:
               path: /healthz

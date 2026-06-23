@@ -25,3 +25,8 @@ data:
   OIDC_ALLOW_INTERNAL_TOKEN_FALLBACK: "true"
   OIDC_VIEWER_ROLES: "viewer,modelgovernor-viewer"
   OIDC_FINANCIAL_ADMIN_ROLES: "financial-admin,modelgovernor-financial-admin"
+  GATEWAY_OIDC_ENABLED: "false"
+  GATEWAY_OIDC_ISSUER_URL: ""
+  GATEWAY_OIDC_AUDIENCE: ""
+  GATEWAY_OIDC_DISPATCH_ROLES: "dispatch,modelgovernor-dispatch"
+  LEDGER_ANCHOR_S3_OBJECT_LOCK_ENABLED: "false"

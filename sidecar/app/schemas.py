@@ -171,6 +171,8 @@ class LedgerAnchorResponse(BaseModel):
     total_events: int = 0
     source: Optional[str] = None
     reason: Optional[str] = None
+    s3_anchored: bool = False
+    s3_key: Optional[str] = None
 
 
 class AdminAuditEntryResponse(BaseModel):

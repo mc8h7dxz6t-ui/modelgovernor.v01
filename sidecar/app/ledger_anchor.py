@@ -61,12 +61,15 @@ def anchor_verified_chain_head(
         }
 
     if not schema_supports_ledger_anchors(session):
-        _emit_external_anchor(result)
+        external = _emit_external_anchor(result, source=source)
+        s3_result = external.get("s3") or {}
         return {
             "anchored": False,
             "reason": "anchor table unavailable",
             "head_hash": result.head_hash,
             "sealed_count": result.sealed_count,
+            "s3_anchored": s3_result.get("s3_anchored", False),
+            "s3_key": s3_result.get("s3_key"),
         }
 
     inserted = None
@@ -119,7 +122,8 @@ def anchor_verified_chain_head(
     anchored = inserted is not None
     if anchored:
         get_counters().increment("ledger_chain_anchor_recorded_total")
-    _emit_external_anchor(result)
+    external = _emit_external_anchor(result, source=source)
+    s3_result = external.get("s3", {})
 
     return {
         "anchored": anchored,
@@ -128,23 +132,39 @@ def anchor_verified_chain_head(
         "sealed_count": result.sealed_count,
         "total_events": result.total_events,
         "source": source,
+        "s3_anchored": s3_result.get("s3_anchored", False),
+        "s3_key": s3_result.get("s3_key"),
     }
 
 
-def _emit_external_anchor(result: LedgerChainVerificationResult) -> None:
+def _emit_external_anchor(result: LedgerChainVerificationResult, *, source: str) -> dict[str, Any]:
     settings = get_settings()
-    if not settings.ledger_anchor_webhook_url or not result.head_hash:
-        return
-    payload = json.dumps(
+    payload: dict[str, Any] = {"webhook": None, "s3": None}
+    if not result.head_hash:
+        return payload
+
+    from .ledger_anchor_s3 import anchor_head_to_s3
+
+    payload["s3"] = anchor_head_to_s3(
+        head_hash=result.head_hash,
+        sealed_count=result.sealed_count,
+        total_events=result.total_events,
+        source=source,
+    )
+
+    if not settings.ledger_anchor_webhook_url:
+        return payload
+    webhook_body = json.dumps(
         {
             "head_hash": result.head_hash,
             "sealed_count": result.sealed_count,
             "total_events": result.total_events,
+            "source": source,
         }
     ).encode("utf-8")
     request = urllib.request.Request(
         settings.ledger_anchor_webhook_url,
-        data=payload,
+        data=webhook_body,
         headers={"content-type": "application/json"},
         method="POST",
     )
@@ -157,3 +177,4 @@ def _emit_external_anchor(result: LedgerChainVerificationResult) -> None:
     except Exception as exc:
         logger.warning("ledger anchor webhook failed: %s", exc)
         get_counters().increment("ledger_chain_anchor_webhook_failed_total")
+    return payload

@@ -40,6 +40,8 @@ jobs:
             tests/integration/test_diagnostic_write_block.py \
             tests/integration/test_circuit_breaker_local_fallback.py \
             tests/integration/test_admin_audit.py \
+            tests/integration/test_oidc_jwks_live.py \
+            tests/integration/test_ledger_anchor_s3.py \
             tests/integration/test_micro_token_precision.py \
             tests/integration/test_guardrails.py \
             tests/integration/test_prometheus_scrape.py \

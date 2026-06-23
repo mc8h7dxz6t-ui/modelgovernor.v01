@@ -51,6 +51,13 @@ class Settings(BaseSettings):
     oidc_viewer_roles: str = "viewer,modelgovernor-viewer"
     oidc_financial_admin_roles: str = "financial-admin,modelgovernor-financial-admin"
     ledger_anchor_webhook_url: str | None = None
+    ledger_anchor_s3_bucket: str | None = None
+    ledger_anchor_s3_prefix: str = "ledger-anchors"
+    ledger_anchor_s3_region: str | None = None
+    ledger_anchor_s3_endpoint_url: str | None = None
+    ledger_anchor_s3_object_lock_enabled: bool = False
+    ledger_anchor_s3_object_lock_mode: str = "GOVERNANCE"
+    ledger_anchor_s3_retention_days: int = 3650
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

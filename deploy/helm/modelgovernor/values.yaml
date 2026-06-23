@@ -109,6 +109,11 @@ gateway:
   enabled: true
   replicas: 2
   mockDispatchCost: "1.000000"
+  oidc:
+    enabled: false
+    issuerUrl: ""
+    audience: ""
+    dispatchRoles: "dispatch,modelgovernor-dispatch"
   resources:
     requests:
       cpu: 50m
@@ -187,3 +192,8 @@ config:
   oidcAllowInternalTokenFallback: "true"
   oidcViewerRoles: "viewer,modelgovernor-viewer"
   oidcFinancialAdminRoles: "financial-admin,modelgovernor-financial-admin"
+  gatewayOidcEnabled: "false"
+  gatewayOidcIssuerUrl: ""
+  gatewayOidcAudience: ""
+  gatewayOidcDispatchRoles: "dispatch,modelgovernor-dispatch"
+  ledgerAnchorS3ObjectLockEnabled: "false"

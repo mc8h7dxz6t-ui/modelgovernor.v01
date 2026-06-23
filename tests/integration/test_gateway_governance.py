@@ -48,15 +48,15 @@ def test_gateway_governed_dispatch_reserve_settle(tmp_path, monkeypatch) -> None
     monkeypatch.setenv("DATABASE_URL", str(engine.url))
     monkeypatch.setenv("REDIS_URL", "redis://example/0")
     monkeypatch.setenv("SIDECAR_INTERNAL_TOKENS", TOKEN)
+    monkeypatch.setenv("SIDECAR_URL", "http://sidecar:8081")
+    monkeypatch.setenv("SIDECAR_INTERNAL_TOKEN", TOKEN)
+    monkeypatch.setenv("MOCK_DISPATCH_COST", "1.000000")
     get_settings.cache_clear()
 
     from gateway.app import main as gateway_main
+    from gateway.app.config import get_settings as gateway_get_settings
 
-    gateway_main.settings = gateway_main.Settings(
-        sidecar_url="http://sidecar:8081",
-        sidecar_internal_token=TOKEN,
-        mock_dispatch_cost=Decimal("1.000000"),
-    )
+    gateway_get_settings.cache_clear()
 
     with TestClient(sidecar_app) as sidecar_client:
         monkeypatch.setattr(
@@ -67,6 +67,7 @@ def test_gateway_governed_dispatch_reserve_settle(tmp_path, monkeypatch) -> None
         with TestClient(gateway_main.app) as gateway_client:
             response = gateway_client.post(
                 "/governed/dispatch",
+                headers={"x-internal-token": TOKEN},
                 json={
                     "user_id": "gw-user",
                     "trace_id": "gw-trace",
@@ -81,6 +82,7 @@ def test_gateway_governed_dispatch_reserve_settle(tmp_path, monkeypatch) -> None
         assert body["reserve_status"] == "RESERVED"
         assert body["settle_status"] == "SETTLED"
         assert Decimal(body["actual_cost"]) == Decimal("1.000000")
+        assert body["authenticated_subject"] == "internal-token"
 
         wallet = sidecar_client.get("/internal/wallet/gw-user", headers={"x-internal-token": TOKEN})
         assert wallet.status_code == 200
