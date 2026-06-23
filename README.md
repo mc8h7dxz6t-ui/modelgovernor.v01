@@ -49,6 +49,8 @@ See `docs/demo.md` for full walkthrough and troubleshooting.
 
 ## Proof / reliability validation
 
+Institutional++ grade: runtime anomaly probes, DB invariant backstops (`migrations/0005`), property-based and chaos-adjacent tests, CI gates, and Prometheus alert rules (`deploy/base/prometheus-rules.yaml`).
+
 Three tiers of testing are available. See `docs/reliability-testing.md` for full scenario tables, metrics reference, and CI integration examples.
 
 ### Tier 1 — Lightweight local checks (SQLite, < 1 second)
@@ -56,6 +58,10 @@ Three tiers of testing are available. See `docs/reliability-testing.md` for full
 ```bash
 pytest -q tests/integration/test_ledger_hardening.py
 pytest -q tests/integration/test_sidecar_admin_observability.py
+pytest -q tests/integration/test_phase4_anomaly.py
+pytest -q tests/integration/test_readiness.py
+pytest -q tests/integration/test_chaos_resilience.py
+pytest -q tests/integration/test_property_ledger.py
 ```
 
 ### Tier 2 — Postgres vigorous proof (real DB semantics)

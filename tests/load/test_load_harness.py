@@ -638,6 +638,7 @@ def _apply_pg_migrations(engine) -> None:
         "0002_seed_model_policy.sql",
         "0003_harden_ledger_constraints.sql",
         "0004_ledger_control_plane_hardening.sql",
+        "0005_invariant_constraints.sql",
     ]
     with engine.begin() as conn:
         for filename in migration_files:

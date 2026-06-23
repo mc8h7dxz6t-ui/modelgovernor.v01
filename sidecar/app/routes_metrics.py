@@ -6,6 +6,7 @@ from sqlalchemy import text
 
 from .auth import require_internal_auth
 from .db import get_db_session
+from .metrics import get_counters
 
 router = APIRouter(tags=["metrics"])
 
@@ -121,6 +122,17 @@ def get_metrics() -> str:
             f'modelgovernor_trace_budget_state{{field="settled_total"}} {trace_state["settled_total"]}',
         ]
     )
+
+    lines.extend(
+        [
+            "# HELP modelgovernor_invariant_events_total Process-level invariant counters.",
+            "# TYPE modelgovernor_invariant_events_total counter",
+        ]
+    )
+    for event_name, value in sorted(get_counters().snapshot().items()):
+        lines.append(
+            f'modelgovernor_invariant_events_total{{event="{_escape_label(event_name)}"}} {value}'
+        )
 
     return "\n".join(lines) + "\n"
 

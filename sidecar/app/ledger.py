@@ -53,7 +53,7 @@ def reserve_operation(session: Session, settings: Settings, request: ReserveRequ
     existing = session.execute(
         text(
             """
-            SELECT idempotency_key, status, actual_amount, request_fingerprint
+            SELECT idempotency_key, status, actual_amount, reserved_amount, request_fingerprint
             FROM escrow_ledger
             WHERE idempotency_key = :idempotency_key
             """
@@ -64,10 +64,13 @@ def reserve_operation(session: Session, settings: Settings, request: ReserveRequ
         if existing["request_fingerprint"] != fingerprint:
             raise ConflictError("idempotency key replay does not match original reserve request")
         get_counters().increment("reserve_idempotent_replay_total")
+        replay_amount = existing["actual_amount"]
+        if existing["status"] != "SETTLED" and _money(replay_amount) == Decimal("0"):
+            replay_amount = existing["reserved_amount"]
         return OperationResult(
             idempotency_key=existing["idempotency_key"],
             status=existing["status"],
-            actual_amount=_money(existing["actual_amount"]),
+            actual_amount=_money(replay_amount),
         )
 
     now = _utcnow()
@@ -444,6 +447,8 @@ def _finalize_settlement(
             "previous_status": previous_status,
         },
     )
+    _detect_duplicate_settlement_events(session, operation["idempotency_key"])
+    _enforce_non_negative_wallet_balance(session, operation["user_id"])
 
     drift_excess = max(Decimal("0"), drift_amount)
     if drift_excess:
@@ -731,6 +736,38 @@ def _drift_exceeds_tolerance(drift_amount: Decimal, reserved_amount: Decimal, se
     if reserved_amount <= Decimal("0"):
         return True
     return (drift_amount / reserved_amount) > ratio_threshold
+
+
+def _detect_duplicate_settlement_events(session: Session, idempotency_key: str) -> None:
+    row = session.execute(
+        text(
+            """
+            SELECT COUNT(*) AS cnt
+            FROM ledger_events
+            WHERE idempotency_key = :idempotency_key
+              AND event_type IN ('SETTLED_FINAL', 'RECONCILED_LATE_SETTLE')
+            """
+        ),
+        {"idempotency_key": idempotency_key},
+    ).mappings().first()
+    if row and int(row["cnt"]) > 1:
+        get_counters().increment("duplicate_settlement_anomaly_total")
+
+
+def _enforce_non_negative_wallet_balance(session: Session, user_id: str) -> None:
+    row = session.execute(
+        text(
+            """
+            SELECT balance
+            FROM user_wallets
+            WHERE user_id = :user_id
+            """
+        ),
+        {"user_id": user_id},
+    ).mappings().first()
+    if row and _money(row["balance"]) < Decimal("0"):
+        get_counters().increment("negative_wallet_detected_total")
+        raise LedgerError("wallet balance invariant violated: negative balance detected")
 
 
 def _money(value: Decimal | str | int | float | None) -> Decimal:

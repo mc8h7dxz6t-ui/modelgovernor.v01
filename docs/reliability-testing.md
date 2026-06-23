@@ -217,35 +217,22 @@ Phase 4 anomaly enforcement counters (live and tested):
 
 ## CI integration
 
-All three tiers run on every push:
+`.github/workflows/ci.yml` runs on every push:
 
-- **Tier 1** (`test-tier1`): SQLite fast tests with no external dependencies.
-  Covers ledger hardening, Phase 3 reconciliation, Phase 4 anomaly and
-  reporting, and Phase 5 orchestration plane.
-- **Tier 2** (`test-tier2`): Postgres vigorous proof tests against a
-  `postgres:16` service container.
-- **Tier 3** (`test-load`): Load harness gate that validates zero invariant
-  violations; uploads a machine-readable JSON artifact.
-- **Compile check**: `python -m compileall -q sidecar/app reconciler/app`
-  catches import-time and syntax regressions in the shipped Python modules.
-- **Migration syntax check**: applies the SQLite-compatible subset of the SQL
-  migrations to catch portable DDL regressions while gracefully skipping
-  Postgres-only constructs such as enums and JSONB-specific expressions.
-- **Manifest validation**: renders the staging and production overlays with
-  pinned `kustomize` to keep deployment artifacts reproducible.
-- **Promotion gate** (`promote.yml`): Tier 1 + Tier 2 + Tier 3 must all pass
-  before a production image tag is dry-run applied.
+- **Tier 1** (`test-tier1`): ledger hardening, admin observability, Phase 4 anomaly probes, readiness, chaos resilience, property-based ledger tests, migration invariant definitions.
+- **Tier 2** (`test-tier2`): Postgres vigorous proof tests plus DB constraint validation against `postgres:16`.
+- **Tier 3** (`test-load`): load harness pytest gate plus `python tests/load/test_load_harness.py` with zero-invariant-violation validation; uploads JSON artifact.
+- **Migration invariant definitions** (`validate-migrations`): verifies `0005_invariant_constraints.sql` is present.
 
 ---
 
 ## Production-readiness evidence outside tests
 
-Testing alone is not the full readiness story.  The repository also exposes:
-
-- `/healthz` and `/readyz` probes for the sidecar
-- `/metrics` and `/metrics.json` for observability and load-report correlation
-- Kubernetes probes and Prometheus resources in `deploy/base/`
-- operator recovery guidance in `docs/operations-runbook.md`
+- `/healthz` — process liveness
+- `/readyz` — database connectivity probe (503 when DB unreachable)
+- `/metrics` — DB-aggregate Prometheus text plus process invariant counters (internal auth)
+- `/metrics.json` — invariant counter snapshot
+- `deploy/base/prometheus-rules.yaml` — alert rules for financial-safety anomalies
 
 ---
 

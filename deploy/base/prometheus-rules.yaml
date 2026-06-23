@@ -1,0 +1,60 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: modelgovernor-invariant-alerts
+  labels:
+    app: modelgovernor-sidecar
+spec:
+  groups:
+    - name: modelgovernor.invariants
+      rules:
+        - alert: ModelGovernorNegativeWalletDetected
+          expr: increase(modelgovernor_invariant_events_total{event="negative_wallet_detected_total"}[5m]) > 0
+          for: 0m
+          labels:
+            severity: critical
+          annotations:
+            summary: Negative wallet balance invariant violated
+            description: >-
+              The control plane detected a negative wallet balance. Investigate
+              settlement corrections and reconciler refunds immediately.
+
+        - alert: ModelGovernorDuplicateRefundAnomaly
+          expr: increase(modelgovernor_invariant_events_total{event="duplicate_refund_anomaly_total"}[5m]) > 0
+          for: 0m
+          labels:
+            severity: critical
+          annotations:
+            summary: Duplicate expiry refund detected
+            description: >-
+              More than one EXPIRED_SWEEP event was recorded for an operation.
+
+        - alert: ModelGovernorDuplicateSettlementAnomaly
+          expr: increase(modelgovernor_invariant_events_total{event="duplicate_settlement_anomaly_total"}[5m]) > 0
+          for: 0m
+          labels:
+            severity: critical
+          annotations:
+            summary: Duplicate terminal settlement detected
+            description: >-
+              More than one terminal settlement event was recorded for an operation.
+
+        - alert: ModelGovernorTraceCapOverrun
+          expr: increase(modelgovernor_invariant_events_total{event="trace_cap_overrun_detected_total"}[5m]) > 0
+          for: 0m
+          labels:
+            severity: warning
+          annotations:
+            summary: Trace cap overrun detected at application layer
+            description: >-
+              Atomic trace-cap enforcement denied a reserve after detecting overrun risk.
+
+        - alert: ModelGovernorStrandedHoldSpike
+          expr: increase(modelgovernor_invariant_events_total{event="reconciler_stranded_total"}[15m]) > 10
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Elevated stranded hold rate
+            description: >-
+              Reconciler is stranding more in-flight holds than baseline; check provider health.

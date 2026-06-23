@@ -1,0 +1,135 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  test-tier1:
+    name: Tier 1 — SQLite fast tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r sidecar/requirements.txt
+          pip install -r reconciler/requirements.txt
+          pip install pytest hypothesis
+
+      - name: Compile check
+        run: python3 -m compileall -q sidecar/app reconciler/app
+
+      - name: Tier 1 integration tests
+        run: |
+          PYTHONPATH=. pytest \
+            tests/integration/test_ledger_hardening.py \
+            tests/integration/test_sidecar_admin_observability.py \
+            tests/integration/test_phase4_anomaly.py \
+            tests/integration/test_readiness.py \
+            tests/integration/test_chaos_resilience.py \
+            tests/integration/test_property_ledger.py \
+            tests/integration/test_migration_invariants.py \
+            -q
+
+  test-tier2:
+    name: Tier 2 — Postgres vigorous tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: mg_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r sidecar/requirements.txt
+          pip install -r reconciler/requirements.txt
+          pip install pytest
+
+      - name: Tier 2 Postgres vigorous tests
+        env:
+          POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5432/mg_test
+        run: PYTHONPATH=. pytest tests/integration/test_postgres_vigorous.py tests/integration/test_migration_invariants.py -q
+
+  test-load:
+    name: Tier 3 — Load harness gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r sidecar/requirements.txt
+          pip install -r reconciler/requirements.txt
+          pip install pytest
+
+      - name: Tier 3 load harness
+        env:
+          LOAD_WORKERS: 12
+          LOAD_OPS_PER_WORKER: 8
+        run: |
+          PYTHONPATH=. pytest tests/load/test_load_harness.py -q
+          PYTHONPATH=. python3 tests/load/test_load_harness.py
+
+      - name: Validate zero invariant violations in report
+        run: |
+          python3 - <<'EOF'
+          import json
+          from pathlib import Path
+
+          reports = sorted(Path("tests/load/reports").glob("load_report_*.json"))
+          if not reports:
+              raise SystemExit("No load report artifact generated")
+          report = json.loads(reports[-1].read_text())
+          for scenario in report.get("scenarios", []):
+              violations = int(scenario.get("invariant_violations", 0))
+              if violations:
+                  raise SystemExit(f"{scenario.get('scenario')} invariant_violations={violations}")
+          print(f"Validated: {reports[-1]}")
+          EOF
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: load-harness-report
+          path: tests/load/reports/load_report_*.json
+          if-no-files-found: error
+
+  validate-migrations:
+    name: Migration invariant definitions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify invariant migration present
+        run: PYTHONPATH=. pytest tests/integration/test_migration_invariants.py::test_invariant_migration_file_present -q

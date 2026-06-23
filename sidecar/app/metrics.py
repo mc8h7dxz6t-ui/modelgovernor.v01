@@ -21,6 +21,8 @@ _COUNTER_NAMES: tuple[str, ...] = (
     "reconciler_stranded_total",
 )
 
+_collector_registered = False
+
 
 class InvariantCounters:
     """Thread-safe named counter registry."""
@@ -46,8 +48,36 @@ class InvariantCounters:
         return json.dumps(self.snapshot(), indent=indent, sort_keys=True)
 
 
+class InvariantCounterCollector:
+    """Expose invariant counters to prometheus_client when installed."""
+
+    def __init__(self, counters: InvariantCounters) -> None:
+        self._counters = counters
+
+    def collect(self):
+        from prometheus_client.core import CounterMetricFamily
+
+        metric = CounterMetricFamily(
+            "modelgovernor_invariant_events_total",
+            "Invariant event counters for governance control-plane reliability.",
+            labels=["event"],
+        )
+        for name, value in self._counters.snapshot().items():
+            metric.add_metric([name], float(value))
+        yield metric
+
+
 _global_counters = InvariantCounters()
 
 
 def get_counters() -> InvariantCounters:
+    global _collector_registered
+    if not _collector_registered:
+        try:
+            from prometheus_client import REGISTRY
+
+            REGISTRY.register(InvariantCounterCollector(_global_counters))
+            _collector_registered = True
+        except ImportError:
+            pass
     return _global_counters

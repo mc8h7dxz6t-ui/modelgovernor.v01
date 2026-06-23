@@ -120,6 +120,7 @@ def sweep_expired_reservations(session: Session, batch_size: int = 100) -> int:
                 amount_delta=reserved_amount,
                 metadata={"reason": "reconciler_expiry_claim"},
             )
+            _detect_duplicate_refund_events(session, row["idempotency_key"])
             if _get_counters is not None:
                 _get_counters().increment("reconciler_expired_total")
         swept += 1
@@ -175,6 +176,22 @@ def _append_event(
             "metadata": metadata_json,
         },
     )
+
+
+def _detect_duplicate_refund_events(session: Session, idempotency_key: str) -> None:
+    row = session.execute(
+        text(
+            """
+            SELECT COUNT(*) AS cnt
+            FROM ledger_events
+            WHERE idempotency_key = :idempotency_key
+              AND event_type = 'EXPIRED_SWEEP'
+            """
+        ),
+        {"idempotency_key": idempotency_key},
+    ).mappings().first()
+    if row and int(row["cnt"]) > 1 and _get_counters is not None:
+        _get_counters().increment("duplicate_refund_anomaly_total")
 
 
 def _money(value: Decimal | str | int | float | None) -> Decimal:
