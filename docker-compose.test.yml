@@ -5,13 +5,12 @@
 # every run starts from a clean state.
 #
 # Usage:
-#   docker-compose -f docker-compose.test.yml up -d
+#   docker compose -f docker-compose.test.yml up -d
 #   POSTGRES_TEST_URL=******localhost:5432/mg_test pytest tests/integration/test_postgres_vigorous.py -v
-#   docker-compose -f docker-compose.test.yml down
+#   docker compose -f docker-compose.test.yml down
 #
 # Or run everything in one command:
-#   docker-compose -f docker-compose.test.yml run --rm test
-version: '3.9'
+#   docker compose -f docker-compose.test.yml run --rm test
 
 services:
   postgres-test:
@@ -40,9 +39,8 @@ services:
       PYTHONPATH: /app
     command: >
       bash -c "
-        pip install -q pytest sqlalchemy 'psycopg[binary]' pydantic-settings &&
-        pytest tests/integration/test_postgres_vigorous.py
-               tests/load/test_load_harness.py -v
+        pip install -q -r sidecar/requirements.txt -r reconciler/requirements.txt pytest psycopg2-binary &&
+        pytest tests/integration/test_postgres_vigorous.py tests/load/test_load_harness.py -v
       "
     depends_on:
       postgres-test:
