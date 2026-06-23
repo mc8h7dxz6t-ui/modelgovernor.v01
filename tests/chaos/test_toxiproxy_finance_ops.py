@@ -53,27 +53,22 @@ def _postgres_url() -> str:
 def _reset_proxy() -> None:
     try:
         requests.delete(f"{TOXIPROXY_API}/proxies/{PROXY_NAME}/toxics", timeout=5)
-        _set_proxy_enabled(True)
     except requests.RequestException:
         pytest.skip("toxiproxy API unavailable")
-
-
-def _set_proxy_enabled(enabled: bool) -> None:
-    response = requests.get(f"{TOXIPROXY_API}/proxies/{PROXY_NAME}", timeout=5)
-    response.raise_for_status()
-    payload = response.json()
-    payload["enabled"] = enabled
-    requests.post(
-        f"{TOXIPROXY_API}/proxies/{PROXY_NAME}",
-        json=payload,
-        timeout=5,
-    ).raise_for_status()
 
 
 def _add_latency(ms: int) -> None:
     requests.post(
         f"{TOXIPROXY_API}/proxies/{PROXY_NAME}/toxics",
         json={"name": "latency", "type": "latency", "attributes": {"latency": ms, "jitter": 10}},
+        timeout=5,
+    ).raise_for_status()
+
+
+def _add_reset_peer() -> None:
+    requests.post(
+        f"{TOXIPROXY_API}/proxies/{PROXY_NAME}/toxics",
+        json={"name": "reset", "type": "reset_peer", "toxicity": 1.0},
         timeout=5,
     ).raise_for_status()
 
@@ -114,22 +109,27 @@ def _settings(database_url: str) -> Settings:
     )
 
 
-def test_finance_ops_survives_toxiproxy_latency(chaos_engine) -> None:
-    _reset_proxy()
-    _add_latency(250)
-    settings = _settings(str(chaos_engine.url))
-    factory = sessionmaker(bind=chaos_engine, autoflush=False, autocommit=False, future=True)
-
+def _seed_wallet(factory: sessionmaker, *, balance: Decimal = Decimal("100.000000")) -> None:
     with factory() as session:
         session.execute(
             text(
                 """
                 INSERT INTO user_wallets (user_id, balance, active)
-                VALUES ('chaos-user', 100, TRUE)
-                ON CONFLICT (user_id) DO UPDATE SET balance = 100, active = TRUE
+                VALUES ('chaos-user', :balance, TRUE)
+                ON CONFLICT (user_id) DO UPDATE SET balance = EXCLUDED.balance, active = TRUE
                 """
-            )
+            ),
+            {"balance": str(balance)},
         )
+        session.commit()
+
+
+def test_finance_ops_survives_toxiproxy_latency(chaos_engine) -> None:
+    _reset_proxy()
+    _add_latency(250)
+    settings = _settings(str(chaos_engine.url))
+    factory = sessionmaker(bind=chaos_engine, autoflush=False, autocommit=False, future=True)
+    _seed_wallet(factory)
 
     t0 = time.perf_counter()
     with factory() as session:
@@ -141,7 +141,7 @@ def test_finance_ops_survives_toxiproxy_latency(chaos_engine) -> None:
                 trace_id="chaos-trace",
                 idempotency_key="chaos-op",
                 model="gpt-4o-mini",
-                estimated_cost=Decimal("5"),
+                estimated_cost=Decimal("5.000000"),
             ),
         )
     elapsed_ms = (time.perf_counter() - t0) * 1000
@@ -157,8 +157,8 @@ def test_finance_ops_survives_toxiproxy_latency(chaos_engine) -> None:
 def test_finance_ops_toxiproxy_timeout_recovers_on_reset(chaos_engine) -> None:
     _reset_proxy()
     chaos_engine.dispose()
-    # Toxiproxy timeout=0 means "never close" (infinite hang). Disable proxy instead.
-    _set_proxy_enabled(False)
+    # Toxiproxy timeout=0 means "never close" (infinite hang). Use TCP reset instead.
+    _add_reset_peer()
 
     settings = _settings(str(chaos_engine.url))
     factory = sessionmaker(bind=chaos_engine, autoflush=False, autocommit=False, future=True)
@@ -173,7 +173,7 @@ def test_finance_ops_toxiproxy_timeout_recovers_on_reset(chaos_engine) -> None:
                     trace_id="chaos-trace-2",
                     idempotency_key="chaos-op-2",
                     model="gpt-4o-mini",
-                    estimated_cost=Decimal("1"),
+                    estimated_cost=Decimal("1.000000"),
                 ),
             )
 
@@ -188,6 +188,6 @@ def test_finance_ops_toxiproxy_timeout_recovers_on_reset(chaos_engine) -> None:
                 trace_id="chaos-trace-2",
                 idempotency_key="chaos-op-3",
                 model="gpt-4o-mini",
-                estimated_cost=Decimal("1"),
+                estimated_cost=Decimal("1.000000"),
             ),
         )
