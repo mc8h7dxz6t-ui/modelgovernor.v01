@@ -672,10 +672,9 @@ class TestLateSettlement:
         assert ledger["status"] == "SETTLED"
         assert ledger["terminal_reason"] == "RECONCILED_LATE_SETTLE"
         assert _money(ledger["actual_amount"]) == Decimal("8.000000")
-        # 200 initial - 10 reserved - 8 actual + 10 (still held, not pre-refunded) - 8 correction
-        # Since STRANDED: reserved_still_held = False → correction_debit = actual_amount = 8
-        # balance = 200 - 10 (reserve) - 8 (late correction) = 182
-        assert _money(balance) == Decimal("182.000000")
+        # STRANDED holds still keep the reserve, so settling at 8 refunds the unused 2.
+        # balance = 200 - 10 reserve + 2 settlement refund = 192
+        assert _money(balance) == Decimal("192.000000")
 
 
 # ---------------------------------------------------------------------------

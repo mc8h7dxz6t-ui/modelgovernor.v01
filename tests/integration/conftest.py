@@ -18,6 +18,7 @@ starts from a known state.
 from __future__ import annotations
 
 import os
+import sqlite3
 from pathlib import Path
 
 import pytest
@@ -72,20 +73,28 @@ def pg_engine() -> Engine:
 
 def _apply_migrations(engine: Engine) -> None:
     """Apply all migration SQL files in order against *engine*."""
-    with engine.begin() as conn:
+    with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
         for filename in _MIGRATION_FILES:
             sql = (MIGRATIONS_DIR / filename).read_text()
-            # Split on semicolons, skip empty statements, execute individually
-            # so that DDL auto-commits work correctly with psycopg 3.
-            for statement in sql.split(";"):
+            for statement in _iter_sql_statements(sql):
                 stripped = statement.strip()
                 if stripped:
-                    try:
-                        conn.execute(text(stripped))
-                    except Exception:
-                        # Some statements are idempotent (IF NOT EXISTS / ON
-                        # CONFLICT DO NOTHING) — re-raise only unexpected errors.
-                        raise
+                    conn.execute(text(stripped))
+
+
+def _iter_sql_statements(sql: str):
+    """Yield complete SQL statements without splitting inside quoted strings."""
+    buffer: list[str] = []
+    for line in sql.splitlines():
+        buffer.append(line)
+        candidate = "\n".join(buffer).strip()
+        if candidate and sqlite3.complete_statement(candidate):
+            yield candidate
+            buffer = []
+
+    candidate = "\n".join(buffer).strip()
+    if candidate:
+        yield candidate
 
 
 @pytest.fixture

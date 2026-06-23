@@ -66,7 +66,7 @@ def reserve_operation(session: Session, settings: Settings, request: ReserveRequ
     existing = session.execute(
         text(
             """
-            SELECT idempotency_key, status, actual_amount, request_fingerprint
+            SELECT idempotency_key, status, actual_amount, reserved_amount, request_fingerprint
             FROM escrow_ledger
             WHERE idempotency_key = :idempotency_key
             """
@@ -77,10 +77,13 @@ def reserve_operation(session: Session, settings: Settings, request: ReserveRequ
         if existing["request_fingerprint"] != fingerprint:
             raise ConflictError("idempotency key replay does not match original reserve request")
         get_counters().increment("reserve_idempotent_replay_total")
+        replay_amount = existing["actual_amount"]
+        if existing["status"] != "SETTLED" and _money(replay_amount) == Decimal("0"):
+            replay_amount = existing["reserved_amount"]
         return OperationResult(
             idempotency_key=existing["idempotency_key"],
             status=existing["status"],
-            actual_amount=_money(existing["actual_amount"]),
+            actual_amount=_money(replay_amount),
         )
 
     now = _utcnow()

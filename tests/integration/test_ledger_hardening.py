@@ -41,6 +41,7 @@ def test_reserve_dispatch_settle_happy_path_and_replay(tmp_path: Path) -> None:
             ),
         )
         assert reserve_result.status == "RESERVED"
+        assert reserve_result.actual_amount == Decimal("10.000000")
 
     with Session(engine) as session:
         replay_result = reserve_operation(
@@ -55,6 +56,7 @@ def test_reserve_dispatch_settle_happy_path_and_replay(tmp_path: Path) -> None:
             ),
         )
         assert replay_result.status == "RESERVED"
+        assert replay_result.actual_amount == Decimal("10.000000")
 
     with Session(engine) as session:
         in_flight = apply_settlement(
