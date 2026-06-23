@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from typing import Any
 
+from .config import Settings
 from .money import quantize_money
 
 # Per-token input/output USD rates aligned with model_policy_registry seeds.
@@ -30,3 +32,23 @@ def compute_token_cost(
     billable_input = max(input_tokens - cached_input_tokens, 0)
     total = (Decimal(billable_input) * input_rate) + (Decimal(output_tokens) * output_rate)
     return quantize_money(total)
+
+
+def estimate_chat_reserve_cost(
+    *,
+    model: str,
+    messages: list[dict[str, Any]],
+    max_tokens: int | None,
+    settings: Settings,
+) -> Decimal:
+    """Upper-bound reserve estimate for OpenAI-compatible chat requests."""
+    text = " ".join(str(message.get("content") or "") for message in messages)
+    input_tokens = max(len(text) // 4, 1)
+    output_tokens = max_tokens or settings.provider_max_output_tokens
+    raw = compute_token_cost(
+        model=model,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+    )
+    buffered = raw * Decimal("1.10") + Decimal("0.001000")
+    return quantize_money(max(buffered, Decimal("0.010000")))

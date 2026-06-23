@@ -53,6 +53,16 @@ spec:
                 configMapKeyRef:
                   name: modelgovernor-config
                   key: GATEWAY_OIDC_DISPATCH_ROLES
+            - name: OPENAI_COMPAT_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: modelgovernor-config
+                  key: OPENAI_COMPAT_ENABLED
+            - name: OPENAI_COMPAT_DEFAULT_USER_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: modelgovernor-config
+                  key: OPENAI_COMPAT_DEFAULT_USER_ID
           livenessProbe:
             httpGet:
               path: /healthz

@@ -21,6 +21,53 @@ semantics for governed LLM traffic with live provider routing.
 
 Request body must include `prompt` or `messages` for live mode.
 
+## OpenAI-compatible API
+
+Point the **OpenAI Python/JS SDK** at the gateway — governed reserve/settle runs on every call.
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /v1/chat/completions` | Drop-in chat (non-streaming) |
+| `GET /v1/models` | Model catalog |
+
+**Auth:** `Authorization: Bearer <OPENAI_COMPAT_API_KEY>` (defaults to `SIDECAR_INTERNAL_TOKEN`).
+
+**Governance headers (optional):**
+
+| Header | Purpose |
+|---|---|
+| `x-mg-user-id` | Wallet user (default: request `user` or `OPENAI_COMPAT_DEFAULT_USER_ID`) |
+| `x-mg-trace-id` | Trace budget scope |
+| `x-mg-idempotency-key` | Idempotent replay |
+
+### Python (OpenAI SDK)
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="dev-sidecar-token",
+    base_url="http://localhost:8080/v1",
+)
+response = client.chat.completions.create(
+    model="gpt-4o-mini",
+    messages=[{"role": "user", "content": "hello"}],
+    user="demo-user",
+)
+print(response.choices[0].message.content)
+```
+
+### curl
+
+```bash
+curl http://localhost:8080/v1/chat/completions \
+  -H "Authorization: Bearer dev-sidecar-token" \
+  -H "content-type: application/json" \
+  -d '{"model":"gpt-4o-mini","messages":[{"role":"user","content":"hello"}],"user":"demo-user"}'
+```
+
+`stream=true` is not supported yet.
+
 ## Environment
 
 | Variable | Purpose |
@@ -33,6 +80,9 @@ Request body must include `prompt` or `messages` for live mode.
 | `VERTEX_PROJECT_ID` | Google Vertex project |
 | `VERTEX_LOCATION` | Vertex region (default `us-central1`) |
 | `GATEWAY_OIDC_ENABLED` | Require corporate JWT at gateway edge |
+| `OPENAI_COMPAT_ENABLED` | Enable `/v1/chat/completions` (default `true`) |
+| `OPENAI_COMPAT_API_KEY` | Bearer key for OpenAI SDK clients |
+| `OPENAI_COMPAT_DEFAULT_USER_ID` | Default wallet when `user` omitted |
 
 ## Local (mock)
 
