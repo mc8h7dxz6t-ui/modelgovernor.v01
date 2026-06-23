@@ -21,10 +21,11 @@ jobs:
         run: |
           pip install -r sidecar/requirements.txt
           pip install -r reconciler/requirements.txt
+          pip install -r gateway/requirements.txt
           pip install pytest hypothesis fakeredis
 
       - name: Compile check
-        run: python3 -m compileall -q sidecar/app reconciler/app
+        run: python3 -m compileall -q sidecar/app reconciler/app gateway/app
 
       - name: Tier 1 integration tests
         run: |
@@ -48,6 +49,7 @@ jobs:
             tests/integration/test_circuit_breaker.py \
             tests/integration/test_operations_list.py \
             tests/integration/test_gateway_governance.py \
+            tests/integration/test_gateway_provider_router.py \
             tests/integration/test_chaos_resilience.py \
             tests/integration/test_property_ledger.py \
             tests/integration/test_migration_invariants.py \

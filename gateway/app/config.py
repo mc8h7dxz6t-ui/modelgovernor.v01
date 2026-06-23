@@ -9,7 +9,15 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     sidecar_url: str = "http://sidecar:8081"
     sidecar_internal_token: str = "dev-token"
+    provider_mode: str = "mock"
     mock_dispatch_cost: Decimal = Decimal("1.000000")
+    mock_output_tokens: int = 32
+    provider_timeout_seconds: float = 30.0
+    provider_max_output_tokens: int = 1024
+    openai_api_key: str | None = None
+    anthropic_api_key: str | None = None
+    vertex_project_id: str | None = None
+    vertex_location: str = "us-central1"
     oidc_enabled: bool = False
     oidc_issuer_url: str | None = None
     oidc_audience: str | None = None

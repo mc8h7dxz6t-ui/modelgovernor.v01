@@ -6,6 +6,11 @@ sidecar:
 
 gateway:
   replicas: 2
+  providerMode: live
+  oidc:
+    enabled: true
+    issuerUrl: ""
+    audience: modelgovernor
 
 reconciler:
   replicas: 2
@@ -13,11 +18,27 @@ reconciler:
 postgres:
   enabled: true
 
+redis:
+  enabled: false
+  sentinel:
+    enabled: true
+    masterName: mymaster
+    replicas: 3
+
 externalSecrets:
   enabled: true
 
 secrets:
   create: false
 
+config:
+  oidcEnabled: "true"
+  gatewayOidcEnabled: "true"
+  ledgerAnchorS3ObjectLockEnabled: "true"
+
 syntheticProbe:
   enabled: true
+
+enterprise:
+  istio:
+    enabled: true

@@ -5,6 +5,7 @@ import logging
 import os
 import uuid
 from decimal import Decimal
+from typing import Any
 
 import httpx
 from fastapi import Depends, FastAPI, HTTPException
@@ -12,6 +13,7 @@ from pydantic import BaseModel, Field
 
 from .auth_oidc import GatewayAuthContext, require_dispatch_auth
 from .config import Settings, get_settings
+from .providers.router import get_provider_router
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +24,8 @@ class GovernedDispatchRequest(BaseModel):
     model: str = Field(..., min_length=1, max_length=255)
     estimated_cost: Decimal = Field(..., ge=0)
     idempotency_key: str | None = None
+    prompt: str | None = Field(default=None, min_length=1)
+    messages: list[dict[str, Any]] | None = None
 
 
 class GovernedDispatchResponse(BaseModel):
@@ -30,6 +34,12 @@ class GovernedDispatchResponse(BaseModel):
     settle_status: str
     actual_cost: Decimal
     provider_request_id: str
+    provider_name: str
+    model: str
+    response_text: str
+    input_tokens: int
+    output_tokens: int
+    latency_ms: int
     authenticated_subject: str
 
 
@@ -37,7 +47,7 @@ def _settings() -> Settings:
     return get_settings()
 
 
-app = FastAPI(title="modelgovernor gateway", version="0.2.0")
+app = FastAPI(title="modelgovernor gateway", version="0.3.0")
 
 
 @app.get("/healthz")
@@ -53,7 +63,7 @@ def readyz() -> dict[str, str]:
         response.raise_for_status()
     except httpx.HTTPError as exc:
         raise HTTPException(status_code=503, detail="sidecar unavailable") from exc
-    return {"status": "ready"}
+    return {"status": "ready", "provider_mode": settings.provider_mode}
 
 
 @app.post("/governed/dispatch", response_model=GovernedDispatchResponse)
@@ -63,7 +73,6 @@ def governed_dispatch(
 ) -> GovernedDispatchResponse:
     settings = _settings()
     idempotency_key = request.idempotency_key or f"gw-{uuid.uuid4().hex[:16]}"
-    provider_request_id = f"provider-{idempotency_key}"
     headers = {
         "x-internal-token": settings.sidecar_internal_token,
         "content-type": "application/json",
@@ -76,7 +85,7 @@ def governed_dispatch(
         "model": request.model,
         "estimated_cost": str(request.estimated_cost),
     }
-    with httpx.Client(timeout=10.0) as client:
+    with httpx.Client(timeout=settings.provider_timeout_seconds + 5.0) as client:
         reserve = client.post(
             f"{settings.sidecar_url.rstrip('/')}/reserve",
             headers=headers,
@@ -86,13 +95,26 @@ def governed_dispatch(
             raise HTTPException(status_code=reserve.status_code, detail=reserve.text)
         reserve_body = reserve.json()
 
-        actual_cost = min(request.estimated_cost, settings.mock_dispatch_cost)
+        provider_result = get_provider_router().dispatch(
+            settings=settings,
+            model=request.model,
+            prompt=request.prompt,
+            messages=request.messages,
+        )
+        actual_cost = min(provider_result.actual_cost, request.estimated_cost)
+
         settle_payload = {
             "idempotency_key": idempotency_key,
             "outcome": "SETTLED",
             "actual_cost": str(actual_cost),
-            "provider_request_id": provider_request_id,
-            "provider_name": request.model,
+            "provider_request_id": provider_result.provider_request_id,
+            "provider_name": provider_result.provider_name,
+            "model": provider_result.model,
+            "input_tokens": provider_result.input_tokens,
+            "output_tokens": provider_result.output_tokens,
+            "cached_input_tokens": provider_result.cached_input_tokens,
+            "cached_output_tokens": provider_result.cached_output_tokens,
+            "latency_ms": provider_result.latency_ms,
         }
         settle = client.post(
             f"{settings.sidecar_url.rstrip('/')}/settle",
@@ -104,17 +126,25 @@ def governed_dispatch(
         settle_body = settle.json()
 
     logger.info(
-        "governed dispatch subject=%s method=%s idempotency_key=%s",
+        "governed dispatch subject=%s provider=%s model=%s idempotency_key=%s cost=%s",
         auth.subject,
-        auth.method,
+        provider_result.provider_name,
+        provider_result.model,
         idempotency_key,
+        actual_cost,
     )
     return GovernedDispatchResponse(
         idempotency_key=idempotency_key,
         reserve_status=reserve_body["status"],
         settle_status=settle_body["status"],
         actual_cost=actual_cost,
-        provider_request_id=provider_request_id,
+        provider_request_id=provider_result.provider_request_id,
+        provider_name=provider_result.provider_name,
+        model=provider_result.model,
+        response_text=provider_result.response_text,
+        input_tokens=provider_result.input_tokens,
+        output_tokens=provider_result.output_tokens,
+        latency_ms=provider_result.latency_ms,
         authenticated_subject=auth.subject,
     )
 

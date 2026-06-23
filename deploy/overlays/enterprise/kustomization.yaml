@@ -4,12 +4,6 @@ kind: Kustomization
 namespace: modelgovernor
 
 resources:
-  - ../../base
   - egress-istio.yaml
   - mtls-mesh.yaml
-
-patches:
-  - path: istio-injection-patches.yaml
-
-# Enterprise overlay: zero-trust egress allowlist + production base topology.
-# Apply only when Istio is installed in the cluster.
+  - istio-injection-patches.yaml

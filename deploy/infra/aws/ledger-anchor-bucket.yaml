@@ -1,0 +1,44 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: ModelGovernor tamper-evident ledger anchor bucket with Object Lock.
+
+Parameters:
+  BucketName:
+    Type: String
+    Description: Globally unique S3 bucket name for ledger anchors.
+
+Resources:
+  LedgerAnchorBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Ref BucketName
+      ObjectLockEnabled: true
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+
+  LedgerAnchorObjectLockDefault:
+    Type: AWS::S3::BucketObjectLockConfiguration
+    Properties:
+      Bucket: !Ref LedgerAnchorBucket
+      ObjectLockConfiguration:
+        ObjectLockEnabled: Enabled
+        Rule:
+          DefaultRetention:
+            Mode: GOVERNANCE
+            Years: 10
+
+Outputs:
+  BucketName:
+    Value: !Ref LedgerAnchorBucket
+  BucketArn:
+    Value: !GetAtt LedgerAnchorBucket.Arn

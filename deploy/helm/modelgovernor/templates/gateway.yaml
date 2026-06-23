@@ -38,8 +38,24 @@ spec:
                   key: sidecar-internal-tokens
             - name: MOCK_DISPATCH_COST
               value: {{ .Values.gateway.mockDispatchCost | quote }}
+            - name: PROVIDER_MODE
+              value: {{ .Values.gateway.providerMode | quote }}
             - name: OIDC_ENABLED
               value: {{ .Values.gateway.oidc.enabled | quote }}
+            {{- if .Values.externalSecrets.enabled }}
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "modelgovernor.secretName" . }}
+                  key: openai-api-key
+                  optional: true
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "modelgovernor.secretName" . }}
+                  key: anthropic-api-key
+                  optional: true
+            {{- end }}
             {{- if .Values.gateway.oidc.issuerUrl }}
             - name: OIDC_ISSUER_URL
               value: {{ .Values.gateway.oidc.issuerUrl | quote }}

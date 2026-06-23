@@ -64,6 +64,12 @@ externalSecrets:
     redisUrl: modelgovernor/redis-url
     sidecarInternalTokens: modelgovernor/sidecar-internal-tokens
     postgresPassword: modelgovernor/postgres-password
+    openaiApiKey: modelgovernor/openai-api-key
+    anthropicApiKey: modelgovernor/anthropic-api-key
+    pgbouncerUserlist: modelgovernor/pgbouncer-userlist
+    oidcIssuerUrl: modelgovernor/oidc-issuer-url
+    oidcAudience: modelgovernor/oidc-audience
+    ledgerAnchorS3Bucket: modelgovernor/ledger-anchor-s3-bucket
 
 postgres:
   enabled: true
@@ -83,6 +89,10 @@ pgbouncer:
 redis:
   enabled: true
   replicas: 1
+  sentinel:
+    enabled: false
+    masterName: mymaster
+    replicas: 3
 
 sidecar:
   replicas: 3
@@ -109,6 +119,7 @@ gateway:
   enabled: true
   replicas: 2
   mockDispatchCost: "1.000000"
+  providerMode: mock
   oidc:
     enabled: false
     issuerUrl: ""

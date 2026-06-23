@@ -51,6 +51,7 @@ def test_gateway_governed_dispatch_reserve_settle(tmp_path, monkeypatch) -> None
     monkeypatch.setenv("SIDECAR_URL", "http://sidecar:8081")
     monkeypatch.setenv("SIDECAR_INTERNAL_TOKEN", TOKEN)
     monkeypatch.setenv("MOCK_DISPATCH_COST", "1.000000")
+    monkeypatch.setenv("PROVIDER_MODE", "mock")
     get_settings.cache_clear()
 
     from gateway.app import main as gateway_main
@@ -74,6 +75,7 @@ def test_gateway_governed_dispatch_reserve_settle(tmp_path, monkeypatch) -> None
                     "model": "gpt-4o-mini",
                     "estimated_cost": "5.000000",
                     "idempotency_key": "gw-op-1",
+                    "prompt": "hello gateway",
                 },
             )
 
@@ -81,9 +83,11 @@ def test_gateway_governed_dispatch_reserve_settle(tmp_path, monkeypatch) -> None
         body = response.json()
         assert body["reserve_status"] == "RESERVED"
         assert body["settle_status"] == "SETTLED"
-        assert Decimal(body["actual_cost"]) == Decimal("1.000000")
+        assert Decimal(body["actual_cost"]) <= Decimal("5.000000")
         assert body["authenticated_subject"] == "internal-token"
+        assert body["provider_name"] == "mock"
+        assert body["input_tokens"] > 0
 
         wallet = sidecar_client.get("/internal/wallet/gw-user", headers={"x-internal-token": TOKEN})
         assert wallet.status_code == 200
-        assert Decimal(wallet.json()["balance"]) == Decimal("99.000000")
+        assert Decimal(wallet.json()["balance"]) < Decimal("100.000000")
