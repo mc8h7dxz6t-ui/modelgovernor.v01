@@ -11,6 +11,9 @@ on:
         required: true
         default: prod
 
+permissions:
+  contents: read
+
 jobs:
   validate-and-promote:
     runs-on: ubuntu-latest
