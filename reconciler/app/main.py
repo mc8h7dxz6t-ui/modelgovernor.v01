@@ -14,6 +14,23 @@ from .sweeper import sweep_expired_reservations
 
 logger = logging.getLogger(__name__)
 _shutdown = False
+_audit_failed = {"value": False}
+
+
+def _run_finance_audit(session) -> None:
+    try:
+        from sidecar.app.finance_ops import FinanceOpsInvariantError, assert_finance_ops_invariants
+        from sidecar.app.metrics import get_counters
+
+        assert_finance_ops_invariants(session)
+    except FinanceOpsInvariantError:
+        from sidecar.app.metrics import get_counters
+
+        get_counters().increment("finance_audit_violation_total")
+        _audit_failed["value"] = True
+        logger.error("post-sweep finance invariant audit failed")
+    except ImportError:
+        pass
 
 
 def _handle_signal(signum: int, _frame) -> None:
@@ -39,7 +56,14 @@ def run_daemon() -> None:
     def _is_leader() -> bool:
         return is_leader_flag["value"]
 
-    health_server = start_health_server(port=settings.health_port, is_leader=_is_leader)
+    def _is_healthy() -> bool:
+        return not _audit_failed["value"]
+
+    health_server = start_health_server(
+        port=settings.health_port,
+        is_leader=_is_leader,
+        is_healthy=_is_healthy,
+    )
     signal.signal(signal.SIGTERM, _handle_signal)
     signal.signal(signal.SIGINT, _handle_signal)
 
@@ -56,6 +80,7 @@ def run_daemon() -> None:
                     is_leader_flag["value"] = is_leader
                     if is_leader:
                         swept = sweep_expired_reservations(session)
+                        _run_finance_audit(session)
                         logger.info("reconciler sweep complete swept=%s", swept)
         except Exception:
             logger.exception("reconciler sweep failed")

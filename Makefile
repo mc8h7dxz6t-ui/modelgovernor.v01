@@ -25,7 +25,7 @@ demo-events:
 	./scripts/demo-events.sh
 
 proof-test:
-	pytest -q tests/integration/test_ledger_hardening.py tests/integration/test_postgres_reliability.py
+	pytest -q tests/integration/test_ledger_hardening.py tests/integration/test_postgres_vigorous.py
 
 load-test:
-	python scripts/generate_invariant_report.py --operations 120 --workers 12
+	LOAD_WORKERS=12 LOAD_OPS_PER_WORKER=8 python scripts/generate_invariant_report.py

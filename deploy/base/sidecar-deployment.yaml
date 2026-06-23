@@ -21,9 +21,18 @@ spec:
       labels:
         app: sidecar
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
       containers:
         - name: sidecar
           image: modelgovernor/sidecar:latest
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]
           ports:
             - name: http
               containerPort: 8081

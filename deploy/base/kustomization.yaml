@@ -12,11 +12,14 @@ configMapGenerator:
       - migrations/0004_ledger_control_plane_hardening.sql
       - migrations/0005_invariant_constraints.sql
       - migrations/0006_execution_attribution_guardrails.sql
+      - migrations/0007_wallet_nonnegative_backstop.sql
 
 resources:
   - namespace.yaml
   - configmap.yaml
   - pgbouncer.yaml
+  - redis.yaml
+  - network-policy.yaml
   - sidecar-deployment.yaml
   - reconciler-deployment.yaml
   - migration-job.yaml

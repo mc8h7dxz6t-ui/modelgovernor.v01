@@ -19,7 +19,16 @@ def main() -> int:
         default=str(REPO_ROOT / "artifacts" / "reliability" / "latest_invariant_report.json"),
         help="Legacy output path; report is written by run_all_scenarios to tests/load/reports/",
     )
+    parser.add_argument("--workers", type=int, default=None, help="Override LOAD_WORKERS")
+    parser.add_argument("--operations", type=int, default=None, help="Override LOAD_OPS_PER_WORKER")
     args = parser.parse_args()
+
+    import os
+
+    if args.workers is not None:
+        os.environ["LOAD_WORKERS"] = str(args.workers)
+    if args.operations is not None:
+        os.environ["LOAD_OPS_PER_WORKER"] = str(args.operations)
 
     summary = run_all_scenarios()
     report_path = Path(summary["report_path"])

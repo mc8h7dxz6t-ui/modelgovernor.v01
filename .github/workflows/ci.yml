@@ -21,7 +21,7 @@ jobs:
         run: |
           pip install -r sidecar/requirements.txt
           pip install -r reconciler/requirements.txt
-          pip install pytest hypothesis
+          pip install pytest hypothesis fakeredis
 
       - name: Compile check
         run: python3 -m compileall -q sidecar/app reconciler/app
@@ -33,6 +33,8 @@ jobs:
             tests/integration/test_sidecar_admin_observability.py \
             tests/integration/test_phase4_anomaly.py \
             tests/integration/test_readiness.py \
+            tests/integration/test_guardrails.py \
+            tests/integration/test_prometheus_scrape.py \
             tests/integration/test_chaos_resilience.py \
             tests/integration/test_property_ledger.py \
             tests/integration/test_migration_invariants.py \

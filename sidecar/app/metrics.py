@@ -23,6 +23,12 @@ _COUNTER_NAMES: tuple[str, ...] = (
     "guardrail_approval_required_total",
     "agent_loop_detected_total",
     "attribution_identity_mismatch_total",
+    "guardrail_degraded_total",
+    "rate_limit_exceeded_total",
+    "trace_depth_exceeded_total",
+    "user_inflight_exceeded_total",
+    "provider_circuit_open_total",
+    "finance_audit_violation_total",
 )
 
 _collector_registered = False

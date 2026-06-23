@@ -9,14 +9,19 @@ from typing import Callable
 
 class _HealthHandler(BaseHTTPRequestHandler):
     is_leader: Callable[[], bool] = lambda: True
+    is_healthy: Callable[[], bool] = lambda: True
 
     def log_message(self, format: str, *args) -> None:  # noqa: A003
         return
 
     def do_GET(self) -> None:  # noqa: N802
         if self.path in {"/healthz", "/readyz"}:
-            body = {"status": "ok" if self.is_leader() or self.path == "/healthz" else "standby"}
-            code = 200 if self.path == "/healthz" or self.is_leader() else 503
+            healthy = self.is_healthy()
+            leader_ok = self.is_leader() or self.path == "/healthz"
+            body = {
+                "status": "ok" if healthy and leader_ok else ("standby" if healthy else "unhealthy"),
+            }
+            code = 200 if self.path == "/healthz" or (healthy and self.is_leader()) else 503
             payload = json.dumps(body).encode("utf-8")
             self.send_response(code)
             self.send_header("Content-Type", "application/json")
@@ -28,8 +33,14 @@ class _HealthHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
 
-def start_health_server(*, port: int, is_leader: Callable[[], bool]) -> ThreadingHTTPServer:
+def start_health_server(
+    *,
+    port: int,
+    is_leader: Callable[[], bool],
+    is_healthy: Callable[[], bool] | None = None,
+) -> ThreadingHTTPServer:
     _HealthHandler.is_leader = is_leader
+    _HealthHandler.is_healthy = is_healthy or (lambda: True)
     server = ThreadingHTTPServer(("0.0.0.0", port), _HealthHandler)
     thread = threading.Thread(target=server.serve_forever, daemon=True, name="reconciler-health")
     thread.start()

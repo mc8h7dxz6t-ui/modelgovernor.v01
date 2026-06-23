@@ -26,19 +26,31 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r sidecar/requirements.txt -r reconciler/requirements.txt
-          pip install pytest hypothesis
+          pip install pytest hypothesis fakeredis
 
       - name: Tier 1
         run: |
           PYTHONPATH=. pytest \
             tests/integration/test_ledger_hardening.py \
+            tests/integration/test_sidecar_admin_observability.py \
             tests/integration/test_phase4_anomaly.py \
+            tests/integration/test_readiness.py \
+            tests/integration/test_guardrails.py \
+            tests/integration/test_prometheus_scrape.py \
+            tests/integration/test_chaos_resilience.py \
+            tests/integration/test_property_ledger.py \
+            tests/integration/test_migration_invariants.py \
             tests/programs/finance_ops_finals/ \
             tests/programs/cost_attribution_accountability/ \
             -q
 
       - name: Tier 3 load harness
-        run: PYTHONPATH=. python3 tests/load/test_load_harness.py
+        env:
+          LOAD_WORKERS: 12
+          LOAD_OPS_PER_WORKER: 8
+        run: |
+          PYTHONPATH=. pytest tests/load/test_load_harness.py -q
+          PYTHONPATH=. python3 tests/load/test_load_harness.py
 
   tier2-postgres:
     name: Tier 2 Postgres gate
@@ -73,7 +85,36 @@ jobs:
           POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5432/mg_test
         run: |
           PYTHONPATH=. pytest tests/integration/test_postgres_vigorous.py \
+            tests/integration/test_migration_invariants.py \
             tests/programs/finance_ops_finals/test_reconciler_leader_election.py -q
+
+  tier4-chaos:
+    name: Tier 4 Toxiproxy chaos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -r sidecar/requirements.txt -r reconciler/requirements.txt
+          pip install pytest requests
+
+      - name: Start toxiproxy chaos stack
+        run: docker compose -f docker-compose.chaos.yml up -d --wait
+
+      - name: Tier 4 toxiproxy tests
+        env:
+          POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5435/mg_chaos
+          TOXIPROXY_API: http://localhost:8474
+        run: PYTHONPATH=. pytest tests/chaos/test_toxiproxy_finance_ops.py -q
+
+      - name: Tear down chaos stack
+        if: always()
+        run: docker compose -f docker-compose.chaos.yml down -v
 
   manifests:
     name: Kustomize render + dry-run

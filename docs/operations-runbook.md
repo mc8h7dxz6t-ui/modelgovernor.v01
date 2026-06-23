@@ -114,7 +114,8 @@ Operators should be able to observe:
 
 ### Built-in surfaces
 
-- Prometheus scrape endpoint: `GET /metrics`
+- Prometheus scrape endpoint: `GET /metrics/prometheus` (unauthenticated, PodMonitor)
+- Operator metrics with DB aggregates: `GET /metrics` (requires internal token)
 - JSON invariant snapshot: `GET /metrics.json`
 - Wallet status: `GET /internal/wallet/{user_id}`
 - Operation status: `GET /internal/operation/{idempotency_key}`
@@ -126,12 +127,15 @@ Operators should be able to observe:
 
 ### Alerting baseline
 
-The shipped Prometheus rules already alert on:
+The shipped Prometheus rules alert on:
 
-- spikes in balance-denied reserves
+- reserve availability and latency SLO breaches
+- balance-denied reserve spikes
 - drift-enforced lockouts
 - increasing stranded operations
 - negative wallet invariant violations
+- post-sweep finance audit failures
+- Redis guardrail degradation
 
 Treat missing scrape data, repeated readiness failures, or sustained stranded
 growth as operational incidents even when hard alerts have not yet fired.

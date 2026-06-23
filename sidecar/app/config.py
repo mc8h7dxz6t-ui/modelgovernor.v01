@@ -23,6 +23,18 @@ class Settings(BaseSettings):
     db_pool_timeout_seconds: int = 5
     db_pool_recycle_seconds: int = 1800
     app_env: str = "development"
+    guardrails_enabled: bool = True
+    rate_limit_per_minute: int = 120
+    max_trace_depth: int = 50
+    max_user_inflight: int = 10
+    redis_connect_timeout_seconds: float = 0.5
+    redis_socket_timeout_seconds: float = 0.5
+    circuit_breaker_enabled: bool = True
+    circuit_breaker_failure_threshold: int = 5
+    circuit_breaker_window_seconds: int = 60
+    circuit_breaker_open_seconds: int = 30
+    otel_service_name: str = "modelgovernor-sidecar"
+    otel_exporter_endpoint: str | None = None
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

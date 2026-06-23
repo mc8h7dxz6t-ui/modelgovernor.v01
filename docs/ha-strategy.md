@@ -150,7 +150,7 @@ expectations, and recovery playbooks that complement this HA guidance.
 |---|---|
 | Sidecar pod OOMKilled | Increase memory limit in overlay patch; investigate Postgres query plan |
 | Reconciler not sweeping | Check CronJob history; confirm DATABASE_URL is set; review Postgres connectivity |
-| STRANDED operations accumulating | Run `GET /admin/stranded-operations`; resolve via `POST /admin/correct-operation` |
-| Wallet locked by drift enforcement | Investigate provider invoice; run `POST /admin/unlock-wallet` after review |
+| STRANDED operations accumulating | Run `GET /internal/operations?status=STRANDED`; resolve via internal correction flows |
+| Wallet locked by drift enforcement | Investigate provider invoice; review wallet via `GET /internal/wallet/{user_id}` |
 | Postgres failover | Confirm PgBouncer / proxy points to new primary; restart sidecar pods to flush stale connections |
 | Redis unavailable | Sidecar continues to operate for reserve/settle (no hard Redis dependency in core paths); runtime guardrails are degraded |

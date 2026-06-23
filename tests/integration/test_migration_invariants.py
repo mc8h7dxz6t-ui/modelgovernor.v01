@@ -18,6 +18,10 @@ def test_invariant_migration_file_present() -> None:
     assert "trace_budget_reserved_within_cap" in body
     assert "ledger_events_one_expired_sweep_per_op" in body
 
+    wallet_backstop = MIGRATIONS_DIR / "0007_wallet_nonnegative_backstop.sql"
+    assert wallet_backstop.exists()
+    assert "user_wallets_nonnegative_balance" in wallet_backstop.read_text(encoding="utf-8")
+
 
 @pytest.mark.skipif(not os.getenv("POSTGRES_TEST_URL"), reason="POSTGRES_TEST_URL not set")
 def test_postgres_trace_cap_check_constraint(pg_engine) -> None:

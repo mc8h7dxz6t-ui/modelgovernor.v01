@@ -6,6 +6,7 @@ from .db import get_db_session
 from .ledger import ConflictError, NotFoundError, PolicyStateError, apply_settlement
 from .policy import PolicyDecisionError, validate_settle_request
 from .schemas import SettleRequest, SettleResponse
+from .tracing import span
 
 router = APIRouter(tags=["settle"])
 
@@ -14,8 +15,15 @@ router = APIRouter(tags=["settle"])
 def settle(request: SettleRequest) -> SettleResponse:
     try:
         validate_settle_request(request)
-        with get_db_session() as session:
-            result = apply_settlement(session, get_settings(), request)
+        with span(
+            "settle_operation",
+            {
+                "idempotency_key": request.idempotency_key,
+                "provider_request_id": request.provider_request_id,
+            },
+        ):
+            with get_db_session() as session:
+                result = apply_settlement(session, get_settings(), request)
     except PolicyDecisionError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except NotFoundError as exc:

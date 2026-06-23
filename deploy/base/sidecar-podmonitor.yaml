@@ -9,5 +9,5 @@ spec:
       app: sidecar
   podMetricsEndpoints:
     - port: http
-      path: /metrics
+      path: /metrics/prometheus
       interval: 30s

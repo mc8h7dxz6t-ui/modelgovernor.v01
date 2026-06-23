@@ -34,7 +34,9 @@ def _configure(tmp_path: Path, monkeypatch) -> None:
 def test_readyz_probes_database(tmp_path: Path, monkeypatch) -> None:
     _configure(tmp_path, monkeypatch)
     with TestClient(app) as client:
-        assert client.get("/readyz").json() == {"status": "ready"}
+        payload = client.get("/readyz").json()
+        assert payload["status"] == "ready"
+        assert "details" in payload
 
 
 def test_readyz_fails_when_database_unavailable(monkeypatch) -> None:

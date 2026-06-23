@@ -3,6 +3,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from .auth import require_internal_auth
 from .config import get_settings
 from .db import get_db_session
+from .guardrails import (
+    GuardrailError,
+    InflightLimitExceeded,
+    RateLimitExceeded,
+    TraceDepthExceeded,
+    get_guardrails,
+)
 from .ledger import (
     ConflictError,
     InsufficientFundsError,
@@ -12,6 +19,7 @@ from .ledger import (
 )
 from .policy import PolicyDecisionError, validate_reserve_request
 from .schemas import ReserveRequest, ReserveResponse
+from .tracing import span
 
 router = APIRouter(tags=["reserve"])
 
@@ -20,10 +28,28 @@ router = APIRouter(tags=["reserve"])
 def reserve(request: ReserveRequest) -> ReserveResponse:
     try:
         validate_reserve_request(request)
-        with get_db_session() as session:
-            result = reserve_operation(session, get_settings(), request)
+        with span(
+            "reserve_operation",
+            {
+                "user_id": request.user_id,
+                "trace_id": request.trace_id,
+                "idempotency_key": request.idempotency_key,
+                "model": request.model,
+            },
+        ):
+            get_guardrails().check_reserve(
+                user_id=request.user_id,
+                trace_id=request.trace_id,
+                idempotency_key=request.idempotency_key,
+            )
+            with get_db_session() as session:
+                result = reserve_operation(session, get_settings(), request)
     except PolicyDecisionError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except (RateLimitExceeded, TraceDepthExceeded, InflightLimitExceeded) as exc:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(exc)) from exc
+    except GuardrailError as exc:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(exc)) from exc
     except ConflictError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except TraceCapExceededError as exc:

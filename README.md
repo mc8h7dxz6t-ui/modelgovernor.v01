@@ -49,7 +49,7 @@ See `docs/demo.md` for full walkthrough and troubleshooting.
 
 ## Proof / reliability validation
 
-Institutional++ grade: runtime anomaly probes, DB invariant backstops (`migrations/0005`), property-based and chaos-adjacent tests, CI gates, and Prometheus alert rules (`deploy/base/prometheus-rules.yaml`).
+Institutional++ grade: runtime anomaly probes, DB invariant backstops (`migrations/0005`–`0007`), Redis guardrails with graceful degradation, OpenTelemetry-ready tracing, HTTP RED metrics, property-based and chaos tests, SLO recording rules, CI gates, and Prometheus alert rules (`deploy/base/prometheus-rules.yaml`). See `docs/slo-definitions.md`.
 
 Three tiers of testing are available. See `docs/reliability-testing.md` for full scenario tables, metrics reference, and CI integration examples.
 

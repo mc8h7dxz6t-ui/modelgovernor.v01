@@ -2,7 +2,7 @@
 #
 # Usage:
 #   docker compose -f docker-compose.chaos.yml up -d
-#   POSTGRES_TEST_URL=postgresql+psycopg://postgres:postgres@localhost:5434/mg_chaos \
+#   POSTGRES_TEST_URL=postgresql+psycopg://postgres:postgres@localhost:5435/mg_chaos \
 #     pytest tests/chaos/test_toxiproxy_finance_ops.py -v
 #
 # Toxiproxy API: http://localhost:8474

@@ -302,9 +302,13 @@ def apply_settlement(session: Session, settings: Settings, request: SettleReques
 
     if request.outcome == "SETTLED":
         result = _finalize_settlement(session, settings, operation, request)
-    else:
-        result = _record_attempt_state(session, settings, operation, request)
+        session.commit()
+        _release_inflight_guardrail(operation["user_id"])
+        return result
 
+    result = _record_attempt_state(session, settings, operation, request)
+    if request.outcome == "PROVIDER_TIMEOUT" and request.provider_name:
+        _record_provider_failure(request.provider_name)
     session.commit()
     return result
 
@@ -883,6 +887,24 @@ def _enforce_non_negative_wallet_balance(session: Session, user_id: str) -> None
     if row and _money(row["balance"]) < Decimal("0"):
         get_counters().increment("negative_wallet_detected_total")
         raise LedgerError("wallet balance invariant violated: negative balance detected")
+
+
+def _release_inflight_guardrail(user_id: str) -> None:
+    try:
+        from .guardrails import get_guardrails
+
+        get_guardrails().release_reserve(user_id=user_id)
+    except Exception:
+        pass
+
+
+def _record_provider_failure(provider_name: str) -> None:
+    try:
+        from .circuit_breaker import get_circuit_breaker
+
+        get_circuit_breaker().record_failure(provider_name)
+    except Exception:
+        pass
 
 
 def _money(value: Decimal | str | int | float | None) -> Decimal:
