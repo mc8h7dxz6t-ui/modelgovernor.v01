@@ -11,6 +11,8 @@ Full specification and commercial packaging for each ModelGovernor deployment pl
 
 **Consolidated pre-revenue valuation (full bundle):** see [valuation-pre-revenue.md](valuation-pre-revenue.md) — **$3.5M–$8.5M** illustrative range post gold-standard packaging.
 
+**Today (merged on `main`, demo + specs):** see [valuation-today.md](valuation-today.md) — **$4.5M–$6.5M** fair value · comps in [investor-comps.md](../investor-comps.md).
+
 \* *Asset worth = replacement cost + differentiated IP premium, not revenue multiples. See valuation doc for methodology.*
 
 ## Quick links
