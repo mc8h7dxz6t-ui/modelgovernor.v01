@@ -242,7 +242,7 @@ jobs:
         env:
           POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5435/mg_chaos
           TOXIPROXY_API: http://localhost:8474
-        run: PYTHONPATH=. pytest tests/chaos/test_toxiproxy_finance_ops.py -q
+        run: PYTHONPATH=. python3 -m pytest tests/chaos/test_toxiproxy_finance_ops.py -q
 
       - name: Tear down chaos stack
         if: always()

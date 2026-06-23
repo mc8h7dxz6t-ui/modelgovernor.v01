@@ -19,7 +19,22 @@ if str(REPO_ROOT) not in sys.path:
 from sidecar.app.config import Settings
 from sidecar.app.ledger import reserve_operation
 from sidecar.app.schemas import ReserveRequest
-from tests.integration.conftest import _apply_migrations
+from tests.support.pg_migrations import apply_migrations_to_engine
+
+MIGRATIONS_DIR = REPO_ROOT / "migrations"
+_MIGRATION_FILES = [
+    "0001_init.sql",
+    "0002_seed_model_policy.sql",
+    "0003_harden_ledger_constraints.sql",
+    "0004_ledger_control_plane_hardening.sql",
+    "0005_invariant_constraints.sql",
+    "0006_execution_attribution_guardrails.sql",
+    "0007_wallet_nonnegative_backstop.sql",
+    "0008_micro_token_precision.sql",
+    "0009_ledger_hash_chain.sql",
+    "0010_admin_audit_log.sql",
+    "0011_ledger_chain_anchors.sql",
+]
 
 TOXIPROXY_API = os.getenv("TOXIPROXY_API", "http://localhost:8474")
 PROXY_NAME = "postgres"
@@ -55,7 +70,7 @@ def chaos_engine():
     database_url = _postgres_url()
     _reset_proxy()
     engine = create_engine(database_url, future=True)
-    _apply_migrations(engine)
+    apply_migrations_to_engine(engine, MIGRATIONS_DIR, _MIGRATION_FILES)
     yield engine
     _reset_proxy()
     engine.dispose()
