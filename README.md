@@ -86,7 +86,7 @@ docker compose -f docker-compose.ha.yml up -d --scale sidecar=3 --scale reconcil
 kustomize build deploy/overlays/production | kubectl apply --dry-run=client -f -
 ```
 
-See `docs/ha-strategy.md`, `docs/pgbouncer-runbook.md`, `programs/finance_ops_finals/README.md`.
+See `docs/ha-strategy.md`, `docs/pgbouncer-runbook.md`, `docs/gitops.md`, `programs/finance_ops_finals/README.md`.
 
 ### Tier 4 — Toxiproxy chaos (Finance Ops, Postgres)
 
@@ -139,6 +139,8 @@ docker-compose.ha.yml
 docker-compose.chaos.yml
 
 deploy/
+  argocd/               # ArgoCD AppProject + Applications (GitOps)
+  helm/modelgovernor/   # Helm chart (alternative to kustomize overlays)
   base/                 # K8s manifests, PgBouncer, migration job, Prometheus rules
   overlays/
     staging/

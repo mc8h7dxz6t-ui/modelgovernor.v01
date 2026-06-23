@@ -88,6 +88,7 @@ jobs:
           POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5432/mg_test
         run: |
           PYTHONPATH=. pytest tests/integration/test_postgres_vigorous.py \
+            tests/integration/test_postgres_reliability.py \
             tests/integration/test_migration_invariants.py \
             tests/programs/finance_ops_finals/test_reconciler_leader_election.py -q
 

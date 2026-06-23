@@ -1,0 +1,186 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: modelgovernor-invariant-alerts
+  labels:
+    app: modelgovernor-sidecar
+spec:
+  groups:
+    - name: modelgovernor.slos
+      interval: 30s
+      rules:
+        - record: modelgovernor:reserve_success_rate:5m
+          expr: |
+            sum(rate(modelgovernor_http_requests_total{route="/reserve",status=~"2.."}[5m]))
+            /
+            clamp_min(sum(rate(modelgovernor_http_requests_total{route="/reserve"}[5m])), 1e-9)
+
+        - record: modelgovernor:reserve_p95_latency:5m
+          expr: |
+            histogram_quantile(
+              0.95,
+              sum(rate(modelgovernor_http_request_duration_seconds_bucket{route="/reserve"}[5m])) by (le)
+            )
+
+        - alert: ModelGovernorReserveAvailabilitySLO
+          expr: modelgovernor:reserve_success_rate:5m < 0.995
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Reserve availability below 99.5% SLO
+            description: >-
+              Reserve success rate has been below 99.5% for 10 minutes.
+
+        - alert: ModelGovernorReserveLatencySLO
+          expr: modelgovernor:reserve_p95_latency:5m > 0.5
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Reserve p95 latency above 500ms SLO
+            description: >-
+              Reserve p95 latency exceeded the 500ms institutional target.
+
+        - alert: ModelGovernorReserveAvailabilityBurnFast
+          expr: (1 - modelgovernor:reserve_success_rate:5m) > (1 - 0.995) * 14.4
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Fast burn — reserve error budget depleting rapidly
+            description: >-
+              5m reserve failure rate exceeds 14.4x the 30-day error budget burn threshold.
+
+        - alert: ModelGovernorReserveAvailabilityBurnSlow
+          expr: (1 - modelgovernor:reserve_success_rate:5m) > (1 - 0.995) * 3
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: Slow burn — reserve error budget trending down
+            description: >-
+              30m reserve failure rate exceeds 3x the 30-day error budget burn threshold.
+
+        - alert: ModelGovernorReconcilerNotLeader
+          expr: modelgovernor_reconciler_leader == 0
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: No reconciler pod reports leadership
+            description: >-
+              No reconciler instance has acquired the advisory lock for 15 minutes.
+
+    - name: modelgovernor.invariants
+      rules:
+        - alert: ModelGovernorNegativeWalletDetected
+          expr: increase(modelgovernor_invariant_events_total{event="negative_wallet_detected_total"}[5m]) > 0
+          for: 0m
+          labels:
+            severity: critical
+          annotations:
+            summary: Negative wallet balance invariant violated
+            description: >-
+              The control plane detected a negative wallet balance. Investigate
+              settlement corrections and reconciler refunds immediately.
+
+        - alert: ModelGovernorDuplicateRefundAnomaly
+          expr: increase(modelgovernor_invariant_events_total{event="duplicate_refund_anomaly_total"}[5m]) > 0
+          for: 0m
+          labels:
+            severity: critical
+          annotations:
+            summary: Duplicate expiry refund detected
+            description: >-
+              More than one EXPIRED_SWEEP event was recorded for an operation.
+
+        - alert: ModelGovernorDuplicateSettlementAnomaly
+          expr: increase(modelgovernor_invariant_events_total{event="duplicate_settlement_anomaly_total"}[5m]) > 0
+          for: 0m
+          labels:
+            severity: critical
+          annotations:
+            summary: Duplicate terminal settlement detected
+            description: >-
+              More than one terminal settlement event was recorded for an operation.
+
+        - alert: ModelGovernorTraceCapOverrun
+          expr: increase(modelgovernor_invariant_events_total{event="trace_cap_overrun_detected_total"}[5m]) > 0
+          for: 0m
+          labels:
+            severity: warning
+          annotations:
+            summary: Trace cap overrun detected at application layer
+            description: >-
+              Atomic trace-cap enforcement denied a reserve after detecting overrun risk.
+
+        - alert: ModelGovernorReserveDeniedBalance
+          expr: increase(modelgovernor_invariant_events_total{event="reserve_denied_balance_total"}[5m]) > 20
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Elevated balance-denied reserve rate
+            description: >-
+              Many reserves were denied due to insufficient wallet balance.
+
+        - alert: ModelGovernorDriftEnforcedSpike
+          expr: increase(modelgovernor_invariant_events_total{event="drift_enforced_total"}[15m]) > 5
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Drift enforcement lockouts increasing
+            description: >-
+              Settlement drift enforcement is locking wallets faster than baseline.
+
+        - alert: ModelGovernorBudgetScopeExceeded
+          expr: increase(modelgovernor_invariant_events_total{event="budget_scope_exceeded_total"}[15m]) > 10
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Budget scope denials elevated
+            description: >-
+              Attribution budget scopes are denying reserves at an elevated rate.
+
+        - alert: ModelGovernorFinanceAuditViolation
+          expr: increase(modelgovernor_invariant_events_total{event="finance_audit_violation_total"}[5m]) > 0
+          for: 0m
+          labels:
+            severity: critical
+          annotations:
+            summary: Post-sweep finance invariant audit failed
+            description: >-
+              Reconciler session-wide finance audit detected invariant violations.
+
+        - alert: ModelGovernorStrandedHoldSpike
+          expr: increase(modelgovernor_invariant_events_total{event="reconciler_stranded_total"}[15m]) > 10
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Elevated stranded hold rate
+            description: >-
+              Reconciler is stranding more in-flight holds than baseline; check provider health.
+
+        - alert: ModelGovernorGuardrailDegraded
+          expr: increase(modelgovernor_invariant_events_total{event="guardrail_degraded_total"}[5m]) > 50
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Redis guardrails degraded
+            description: >-
+              Sidecar is operating with degraded Redis guardrails; restore Redis HA.
+
+        - alert: ModelGovernorSidecarScrapeMissing
+          expr: absent(up{job=~".*sidecar.*"}) == 1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Sidecar metrics scrape missing
+            description: >-
+              Prometheus is not scraping sidecar metrics; observability blind spot.

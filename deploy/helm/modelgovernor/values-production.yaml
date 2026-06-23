@@ -1,0 +1,23 @@
+sidecar:
+  replicas: 3
+  hpa:
+    minReplicas: 3
+    maxReplicas: 12
+
+gateway:
+  replicas: 2
+
+reconciler:
+  replicas: 2
+
+postgres:
+  enabled: true
+
+externalSecrets:
+  enabled: true
+
+secrets:
+  create: false
+
+syntheticProbe:
+  enabled: true

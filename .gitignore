@@ -26,7 +26,6 @@ tests/load/reports/
 
 # Runtime/demo artifacts
 artifacts/reliability/latest_invariant_report.json
-deploy/base/migrations/
 *.sqlite3
 
 # OS/editor noise

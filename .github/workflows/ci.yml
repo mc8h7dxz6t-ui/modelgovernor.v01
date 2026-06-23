@@ -96,6 +96,8 @@ jobs:
         run: |
           mkdir -p deploy/base/migrations
           cp migrations/*.sql deploy/base/migrations/
+          mkdir -p deploy/helm/modelgovernor/files/migrations
+          cp migrations/*.sql deploy/helm/modelgovernor/files/migrations/
 
       - name: Render staging overlay
         run: kustomize build deploy/overlays/staging > /tmp/staging.yaml
@@ -107,6 +109,22 @@ jobs:
         run: |
           kubectl apply --dry-run=client -f /tmp/staging.yaml
           kubectl apply --dry-run=client -f /tmp/production.yaml
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Helm template production values
+        run: |
+          helm template modelgovernor deploy/helm/modelgovernor \
+            -f deploy/helm/modelgovernor/values-production.yaml \
+            --namespace modelgovernor > /tmp/helm-production.yaml
+          wc -l /tmp/helm-production.yaml
+
+      - name: Helm lint
+        run: helm lint deploy/helm/modelgovernor -f deploy/helm/modelgovernor/values-production.yaml
+
+      - name: Validate ArgoCD Application manifests
+        run: kubectl apply --dry-run=client -f deploy/argocd/appproject.yaml -f deploy/argocd/application-production.yaml
 
   test-tier3:
     name: Tier 3 — Load harness gate

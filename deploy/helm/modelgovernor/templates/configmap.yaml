@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: modelgovernor-config
+  namespace: {{ include "modelgovernor.namespace" . }}
+  labels:
+    {{- include "modelgovernor.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+data:
+  DEFAULT_TRACE_CAP_AMOUNT: {{ .Values.config.defaultTraceCapAmount | quote }}
+  DRIFT_ABSOLUTE_TOLERANCE: {{ .Values.config.driftAbsoluteTolerance | quote }}
+  DRIFT_RATIO_TOLERANCE: {{ .Values.config.driftRatioTolerance | quote }}
+  DB_POOL_SIZE: {{ .Values.config.dbPoolSize | quote }}
+  DB_MAX_OVERFLOW: {{ .Values.config.dbMaxOverflow | quote }}
+  DB_POOL_TIMEOUT_SECONDS: {{ .Values.config.dbPoolTimeoutSeconds | quote }}
+  DB_POOL_RECYCLE_SECONDS: {{ .Values.config.dbPoolRecycleSeconds | quote }}
+  SWEEP_INTERVAL_SECONDS: {{ .Values.reconciler.sweepIntervalSeconds | quote }}
+  GUARDRAILS_ENABLED: {{ .Values.config.guardrailsEnabled | quote }}
+  RATE_LIMIT_PER_MINUTE: {{ .Values.config.rateLimitPerMinute | quote }}
+  MAX_TRACE_DEPTH: {{ .Values.config.maxTraceDepth | quote }}
+  MAX_USER_INFLIGHT: {{ .Values.config.maxUserInflight | quote }}
+  CIRCUIT_BREAKER_ENABLED: {{ .Values.config.circuitBreakerEnabled | quote }}
