@@ -65,10 +65,11 @@ def _add_latency(ms: int) -> None:
     ).raise_for_status()
 
 
-def _add_reset_peer() -> None:
+def _add_connection_timeout_toxic() -> None:
+    # timeout=0 means "never close" in toxiproxy; use 1ms to force fast failure.
     requests.post(
         f"{TOXIPROXY_API}/proxies/{PROXY_NAME}/toxics",
-        json={"name": "reset", "type": "reset_peer", "toxicity": 1.0},
+        json={"name": "timeout", "type": "timeout", "attributes": {"timeout": 1}},
         timeout=5,
     ).raise_for_status()
 
@@ -154,22 +155,10 @@ def test_finance_ops_survives_toxiproxy_latency(chaos_engine) -> None:
     assert Decimal(str(balance)) == Decimal("95.000000")
 
 
-def _wait_for_proxy_ready(engine) -> None:
-    for _ in range(20):
-        try:
-            with engine.connect() as conn:
-                conn.execute(text("SELECT 1"))
-            return
-        except Exception:
-            time.sleep(0.25)
-    pytest.fail("postgres proxy did not recover after toxiproxy reset")
-
-
 def test_finance_ops_toxiproxy_timeout_recovers_on_reset(chaos_engine) -> None:
     _reset_proxy()
     chaos_engine.dispose()
-    # Toxiproxy timeout=0 means "never close" (infinite hang). Use TCP reset instead.
-    _add_reset_peer()
+    _add_connection_timeout_toxic()
 
     settings = _settings(str(chaos_engine.url))
     factory = sessionmaker(bind=chaos_engine, autoflush=False, autocommit=False, future=True)
@@ -188,10 +177,8 @@ def test_finance_ops_toxiproxy_timeout_recovers_on_reset(chaos_engine) -> None:
                 ),
             )
 
-    chaos_engine.dispose()
     _reset_proxy()
     chaos_engine.dispose()
-    _wait_for_proxy_ready(chaos_engine)
     with factory() as session:
         reserve_operation(
             session,
