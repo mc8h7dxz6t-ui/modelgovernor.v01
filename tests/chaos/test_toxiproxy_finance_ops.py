@@ -69,7 +69,11 @@ def _add_latency(ms: int) -> None:
 def chaos_engine():
     database_url = _postgres_url()
     _reset_proxy()
-    engine = create_engine(database_url, future=True)
+    engine = create_engine(
+        database_url,
+        future=True,
+        connect_args={"connect_timeout": 10},
+    )
     apply_migrations_to_engine(engine, MIGRATIONS_DIR, _MIGRATION_FILES)
     yield engine
     _reset_proxy()
