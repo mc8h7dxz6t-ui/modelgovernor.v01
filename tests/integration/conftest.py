@@ -33,9 +33,11 @@ _MIGRATION_FILES = [
     "0002_seed_model_policy.sql",
     "0003_harden_ledger_constraints.sql",
     "0004_ledger_control_plane_hardening.sql",
+    "0005_phase3_reconciliation.sql",
 ]
 
 _TRUNCATE_TABLES = [
+    "admin_audit_log",
     "ledger_events",
     "provider_dispatch_attempts",
     "escrow_ledger",

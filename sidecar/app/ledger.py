@@ -12,7 +12,15 @@ from sqlalchemy.orm import Session
 
 from .config import Settings
 from .metrics import get_counters
-from .schemas import ReserveRequest, SettleRequest
+from .schemas import (
+    AdminCorrectionRequest,
+    AdminCorrectionResponse,
+    ReconciliationSummary,
+    ReserveRequest,
+    SettleRequest,
+    StrandedOperationSummary,
+    WalletUnlockResponse,
+)
 
 MONEY_QUANTUM = Decimal("0.000001")
 
@@ -739,3 +747,305 @@ def _money(value: Decimal | str | int | float | None) -> Decimal:
 
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
+
+
+# ---------------------------------------------------------------------------
+# Phase 3: Reconciliation queries and admin correction operations
+# ---------------------------------------------------------------------------
+
+
+def get_reconciliation_summary(session: Session) -> ReconciliationSummary:
+    """Return a point-in-time ledger health snapshot for the operations dashboard.
+
+    All queries run within the caller's session/transaction for a consistent
+    read.  The summary is intended for observability only and never mutates
+    state.
+    """
+    now = _utcnow()
+
+    # Status breakdown across all escrow operations.
+    status_rows = session.execute(
+        text(
+            """
+            SELECT status, COUNT(*) AS cnt
+            FROM escrow_ledger
+            GROUP BY status
+            """
+        )
+    ).mappings().all()
+
+    by_status: dict[str, int] = {row["status"]: int(row["cnt"]) for row in status_rows}
+    total_operations = sum(by_status.values())
+    stranded_count = by_status.get("STRANDED", 0)
+
+    stranded_reserved_row = session.execute(
+        text(
+            """
+            SELECT COALESCE(SUM(reserved_amount), 0) AS total
+            FROM escrow_ledger
+            WHERE status = 'STRANDED'
+            """
+        )
+    ).mappings().first()
+    stranded_reserved_total = _money(stranded_reserved_row["total"] if stranded_reserved_row else 0)
+
+    drift_row = session.execute(
+        text(
+            """
+            SELECT
+                COUNT(*) FILTER (WHERE event_type = 'DRIFT_ENFORCED')  AS drift_enforced,
+                COUNT(*) FILTER (WHERE event_type = 'DRIFT_TOLERATED') AS drift_tolerated
+            FROM ledger_events
+            """
+        )
+    ).mappings().first()
+    drift_enforced = int(drift_row["drift_enforced"]) if drift_row else 0
+    drift_tolerated = int(drift_row["drift_tolerated"]) if drift_row else 0
+
+    locked_row = session.execute(
+        text(
+            """
+            SELECT COUNT(*) AS cnt
+            FROM user_wallets
+            WHERE active = FALSE AND locked_at IS NOT NULL
+            """
+        )
+    ).mappings().first()
+    locked_wallets_count = int(locked_row["cnt"]) if locked_row else 0
+
+    anomaly_flag = stranded_count > 0 or locked_wallets_count > 0 or drift_enforced > 0
+
+    return ReconciliationSummary(
+        generated_at=now,
+        total_operations=total_operations,
+        by_status=by_status,
+        stranded_count=stranded_count,
+        stranded_reserved_total=stranded_reserved_total,
+        locked_wallets_count=locked_wallets_count,
+        drift_enforced_total=drift_enforced,
+        drift_tolerated_total=drift_tolerated,
+        anomaly_flag=anomaly_flag,
+    )
+
+
+def list_stranded_operations(
+    session: Session, limit: int = 50, offset: int = 0
+) -> list[StrandedOperationSummary]:
+    """Return STRANDED operations ordered by age, oldest first.
+
+    STRANDED operations represent ambiguous provider outcomes where the
+    reconciler preserved the hold pending explicit admin review.  This query
+    surfaces them for the operations dashboard.
+    """
+    rows = session.execute(
+        text(
+            """
+            SELECT
+                idempotency_key,
+                user_id,
+                trace_id,
+                model,
+                reserved_amount,
+                created_at,
+                expired_at,
+                dispatch_started_at,
+                terminal_reason
+            FROM escrow_ledger
+            WHERE status = 'STRANDED'
+            ORDER BY created_at ASC
+            LIMIT :limit
+            OFFSET :offset
+            """
+        ),
+        {"limit": limit, "offset": offset},
+    ).mappings().all()
+
+    return [
+        StrandedOperationSummary(
+            idempotency_key=row["idempotency_key"],
+            user_id=row["user_id"],
+            trace_id=row["trace_id"],
+            model=row["model"],
+            reserved_amount=_money(row["reserved_amount"]),
+            created_at=row["created_at"],
+            expired_at=row["expired_at"],
+            dispatch_started_at=row["dispatch_started_at"],
+            terminal_reason=row["terminal_reason"],
+        )
+        for row in rows
+    ]
+
+
+def apply_admin_correction(
+    session: Session, settings: Settings, request: AdminCorrectionRequest
+) -> AdminCorrectionResponse:
+    """Administratively settle a STRANDED or EXPIRED operation.
+
+    This function resolves an ambiguous operation by applying the
+    authoritative provider cost supplied by the admin.  The existing
+    settlement finalization path is reused so that all balance mutations,
+    trace-budget updates, and audit events follow the same deterministic
+    rules as normal settlement.
+
+    An additional ADMIN_CORRECTION_APPLIED event is appended to the
+    ledger_events table and a row is written to admin_audit_log so that
+    the admin action is independently traceable.
+    """
+    operation = _load_operation_for_update(
+        session,
+        idempotency_key=request.idempotency_key,
+        provider_request_id=None,
+    )
+    if not operation:
+        raise NotFoundError("operation not found")
+
+    previous_status = operation["status"]
+    if previous_status not in {"STRANDED", "EXPIRED"}:
+        raise PolicyStateError(
+            f"admin correction requires STRANDED or EXPIRED status; got {previous_status}"
+        )
+
+    # Build a synthetic settle request reusing the existing finalization path.
+    settle_req = SettleRequest(
+        idempotency_key=request.idempotency_key,
+        outcome="SETTLED",
+        actual_cost=request.actual_amount,
+        dispatch_attempt_key=request.dispatch_attempt_key,
+        provider_name=request.provider_name,
+        reason=f"ADMIN_CORRECTION: {request.admin_reason}",
+    )
+    result = _finalize_settlement(session, settings, dict(operation), settle_req)
+
+    # Append operation-level admin correction event to the audit trail.
+    _append_event(
+        session,
+        idempotency_key=request.idempotency_key,
+        user_id=operation["user_id"],
+        event_type="ADMIN_CORRECTION_APPLIED",
+        amount_delta=Decimal("0"),
+        metadata={
+            "admin_user_id": request.admin_user_id,
+            "admin_reason": request.admin_reason,
+            "previous_status": previous_status,
+            "corrected_amount": str(result.actual_amount),
+        },
+    )
+
+    # Write to admin_audit_log (not subject to escrow_ledger FK constraints
+    # so that wallet-level events can also be stored in the same table).
+    _append_admin_log(
+        session,
+        admin_user_id=request.admin_user_id,
+        action_type="OPERATION_CORRECTION",
+        subject_key=request.idempotency_key,
+        details={
+            "previous_status": previous_status,
+            "corrected_amount": str(result.actual_amount),
+            "admin_reason": request.admin_reason,
+        },
+    )
+
+    session.commit()
+    return AdminCorrectionResponse(
+        idempotency_key=request.idempotency_key,
+        previous_status=previous_status,
+        status="SETTLED",
+        actual_amount=result.actual_amount,
+        correction_applied=True,
+    )
+
+
+def unlock_wallet(
+    session: Session,
+    user_id: str,
+    admin_user_id: str,
+    admin_reason: str,
+) -> WalletUnlockResponse:
+    """Unlock a wallet that was locked by drift-threshold enforcement.
+
+    The action is append-only in the sense that the admin_audit_log receives
+    a permanent record even though the user_wallets row is updated.
+    """
+    wallet = session.execute(
+        text(
+            """
+            SELECT user_id, active, locked_at, lock_reason
+            FROM user_wallets
+            WHERE user_id = :user_id
+            """
+        ),
+        {"user_id": user_id},
+    ).mappings().first()
+
+    if not wallet:
+        raise NotFoundError("wallet not found")
+
+    if wallet["active"]:
+        return WalletUnlockResponse(
+            user_id=user_id,
+            unlocked=False,
+            message="wallet is already active — no action taken",
+        )
+
+    now = _utcnow()
+    session.execute(
+        text(
+            """
+            UPDATE user_wallets
+            SET active = TRUE,
+                locked_at = NULL,
+                lock_reason = NULL,
+                updated_at = :updated_at
+            WHERE user_id = :user_id
+            """
+        ),
+        {"user_id": user_id, "updated_at": now},
+    )
+
+    _append_admin_log(
+        session,
+        admin_user_id=admin_user_id,
+        action_type="WALLET_UNLOCK",
+        subject_key=user_id,
+        details={
+            "previous_lock_reason": wallet["lock_reason"],
+            "admin_reason": admin_reason,
+        },
+    )
+
+    session.commit()
+    return WalletUnlockResponse(
+        user_id=user_id,
+        unlocked=True,
+        message="wallet unlocked and reactivated",
+    )
+
+
+def _append_admin_log(
+    session: Session,
+    *,
+    admin_user_id: str,
+    action_type: str,
+    subject_key: str,
+    details: dict,
+) -> None:
+    """Insert a row into admin_audit_log."""
+    details_json = json.dumps(details, sort_keys=True)
+    details_value = ":details"
+    if session.bind.dialect.name == "postgresql":
+        details_value = "CAST(:details AS JSONB)"
+
+    session.execute(
+        text(
+            f"""
+            INSERT INTO admin_audit_log (admin_user_id, action_type, subject_key, details)
+            VALUES (:admin_user_id, :action_type, :subject_key, {details_value})
+            """
+        ),
+        {
+            "admin_user_id": admin_user_id,
+            "action_type": action_type,
+            "subject_key": subject_key,
+            "details": details_json,
+        },
+    )
