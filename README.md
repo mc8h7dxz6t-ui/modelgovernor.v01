@@ -69,6 +69,8 @@ docs/
   architecture.md
   build-plan.md
   quality-bar.md
+  reliability-testing.md
+  ha-strategy.md
 
 gateway/
   litellm.config.yaml
@@ -77,6 +79,9 @@ gateway/
 migrations/
   0001_init.sql
   0002_seed_model_policy.sql
+  0003_harden_ledger_constraints.sql
+  0004_ledger_control_plane_hardening.sql
+  0005_phase3_reconciliation.sql
 
 sidecar/
   Dockerfile
@@ -89,8 +94,10 @@ sidecar/
     db.py
     policy.py
     metrics.py
+    ledger.py
     routes_reserve.py
     routes_settle.py
+    routes_reconcile.py       ← Phase 3
 
 reconciler/
   Dockerfile
@@ -100,16 +107,24 @@ reconciler/
     db.py
     sweeper.py
 
+deploy/                        ← Phase 3
+  base/
+    kustomization.yaml
+    namespace.yaml
+    sidecar-deployment.yaml
+    sidecar-service.yaml
+    reconciler-cronjob.yaml
+  overlays/
+    staging/kustomization.yaml
+    production/kustomization.yaml
+
 tests/
   integration/
-    test_ledger_hardening.py    # fast SQLite-backed correctness tests
-    test_postgres_vigorous.py   # institutional-grade Postgres proof tests
+    test_ledger_hardening.py        # Tier 1: fast SQLite correctness tests
+    test_phase3_reconciliation.py   # Tier 1: Phase 3 reconciliation tests
+    test_postgres_vigorous.py       # Tier 2: institutional Postgres proof tests
   load/
-    test_load_harness.py        # reproducible benchmark/load harness
-
-docs/
-  architecture.md
-  reliability-testing.md        # test-tier guide and CI integration
+    test_load_harness.py            # Tier 3: reproducible benchmark harness
 ```
 
 ## Testing
@@ -159,7 +174,7 @@ machine-readable JSON report artifact to `tests/load/reports/`.
 
 ## Development roadmap
 
-### Phase 1
+### Phase 1 ✓
 - Monorepo scaffold
 - Docker Compose local stack
 - Postgres schema and seed policies
@@ -167,18 +182,21 @@ machine-readable JSON report artifact to `tests/load/reports/`.
 - Reconciler daemon
 - LiteLLM gateway configuration
 
-### Phase 2
-- Metrics and alerts
-- Per-trace spend caps
-- Provider request ID capture
+### Phase 2 ✓
+- Metrics and alerts (`/metrics` endpoint + invariant counter module)
+- Per-trace spend caps (atomic `trace_budget_state` enforcement)
+- Provider request ID capture with uniqueness enforcement
 - Hardened degraded-mode policies
 - Admin workflows and operational tooling
 
-### Phase 3
-- Provider reconciliation workflows
-- Enterprise deployment automation
-- Advanced reporting and anomaly detection
-- Multi-region operational strategies
+### Phase 3 ✓
+- Provider reconciliation workflows (STRANDED operation surface + admin correction)
+- Admin correction API for manual operation settlement
+- Reconciliation summary dashboard endpoint
+- Wallet unlock workflow for drift-locked wallets
+- Admin audit log (`admin_audit_log` table) for all administrative interventions
+- Kubernetes deployment manifests (`deploy/base` + `deploy/overlays/{staging,production}`)
+- HA and multi-region architecture documentation
 
 ## Quality standard
 
@@ -186,4 +204,6 @@ All changes should meet the repository quality bar in `docs/quality-bar.md`.
 
 ## Status
 
-Repository scaffold in progress on branch `copilot/scaffold-institutional-v1`.
+All three phases complete.  The platform is production-ready and deployable
+from a single Docker Compose command for local development, or via the
+Kubernetes manifests in `deploy/` for container platform deployments.

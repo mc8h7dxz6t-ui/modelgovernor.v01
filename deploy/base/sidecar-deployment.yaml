@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sidecar
+  namespace: modelgovernor
+  labels:
+    app: sidecar
+    app.kubernetes.io/part-of: modelgovernor
+    app.kubernetes.io/component: policy-sidecar
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sidecar
+  template:
+    metadata:
+      labels:
+        app: sidecar
+        app.kubernetes.io/part-of: modelgovernor
+    spec:
+      containers:
+        - name: sidecar
+          image: modelgovernor/sidecar:latest
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: modelgovernor-secrets
+                  key: database-url
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: modelgovernor-secrets
+                  key: redis-url
+            - name: SIDECAR_INTERNAL_TOKENS
+              valueFrom:
+                secretKeyRef:
+                  name: modelgovernor-secrets
+                  key: sidecar-internal-tokens
+            - name: APP_ENV
+              value: production
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            readOnlyRootFilesystem: true
+      restartPolicy: Always
+      securityContext:
+        fsGroup: 1000

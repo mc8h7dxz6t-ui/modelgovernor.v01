@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sidecar
+  namespace: modelgovernor
+  labels:
+    app: sidecar
+    app.kubernetes.io/part-of: modelgovernor
+    app.kubernetes.io/component: policy-sidecar
+spec:
+  selector:
+    app: sidecar
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+      protocol: TCP
+  type: ClusterIP

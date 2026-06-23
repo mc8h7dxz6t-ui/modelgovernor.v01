@@ -1,0 +1,51 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: reconciler
+  namespace: modelgovernor
+  labels:
+    app: reconciler
+    app.kubernetes.io/part-of: modelgovernor
+    app.kubernetes.io/component: reconciler
+spec:
+  # Run every two minutes.  Adjust for your reservation TTL — shorter TTLs
+  # require more frequent sweeps.
+  schedule: "*/2 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: reconciler
+            app.kubernetes.io/part-of: modelgovernor
+        spec:
+          containers:
+            - name: reconciler
+              image: modelgovernor/reconciler:latest
+              env:
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: modelgovernor-secrets
+                      key: database-url
+                - name: APP_ENV
+                  value: production
+              resources:
+                requests:
+                  cpu: "50m"
+                  memory: "64Mi"
+                limits:
+                  cpu: "200m"
+                  memory: "128Mi"
+              securityContext:
+                allowPrivilegeEscalation: false
+                runAsNonRoot: true
+                runAsUser: 1000
+                readOnlyRootFilesystem: true
+          restartPolicy: Never
+          securityContext:
+            fsGroup: 1000

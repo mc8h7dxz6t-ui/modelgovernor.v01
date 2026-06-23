@@ -4,7 +4,7 @@
 
 Deliver a portable, institutional-grade AI governance gateway that can be reproduced on a laptop and hardened for enterprise deployment.
 
-## Phase 1: portable baseline
+## Phase 1: portable baseline ✓
 
 ### Deliverables
 - Monorepo scaffold
@@ -22,7 +22,7 @@ Deliver a portable, institutional-grade AI governance gateway that can be reprod
 - Expired reservations are reclaimed automatically
 - Model allowlists and request caps are enforced through database-backed policy
 
-## Phase 2: production hardening
+## Phase 2: production hardening ✓
 
 ### Deliverables
 - Internal auth hardening between gateway and sidecar
@@ -38,19 +38,19 @@ Deliver a portable, institutional-grade AI governance gateway that can be reprod
 - Audit events capture all terminal ledger transitions
 - Operational alerts exist for reserve failures, settle anomalies, and reconciliation drift
 
-## Phase 3: enterprise expansion
+## Phase 3: enterprise expansion ✓
 
 ### Deliverables
 - Provider reconciliation workflows
 - Admin workflows for manual adjustments
 - Reporting exports and anomaly summaries
 - Deployment automation for container platforms
-- Optional HA and multi-region strategy documentation
+- HA and multi-region strategy documentation
 
 ### Success criteria
-- Correction workflows are captured in append-only audit events
-- Provider-side discrepancies can be surfaced and resolved deterministically
-- Deployment artifacts support repeatable installation across environments
+- Correction workflows are captured in append-only audit events ✓
+- Provider-side discrepancies can be surfaced and resolved deterministically ✓
+- Deployment artifacts support repeatable installation across environments ✓
 
 ## Build order
 

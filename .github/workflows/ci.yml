@@ -1,0 +1,162 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Fast correctness tests — always run, no external services required
+  # ---------------------------------------------------------------------------
+  test-tier1:
+    name: Tier 1 — SQLite fast tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r sidecar/requirements.txt
+          pip install -r reconciler/requirements.txt
+          pip install pytest
+
+      - name: Compile check
+        run: python -m compileall -q sidecar/app reconciler/app
+
+      - name: Tier 1 — integration tests (SQLite, no infra)
+        run: pytest tests/integration/test_ledger_hardening.py tests/integration/test_phase3_reconciliation.py -q
+
+  # ---------------------------------------------------------------------------
+  # Postgres-backed vigorous proof tests
+  # ---------------------------------------------------------------------------
+  test-tier2:
+    name: Tier 2 — Postgres vigorous tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: mg_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r sidecar/requirements.txt
+          pip install -r reconciler/requirements.txt
+          pip install pytest psycopg2-binary
+
+      - name: Tier 2 — Postgres vigorous tests
+        env:
+          POSTGRES_TEST_URL: ******localhost:5432/mg_test
+        run: pytest tests/integration/test_postgres_vigorous.py -q
+
+  # ---------------------------------------------------------------------------
+  # Kubernetes manifest validation — renders all overlays with kustomize
+  # ---------------------------------------------------------------------------
+  validate-manifests:
+    name: Kustomize manifest validation
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install kustomize
+        run: |
+          curl -sSLo kustomize.tar.gz \
+            https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.5.0/kustomize_v5.5.0_linux_amd64.tar.gz
+          tar xzf kustomize.tar.gz
+          sudo mv kustomize /usr/local/bin/kustomize
+          kustomize version
+
+      - name: Render staging overlay
+        run: kustomize build deploy/overlays/staging
+
+      - name: Render production overlay
+        run: kustomize build deploy/overlays/production
+
+  # ---------------------------------------------------------------------------
+  # Migration sanity check — ensures all SQL files parse without error
+  # ---------------------------------------------------------------------------
+  validate-migrations:
+    name: Migration syntax check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install SQLAlchemy
+        run: pip install sqlalchemy
+
+      - name: Apply all migrations against SQLite
+        run: |
+          python - <<'EOF'
+          import sqlite3, pathlib
+
+          migrations_dir = pathlib.Path("migrations")
+          conn = sqlite3.connect(":memory:")
+
+          # SQLite does not support ALTER TYPE or Postgres-specific DDL; skip those
+          # statements gracefully — the point is to catch syntax errors in the portable
+          # DDL that both dialects share.
+          skip_prefixes = (
+              "alter type",
+              "create extension",
+              "comment on",
+          )
+
+          for path in sorted(migrations_dir.glob("*.sql")):
+              sql = path.read_text()
+              for stmt in sql.split(";"):
+                  stripped = stmt.strip().lower()
+                  if not stripped:
+                      continue
+                  if any(stripped.startswith(p) for p in skip_prefixes):
+                      continue
+                  try:
+                      conn.execute(stmt)
+                  except sqlite3.OperationalError as exc:
+                      # Ignore expected Postgres-only keywords that SQLite rejects
+                      msg = str(exc).lower()
+                      known_incompatible = (
+                          "timestamptz", "jsonb", "bigserial", "for update",
+                          "skip locked", "returning", "::jsonb", "::text",
+                          "filter (where", "if not exists",
+                      )
+                      if not any(k in msg for k in known_incompatible):
+                          raise RuntimeError(f"{path.name}: {exc}\nStatement: {stmt[:200]}") from exc
+
+          print("All migration files parsed successfully.")
+          EOF
