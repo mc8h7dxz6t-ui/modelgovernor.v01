@@ -220,7 +220,7 @@ jobs:
   test-tier4-chaos:
     name: Tier 4 — Toxiproxy chaos (Finance Ops)
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 

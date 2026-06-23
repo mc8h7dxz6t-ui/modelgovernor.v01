@@ -52,9 +52,22 @@ def _postgres_url() -> str:
 
 def _reset_proxy() -> None:
     try:
-        requests.delete(f"{TOXIPROXY_API}/proxies/{PROXY_NAME}/toxics", timeout=2)
+        requests.delete(f"{TOXIPROXY_API}/proxies/{PROXY_NAME}/toxics", timeout=5)
+        _set_proxy_enabled(True)
     except requests.RequestException:
         pytest.skip("toxiproxy API unavailable")
+
+
+def _set_proxy_enabled(enabled: bool) -> None:
+    response = requests.get(f"{TOXIPROXY_API}/proxies/{PROXY_NAME}", timeout=5)
+    response.raise_for_status()
+    payload = response.json()
+    payload["enabled"] = enabled
+    requests.post(
+        f"{TOXIPROXY_API}/proxies/{PROXY_NAME}",
+        json=payload,
+        timeout=5,
+    ).raise_for_status()
 
 
 def _add_latency(ms: int) -> None:
@@ -72,7 +85,8 @@ def chaos_engine():
     engine = create_engine(
         database_url,
         future=True,
-        connect_args={"connect_timeout": 10},
+        connect_args={"connect_timeout": 3},
+        pool_pre_ping=True,
     )
     apply_migrations_to_engine(engine, MIGRATIONS_DIR, _MIGRATION_FILES)
     yield engine
@@ -142,11 +156,9 @@ def test_finance_ops_survives_toxiproxy_latency(chaos_engine) -> None:
 
 def test_finance_ops_toxiproxy_timeout_recovers_on_reset(chaos_engine) -> None:
     _reset_proxy()
-    requests.post(
-        f"{TOXIPROXY_API}/proxies/{PROXY_NAME}/toxics",
-        json={"name": "timeout", "type": "timeout", "attributes": {"timeout": 0}},
-        timeout=5,
-    ).raise_for_status()
+    chaos_engine.dispose()
+    # Toxiproxy timeout=0 means "never close" (infinite hang). Disable proxy instead.
+    _set_proxy_enabled(False)
 
     settings = _settings(str(chaos_engine.url))
     factory = sessionmaker(bind=chaos_engine, autoflush=False, autocommit=False, future=True)
@@ -166,6 +178,7 @@ def test_finance_ops_toxiproxy_timeout_recovers_on_reset(chaos_engine) -> None:
             )
 
     _reset_proxy()
+    chaos_engine.dispose()
     with factory() as session:
         reserve_operation(
             session,
