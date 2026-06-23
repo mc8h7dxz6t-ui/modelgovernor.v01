@@ -1,0 +1,46 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: modelgovernor
+
+configMapGenerator:
+  - name: migrations-bundle
+    files:
+      - migrations/0001_init.sql
+      - migrations/0002_seed_model_policy.sql
+      - migrations/0003_harden_ledger_constraints.sql
+      - migrations/0004_ledger_control_plane_hardening.sql
+      - migrations/0005_invariant_constraints.sql
+      - migrations/0006_execution_attribution_guardrails.sql
+      - migrations/0007_wallet_nonnegative_backstop.sql
+      - migrations/0008_micro_token_precision.sql
+      - migrations/0009_ledger_hash_chain.sql
+      - migrations/0010_admin_audit_log.sql
+      - migrations/0011_ledger_chain_anchors.sql
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - postgres.yaml
+  - pgbouncer.yaml
+  - redis.yaml
+  - network-policy.yaml
+  - sidecar-deployment.yaml
+  - gateway-deployment.yaml
+  - reconciler-deployment.yaml
+  - migration-job.yaml
+  - otel-collector.yaml
+  - prometheus-rules.yaml
+  - grafana-dashboard.yaml
+  - sidecar-podmonitor.yaml
+  - reconciler-podmonitor.yaml
+  - synthetic-probe-cronjob.yaml
+  - ledger-verify-cronjob.yaml
+  - governance-canary-cronjob.yaml
+  - ledger-chain-anchor-cronjob.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: modelgovernor
+      app.kubernetes.io/managed-by: kustomize
+    includeSelectors: false

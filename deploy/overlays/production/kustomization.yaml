@@ -1,0 +1,123 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../enterprise
+  - externalsecret.yaml
+  - redis-sentinel.yaml
+
+patches:
+  - path: pgbouncer-secret-patch.yaml
+  - target:
+      kind: Deployment
+      name: sidecar
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 3
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: sidecar-hpa
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 3
+      - op: replace
+        path: /spec/maxReplicas
+        value: 12
+  - target:
+      kind: Deployment
+      name: redis
+    patch: |-
+      $patch: delete
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: redis
+  - target:
+      kind: Service
+      name: redis
+    patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: redis
+  - target:
+      kind: ConfigMap
+      name: modelgovernor-config
+    patch: |-
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: modelgovernor-config
+        namespace: modelgovernor
+      data:
+        OIDC_ENABLED: "true"
+        GATEWAY_OIDC_ENABLED: "true"
+        PROVIDER_MODE: "live"
+        LEDGER_ANCHOR_S3_OBJECT_LOCK_ENABLED: "true"
+        REDIS_SENTINEL_MASTER_NAME: "mymaster"
+  - target:
+      kind: Deployment
+      name: gateway
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: gateway
+        namespace: modelgovernor
+      spec:
+        template:
+          spec:
+            containers:
+              - name: gateway
+                env:
+                  - name: PROVIDER_MODE
+                    value: live
+                  - name: OPENAI_API_KEY
+                    valueFrom:
+                      secretKeyRef:
+                        name: modelgovernor-secrets
+                        key: openai-api-key
+                  - name: ANTHROPIC_API_KEY
+                    valueFrom:
+                      secretKeyRef:
+                        name: modelgovernor-secrets
+                        key: anthropic-api-key
+                  - name: OIDC_ISSUER_URL
+                    valueFrom:
+                      secretKeyRef:
+                        name: modelgovernor-secrets
+                        key: oidc-issuer-url
+                  - name: OIDC_AUDIENCE
+                    valueFrom:
+                      secretKeyRef:
+                        name: modelgovernor-secrets
+                        key: oidc-audience
+  - target:
+      kind: Deployment
+      name: sidecar
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: sidecar
+        namespace: modelgovernor
+      spec:
+        template:
+          spec:
+            containers:
+              - name: sidecar
+                env:
+                  - name: OIDC_ENABLED
+                    value: "true"
+                  - name: LEDGER_ANCHOR_S3_BUCKET
+                    valueFrom:
+                      secretKeyRef:
+                        name: modelgovernor-secrets
+                        key: ledger-anchor-s3-bucket
+                  - name: LEDGER_ANCHOR_S3_OBJECT_LOCK_ENABLED
+                    value: "true"
+                  - name: REDIS_URL
+                    value: redis+sentinel://redis-sentinel:26379/mymaster/0

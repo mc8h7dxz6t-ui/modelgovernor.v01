@@ -1,0 +1,210 @@
+# Default values — use values-production.yaml or values-staging.yaml for overlays.
+
+global:
+  namespace: modelgovernor
+  labels:
+    app.kubernetes.io/part-of: modelgovernor
+    app.kubernetes.io/managed-by: helm
+
+nameOverride: ""
+fullnameOverride: ""
+
+images:
+  sidecar:
+    repository: modelgovernor/sidecar
+    tag: latest
+    pullPolicy: IfNotPresent
+  reconciler:
+    repository: modelgovernor/reconciler
+    tag: latest
+    pullPolicy: IfNotPresent
+  gateway:
+    repository: modelgovernor/gateway
+    tag: latest
+    pullPolicy: IfNotPresent
+  postgres:
+    repository: postgres
+    tag: "16"
+    pullPolicy: IfNotPresent
+  redis:
+    repository: redis
+    tag: 7-alpine
+    pullPolicy: IfNotPresent
+  pgbouncer:
+    repository: edoburu/pgbouncer
+    tag: 1.22.1-p0
+    pullPolicy: IfNotPresent
+  otelCollector:
+    repository: otel/opentelemetry-collector
+    tag: "0.103.0"
+    pullPolicy: IfNotPresent
+  migrate:
+    repository: python
+    tag: 3.12-slim
+    pullPolicy: IfNotPresent
+
+secrets:
+  # Set true only for local/dev; production should use externalSecrets.
+  create: false
+  name: modelgovernor-secrets
+  databaseUrl: postgresql+psycopg://postgres:CHANGE_ME@pgbouncer:6432/modelgovernor
+  databaseUrlDirect: postgresql+psycopg://postgres:CHANGE_ME@postgres:5432/modelgovernor
+  postgresPassword: CHANGE_ME
+  redisUrl: redis://redis:6379/0
+  sidecarInternalTokens: CHANGE_ME
+
+externalSecrets:
+  enabled: false
+  secretStoreRef:
+    name: cluster-secret-store
+    kind: ClusterSecretStore
+  remoteRefs:
+    databaseUrl: modelgovernor/database-url
+    databaseUrlDirect: modelgovernor/database-url-direct
+    redisUrl: modelgovernor/redis-url
+    sidecarInternalTokens: modelgovernor/sidecar-internal-tokens
+    postgresPassword: modelgovernor/postgres-password
+    openaiApiKey: modelgovernor/openai-api-key
+    anthropicApiKey: modelgovernor/anthropic-api-key
+    pgbouncerUserlist: modelgovernor/pgbouncer-userlist
+    oidcIssuerUrl: modelgovernor/oidc-issuer-url
+    oidcAudience: modelgovernor/oidc-audience
+    ledgerAnchorS3Bucket: modelgovernor/ledger-anchor-s3-bucket
+
+postgres:
+  enabled: true
+  replicas: 1
+  database: modelgovernor
+  user: postgres
+  storage:
+    emptyDir: true
+
+pgbouncer:
+  enabled: true
+  replicas: 2
+  poolMode: transaction
+  maxClientConn: 500
+  defaultPoolSize: 20
+
+redis:
+  enabled: true
+  replicas: 1
+  sentinel:
+    enabled: false
+    masterName: mymaster
+    replicas: 3
+
+sidecar:
+  replicas: 3
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilization: 70
+  pdb:
+    enabled: true
+    minAvailable: 2
+  otel:
+    endpoint: http://otel-collector:4318
+    serviceName: modelgovernor-sidecar
+
+gateway:
+  enabled: true
+  replicas: 2
+  mockDispatchCost: "1.000000"
+  providerMode: mock
+  oidc:
+    enabled: false
+    issuerUrl: ""
+    audience: ""
+    dispatchRoles: "dispatch,modelgovernor-dispatch"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+
+reconciler:
+  enabled: true
+  replicas: 2
+  sweepIntervalSeconds: 30
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+migrations:
+  enabled: true
+  argocd:
+    preSyncHook: true
+
+otelCollector:
+  enabled: true
+
+monitoring:
+  prometheusRules:
+    enabled: true
+  grafanaDashboard:
+    enabled: true
+  sidecarPodMonitor:
+    enabled: true
+  reconcilerPodMonitor:
+    enabled: true
+
+syntheticProbe:
+  enabled: true
+  schedule: "*/5 * * * *"
+
+ledgerChainVerify:
+  enabled: true
+  schedule: "0 * * * *"
+
+ledgerChainAnchor:
+  enabled: true
+  schedule: "15 * * * *"
+
+governanceCanary:
+  enabled: true
+  schedule: "*/10 * * * *"
+
+networkPolicy:
+  enabled: true
+
+config:
+  defaultTraceCapAmount: "25.000000"
+  driftAbsoluteTolerance: "0.500000"
+  driftRatioTolerance: "0.050000"
+  dbPoolSize: "3"
+  dbMaxOverflow: "2"
+  dbPoolTimeoutSeconds: "5"
+  dbPoolRecycleSeconds: "900"
+  guardrailsEnabled: "true"
+  rateLimitPerMinute: "120"
+  maxTraceDepth: "50"
+  maxUserInflight: "10"
+  circuitBreakerEnabled: "true"
+  fallbackGlobalTokensPerSecond: "20"
+  fallbackTokenBucketCapacity: "40"
+  fallbackRateLimitPerMinute: "60"
+  fallbackMaxUserInflight: "5"
+  oidcEnabled: "false"
+  oidcAllowInternalTokenFallback: "true"
+  oidcViewerRoles: "viewer,modelgovernor-viewer"
+  oidcFinancialAdminRoles: "financial-admin,modelgovernor-financial-admin"
+  gatewayOidcEnabled: "false"
+  gatewayOidcIssuerUrl: ""
+  gatewayOidcAudience: ""
+  gatewayOidcDispatchRoles: "dispatch,modelgovernor-dispatch"
+  ledgerAnchorS3ObjectLockEnabled: "false"

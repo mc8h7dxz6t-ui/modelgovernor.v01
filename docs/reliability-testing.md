@@ -1,46 +1,259 @@
-# Reliability and proof validation
+# Reliability Testing Guide
 
-This repository separates lightweight checks from higher-assurance proof runs.
+This document explains the three testing tiers for `modelgovernor.v01` and the
+supporting validation gates around them.  The distinction matters because the
+tiered tests and non-functional checks serve different purposes and make
+different guarantees.
 
-## Tier 1: lightweight local checks (fast)
+---
+
+## Tier 1 — Lightweight / Local fast tests
+
+**File:** `tests/integration/test_ledger_hardening.py`
+
+**Engine:** SQLite (in-memory, via `tmp_path`)
+
+**Runs in:** < 1 second, zero external dependencies, always works on a laptop
+
+**Purpose:**
+These tests validate the correctness of the ledger logic — state machine
+transitions, trace-cap arithmetic, replay idempotency, drift detection, and
+reconciler sweep behaviour — in isolation from any infrastructure.
+
+SQLite closely approximates Postgres for the logic under test.  The code is
+written to adapt SQL to the dialect in use (`FOR UPDATE SKIP LOCKED` is omitted
+for SQLite; JSONB is written as TEXT).
+
+**What these tests prove:**
+
+| Scenario | Covered |
+|---|---|
+| Reserve → dispatch → settle happy path | ✓ |
+| Idempotent replay returns same result | ✓ |
+| Mismatched fingerprint raises ConflictError | ✓ |
+| Provider failover (multiple dispatch attempts) | ✓ |
+| Reconciler strands IN_FLIGHT holds | ✓ |
+| Reconciler refunds clean expired holds | ✓ |
+| Late settlement after EXPIRED applies correction debit | ✓ |
+| Late settlement after STRANDED applies correction debit | ✓ |
+| Drift within tolerance: DRIFT_TOLERATED event | ✓ |
+| Drift above threshold: wallet locked, DRIFT_ENFORCED event | ✓ |
+| Concurrent reserves cannot oversubscribe trace cap | ✓ (SQLite WAL mode) |
+
+**How to run:**
 
 ```bash
-pytest -q tests/integration/test_ledger_hardening.py
-pytest -q tests/integration/test_sidecar_admin_observability.py
-pytest -q tests/load/test_load_harness.py
+pytest tests/integration/test_ledger_hardening.py -v
 ```
 
-Purpose: quick regression checks on ledger logic, deterministic invariants, and internal-auth observability/admin read surfaces.
+---
 
-## Tier 2: Postgres-backed proof checks (real DB semantics)
+## Tier 2 — Institutional-grade Postgres-backed vigorous proof tests
 
-Set `POSTGRES_TEST_URL` to a writable PostgreSQL instance, then run:
+**File:** `tests/integration/test_postgres_vigorous.py`
+
+**Engine:** Real Postgres 16
+
+**Requires:** `POSTGRES_TEST_URL` environment variable pointing to a live
+Postgres database with no prior migrations applied (or a freshly truncated one).
+
+**Purpose:**
+These tests run the same scenarios as Tier 1 but against real Postgres
+semantics.  They additionally validate:
+
+- `FOR UPDATE SKIP LOCKED` prevents duplicate refunds in concurrent reconciler
+  workers — a property that **cannot** be demonstrated with SQLite.
+- Postgres ENUM type transitions (`RESERVED → IN_FLIGHT → SETTLED` etc.)
+- JSONB metadata is correctly stored and queriable.
+- `provider_request_id` uniqueness index rejects cross-operation ID collisions.
+- Concurrent `UPDATE … RETURNING` is atomic under MVCC — no trace cap overrun
+  even under maximum thread contention.
+
+**What these tests prove additionally:**
+
+| Scenario | Postgres-specific guarantee |
+|---|---|
+| Concurrent trace-cap contention (10 workers) | Atomic UPDATE-RETURNING on MVCC |
+| provider_request_id uniqueness conflict | Unique partial index on Postgres |
+| Concurrent reconciler workers (SKIP LOCKED) | Exactly-once sweep, no duplicate refunds |
+| Concurrent reconciler workers — STRANDED rows | Exactly-once stranded event per row |
+| ENUM type enforcement | Postgres-native check |
+| JSONB metadata queriable | `metadata->>'key'` syntax |
+| No negative wallet balances across session | Postgres CHECK constraint + logic |
+| No trace reserved_total > cap | Application invariant, session-wide |
+
+**Quickstart (Docker Compose):**
 
 ```bash
-pytest -q tests/integration/test_postgres_reliability.py
+# Start a clean ephemeral Postgres for the test run
+docker-compose -f docker-compose.test.yml up -d postgres-test
+
+# Wait for healthy (or rely on the healthcheck)
+docker-compose -f docker-compose.test.yml ps
+
+# Run vigorous tests
+POSTGRES_TEST_URL=postgresql+psycopg://postgres:postgres@localhost:5433/mg_test \
+    pytest tests/integration/test_postgres_vigorous.py -v
+
+# Tear down
+docker-compose -f docker-compose.test.yml down
 ```
 
-These tests run against an isolated temporary database per test and apply the real SQL migrations (`migrations/0001`-`0004`) before execution.
-
-Covered proof scenarios:
-- contested trace-cap reservations on the same trace
-- concurrent reconciler workers against the same expired rows
-- provider request ID uniqueness conflict handling
-- late-settlement behavior after stranded holds
-
-## Tier 3: reproducible load/invariant report
-
-Generate machine-readable output:
+**Or run everything in one container:**
 
 ```bash
-python scripts/generate_invariant_report.py --operations 120 --workers 12
+docker-compose -f docker-compose.test.yml run --rm test
 ```
 
-Output:
-- `artifacts/reliability/latest_invariant_report.json`
+**If you already have a Postgres instance:**
 
-This report is intended for invariant validation (correctness) rather than throughput marketing claims.
+```bash
+export POSTGRES_TEST_URL=postgresql+psycopg://postgres:postgres@host:5432/mg_test
+pytest tests/integration/test_postgres_vigorous.py -v
+```
 
-## Honesty note
+> **Note:** Migrations are applied automatically at the start of the test
+> session.  Use a dedicated test database; do not point this at a production
+> database.
 
-The load harness is intentionally scoped to deterministic control-plane correctness signals. It is not a substitute for full production benchmarking under representative infrastructure and provider traffic.
+---
+
+## Tier 3 — Load / benchmark harness
+
+**File:** `tests/load/test_load_harness.py`
+
+**Engine:** SQLite by default; Postgres when `POSTGRES_TEST_URL` is set.
+
+**Purpose:**
+Characterises reserve-path latency, invariant safety under load, and
+concurrency behaviour.  Produces a machine-readable JSON report artifact.
+
+**Scenarios:**
+
+| Scenario | Description |
+|---|---|
+| `hot_trace_contention` | All workers share one trace; cap allows ~half to succeed.  Proves zero cap overruns. |
+| `distributed_contention` | Each worker gets its own trace.  Measures base reserve latency with no lock pressure. |
+| `mixed_activity` | Concurrent reserve / settle / sweep.  Proves no negative balances. |
+
+**Metrics captured:**
+
+- `p50 / p95 / p99` reserve DB transaction duration (ms)
+- `invariant_violations` count (must be zero for a passing run)
+- Outcome breakdown: `reserved`, `cap_exceeded`, `error:<reason>`
+- Counters from `sidecar.app.metrics`: reserve success, denials, drift events,
+  reconciler claimed/expired/stranded
+
+**How to run:**
+
+```bash
+# Fast, SQLite, always works:
+python tests/load/test_load_harness.py
+
+# Or via pytest:
+pytest tests/load/test_load_harness.py -v
+
+# With Postgres (institutional proof):
+POSTGRES_TEST_URL=postgresql+psycopg://postgres:postgres@localhost:5433/mg_test python tests/load/test_load_harness.py
+
+# Tune concurrency:
+LOAD_WORKERS=50 LOAD_OPS_PER_WORKER=50 python tests/load/test_load_harness.py
+```
+
+**Report output:**
+
+Each run writes a JSON artifact to `tests/load/reports/load_report_<db>_<ts>.json`:
+
+```json
+{
+  "generated_at": "20260622T185416Z",
+  "db_mode": "sqlite",
+  "workers": 20,
+  "ops_per_worker": 25,
+  "scenarios": [
+    {
+      "scenario": "hot_trace_contention",
+      "n": 20,
+      "outcomes": {"reserved": 5, "cap_exceeded": 15},
+      "latency_ms": {"p50": 2.1, "p95": 8.4, "p99": 12.3},
+      "invariant_violations": 0,
+      "metrics": { ... }
+    }
+  ]
+}
+```
+
+---
+
+## Invariant metrics module
+
+**File:** `sidecar/app/metrics.py`
+
+Provides a process-global thread-safe counter registry.  The following counters
+are incremented by the production code paths:
+
+| Counter | Incremented by |
+|---|---|
+| `reserve_success_total` | Successful reserve commit |
+| `reserve_denied_trace_cap_total` | TraceCapExceededError |
+| `reserve_denied_balance_total` | InsufficientFundsError |
+| `reserve_idempotent_replay_total` | Replay of existing idempotency key |
+| `trace_cap_overrun_detected_total` | Same as cap denial |
+| `drift_enforced_total` | Drift above threshold → wallet locked |
+| `drift_tolerated_total` | Drift within tolerance |
+| `reconciler_claimed_total` | Total rows swept per run |
+| `reconciler_expired_total` | Rows transitioned to EXPIRED |
+| `reconciler_stranded_total` | Rows transitioned to STRANDED |
+
+Phase 4 anomaly enforcement counters (live and tested):
+
+| Counter | Incremented by |
+|---|---|
+| `negative_wallet_detected_total` | Negative-balance invariant probe |
+| `duplicate_refund_anomaly_total` | Duplicate refund attempt detection |
+| `duplicate_settlement_anomaly_total` | Duplicate settlement attempt detection |
+
+---
+
+## CI integration
+
+`.github/workflows/ci.yml` runs on every push:
+
+- **Tier 1** (`test-tier1`): ledger hardening, admin observability, Phase 4 anomaly probes, readiness, guardrails, prometheus scrape, circuit breaker, gateway governance, operations list, chaos resilience, property-based ledger tests, migration invariant definitions, program suites.
+- **Tier 2** (`test-tier2`): Postgres vigorous + postgres reliability + DB constraint validation against `postgres:16`.
+- **Tier 3** (`test-tier3`): load harness pytest gate plus `python tests/load/test_load_harness.py` with zero-invariant-violation validation; uploads JSON artifact.
+- **Tier 4** (`test-tier4-chaos`): Toxiproxy Postgres latency/timeout chaos tests.
+- **Container build** (`build-images`): `docker build` for sidecar, reconciler, gateway.
+- **Kustomize validation** (`validate-manifests`): render staging/production overlays.
+- **Migration invariant definitions** (`validate-migrations`): verifies invariant migrations through `0007`.
+
+---
+
+## Production-readiness evidence outside tests
+
+- `/healthz` — process liveness
+- `/readyz` — database connectivity probe (503 when DB unreachable)
+- `/metrics/prometheus` — unauthenticated scrape surface (PodMonitor)
+- `/metrics` — DB-aggregate Prometheus text plus process invariant counters (internal auth)
+- `/metrics.json` — invariant counter snapshot
+- `deploy/base/prometheus-rules.yaml` — SLO recording rules + financial-safety alerts
+- `docs/slo-definitions.md` — formal SLI/SLO targets
+- `docs/observability.md` — tracing, dashboards, synthetic probes
+
+---
+
+## Credibility summary
+
+| Layer | Claim | How proven |
+|---|---|---|
+| Trace-cap safety | No over-subscription under concurrency | `test_concurrent_reserves_respect_cap` on Postgres MVCC |
+| Reconciler idempotency | No duplicate refunds | `test_concurrent_sweepers_no_duplicate_refunds` with SKIP LOCKED |
+| Drift lockout | Wallet locked on policy breach | `test_drift_above_threshold_locks_wallet` |
+| Late settlement | Correct correction debit after EXPIRED / STRANDED | Multiple tests in both tiers |
+| Load invariants | No negative balances under 20-worker mixed load | `test_load_mixed_activity_no_negative_balances` |
+| No cap overruns under load | Zero violations in hot-trace scenario | `test_load_hot_trace_contention_invariants` |
+| Anomaly counters | Negative wallet, duplicate settlement/refund probes | `test_phase4_anomaly.py` |
+| Readiness | `/readyz` fails when database unavailable | `test_readiness.py` |
+| Chaos resilience | Concurrent sweep/settle races preserve balance | `test_chaos_resilience.py` |
+| Property-based | Idempotent replay across random costs/replays | `test_property_ledger.py` |
+| DB backstops | Trace-cap CHECK and unique refund index on Postgres | `test_migration_invariants.py` |

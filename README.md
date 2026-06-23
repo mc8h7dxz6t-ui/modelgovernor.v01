@@ -2,6 +2,21 @@
 
 A production-grade, ledger-backed AI governance control plane for reliable spend control, policy enforcement, and auditable reconciliation across multi-provider and agentic workloads.
 
+## Sales demo (start here — plug and play)
+
+**No API keys. No cloud. ~5 minutes.** Full institutional++ walkthrough for prospects and evaluators.
+
+```bash
+make demo-gold-up
+make demo-gold
+```
+
+See [SALES-DEMO.md](SALES-DEMO.md) for the talk track, capability matrix, production upgrade path (`docs/plug-and-play.md`), and [platform sales sheets with pre-revenue valuation](docs/sales-sheets/).
+
+```bash
+make demo-gold-down   # teardown
+```
+
 ## What this repository demonstrates
 
 - Reserve-before-dispatch governance semantics
@@ -36,6 +51,9 @@ Internal operational surfaces (all require `x-internal-token`):
 ```bash
 curl -H "x-internal-token: $SIDECAR_PRIMARY_TOKEN" http://localhost:8081/internal/wallet/demo-user
 curl -H "x-internal-token: $SIDECAR_PRIMARY_TOKEN" http://localhost:8081/internal/events/recent?limit=20
+curl -H "x-internal-token: $SIDECAR_PRIMARY_TOKEN" http://localhost:8081/internal/diagnostic/status
+curl -X POST -H "x-internal-token: $SIDECAR_PRIMARY_TOKEN" http://localhost:8081/internal/diagnostic/clear
+curl -H "x-internal-token: $SIDECAR_PRIMARY_TOKEN" http://localhost:8081/internal/ledger/verify-chain
 curl -H "x-internal-token: $SIDECAR_PRIMARY_TOKEN" http://localhost:8081/metrics
 ```
 
@@ -49,29 +67,60 @@ See `docs/demo.md` for full walkthrough and troubleshooting.
 
 ## Proof / reliability validation
 
-### Lightweight local checks
+Institutional++ **gold standard**: runtime anomaly probes, DB invariant backstops (`migrations/0005`–`0007`), Redis guardrails with graceful degradation, provider circuit breakers, OpenTelemetry-ready tracing, governance gateway, HTTP RED metrics, SLO burn-rate alerts, synthetic canary probes, property/chaos tests, and full K8s deploy manifests. See `docs/slo-definitions.md` and `docs/observability.md`.
+
+Three tiers of testing are available. See `docs/reliability-testing.md` for full scenario tables, metrics reference, and CI integration examples.
+
+### Tier 1 — Lightweight local checks (SQLite, < 1 second)
 
 ```bash
 pytest -q tests/integration/test_ledger_hardening.py
-pytest -q tests/load/test_load_harness.py
+pytest -q tests/programs/finance_ops_finals/
+pytest -q tests/programs/cost_attribution_accountability/
 ```
 
-### Postgres-backed proof checks (real migrations)
+### Tier 2 — Postgres vigorous proof (real DB semantics)
 
 ```bash
-export POSTGRES_TEST_URL=<postgres-test-url>
-pytest -q tests/integration/test_postgres_reliability.py
+docker compose -f docker-compose.test.yml up -d postgres-test
+export POSTGRES_TEST_URL=postgresql+psycopg://postgres:postgres@localhost:5433/mg_test
+pytest -q tests/integration/test_postgres_vigorous.py
 ```
 
-### Generate machine-readable invariant report
+### Tier 3 — Load harness (SQLite or Postgres)
+
+```bash
+pytest -q tests/load/test_load_harness.py
+# or run all scenarios and write a JSON report:
+python tests/load/test_load_harness.py
+```
+
+Reports are written to `tests/load/reports/`.
+
+### Production HA (Finance Ops Finals)
+
+```bash
+docker compose -f docker-compose.ha.yml up -d --scale sidecar=3 --scale reconciler=2
+kustomize build deploy/overlays/production | kubectl apply --dry-run=client -f -
+```
+
+See `docs/ha-strategy.md`, `docs/pgbouncer-runbook.md`, `docs/gitops.md`, `programs/finance_ops_finals/README.md`.
+
+### Tier 4 — Toxiproxy chaos (Finance Ops, Postgres)
+
+```bash
+docker compose -f docker-compose.chaos.yml up -d
+export POSTGRES_TEST_URL=postgresql+psycopg://postgres:postgres@localhost:5435/mg_chaos
+pytest -q tests/chaos/test_toxiproxy_finance_ops.py
+```
+
+### Invariant report (optional)
 
 ```bash
 python scripts/generate_invariant_report.py --operations 120 --workers 12
 ```
 
 Output: `artifacts/reliability/latest_invariant_report.json`
-
-See `docs/reliability-testing.md` for scope, scenarios, and interpretation notes.
 
 ## Command surface
 
@@ -90,6 +139,7 @@ make load-test
 
 ## Diligence-oriented docs
 
+- `docs/sales-sheets/` — full spec, packaging, and pre-revenue valuation per platform
 - `LICENSE` (license posture)
 - `docs/dependency-licenses.md` (dependency/license visibility)
 - `docs/transferability.md` (portability and operational cleanliness)
@@ -103,15 +153,34 @@ LICENSE
 Makefile
 .env.example
 docker-compose.yml
+docker-compose.test.yml
+docker-compose.ha.yml
+docker-compose.chaos.yml
 
-artifacts/reliability/
+deploy/
+  argocd/               # ArgoCD AppProject + Applications (GitOps)
+  helm/modelgovernor/   # Helm chart (alternative to kustomize overlays)
+  base/                 # K8s manifests, PgBouncer, migration job, Prometheus rules
+  overlays/
+    staging/
+    production/
 docs/
 gateway/
 migrations/
 reconciler/
 scripts/
 sidecar/
+  app/
+    metrics.py          # invariant counter registry
 tests/
+  programs/
+    finance_ops_finals/              # AI Finance Ops Finals for LLMs
+    cost_attribution_accountability/ # AI Cost Attribution & Agent Accountability
+  integration/
+    conftest.py         # Postgres session fixtures
+    test_postgres_vigorous.py
+  load/
+    test_load_harness.py
 ```
 
 ## Precision note

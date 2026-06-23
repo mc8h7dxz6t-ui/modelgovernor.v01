@@ -1,0 +1,17 @@
+apiVersion: v2
+name: modelgovernor
+description: Institutional++ finance control plane — sidecar, gateway, reconciler, HA data plane
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.25.0-0"
+keywords:
+  - modelgovernor
+  - governance
+  - ledger
+  - gitops
+maintainers:
+  - name: modelgovernor
+home: https://github.com/mc8h7dxz6t-ui/modelgovernor.v01
+sources:
+  - https://github.com/mc8h7dxz6t-ui/modelgovernor.v01

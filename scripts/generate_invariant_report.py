@@ -9,27 +9,41 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from tests.load.test_load_harness import run_reserve_hotpath_harness
+from tests.load.test_load_harness import run_all_scenarios
 
 
 def main() -> int:
-    parser = ArgumentParser(description="Generate reserve hot-path invariant report")
-    parser.add_argument("--operations", type=int, default=120)
-    parser.add_argument("--workers", type=int, default=12)
+    parser = ArgumentParser(description="Generate load-harness invariant report")
     parser.add_argument(
         "--output",
         default=str(REPO_ROOT / "artifacts" / "reliability" / "latest_invariant_report.json"),
+        help="Legacy output path; report is written by run_all_scenarios to tests/load/reports/",
     )
+    parser.add_argument("--workers", type=int, default=None, help="Override LOAD_WORKERS")
+    parser.add_argument("--operations", type=int, default=None, help="Override LOAD_OPS_PER_WORKER")
     args = parser.parse_args()
 
-    report = run_reserve_hotpath_harness(
-        output_path=Path(args.output),
-        operations=args.operations,
-        workers=args.workers,
+    import os
+
+    if args.workers is not None:
+        os.environ["LOAD_WORKERS"] = str(args.workers)
+    if args.operations is not None:
+        os.environ["LOAD_OPS_PER_WORKER"] = str(args.operations)
+
+    summary = run_all_scenarios()
+    report_path = Path(summary["report_path"])
+    violations = sum(
+        int(scenario.get("invariant_violations", 0)) for scenario in summary["results"]
     )
-    invariant_status = "PASS" if all(report["invariants"].values()) else "FAIL"
-    print(f"invariant report: {args.output} ({invariant_status})")
-    return 0 if invariant_status == "PASS" else 1
+    status = "PASS" if violations == 0 else "FAIL"
+
+    legacy_path = Path(args.output)
+    legacy_path.parent.mkdir(parents=True, exist_ok=True)
+    legacy_path.write_text(report_path.read_text(encoding="utf-8"), encoding="utf-8")
+
+    print(f"invariant report: {report_path} ({status})")
+    print(f"legacy copy: {legacy_path}")
+    return 0 if status == "PASS" else 1
 
 
 if __name__ == "__main__":

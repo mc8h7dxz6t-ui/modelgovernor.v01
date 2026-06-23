@@ -23,6 +23,7 @@ from reconciler.app.sweeper import sweep_expired_reservations
 from sidecar.app.config import Settings
 from sidecar.app.ledger import ConflictError, TraceCapExceededError, apply_settlement, reserve_operation
 from sidecar.app.schemas import ReserveRequest, SettleRequest
+from tests.support.pg_migrations import iter_pg_sql_statements
 
 MIGRATIONS_DIR = REPO_ROOT / "migrations"
 MIGRATION_FILES = sorted(MIGRATIONS_DIR.glob("*.sql"))
@@ -98,8 +99,7 @@ def _apply_migrations(database_url: str) -> None:
         with conn.cursor() as cur:
             for migration_file in MIGRATION_FILES:
                 script = migration_file.read_text(encoding="utf-8")
-                statements = [statement.strip() for statement in script.split(";") if statement.strip()]
-                for statement in statements:
+                for statement in iter_pg_sql_statements(script):
                     cur.execute(f"{statement};")
 
 
@@ -111,6 +111,11 @@ def _settings(database_url: str, *, default_trace_cap_amount: Decimal = Decimal(
         default_trace_cap_amount=default_trace_cap_amount,
         drift_absolute_tolerance=Decimal("0.500000"),
         drift_ratio_tolerance=Decimal("0.050000"),
+        manual_approval_cost_threshold=Decimal("1000000"),
+        default_run_budget_amount=Decimal("1000000"),
+        default_session_budget_amount=Decimal("1000000"),
+        default_user_budget_amount=Decimal("1000000"),
+        default_tenant_budget_amount=Decimal("1000000"),
         db_pool_size=5,
         db_max_overflow=5,
         db_pool_timeout_seconds=5,

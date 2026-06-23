@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reconciler
+  namespace: modelgovernor
+  labels:
+    app: reconciler
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: reconciler
+  template:
+    metadata:
+      labels:
+        app: reconciler
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: reconciler
+          image: modelgovernor/reconciler:latest
+          ports:
+            - name: http-health
+              containerPort: 8082
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: modelgovernor-secrets
+                  key: database-url
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: modelgovernor-secrets
+                  key: redis-url
+            - name: SIDECAR_INTERNAL_TOKENS
+              valueFrom:
+                secretKeyRef:
+                  name: modelgovernor-secrets
+                  key: sidecar-internal-tokens
+            - name: RECONCILER_MODE
+              value: daemon
+            - name: SWEEP_INTERVAL_SECONDS
+              valueFrom:
+                configMapKeyRef:
+                  name: modelgovernor-config
+                  key: SWEEP_INTERVAL_SECONDS
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http-health
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http-health
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reconciler
+  namespace: modelgovernor
+spec:
+  selector:
+    app: reconciler
+  ports:
+    - name: http-health
+      port: 8082
+      targetPort: http-health

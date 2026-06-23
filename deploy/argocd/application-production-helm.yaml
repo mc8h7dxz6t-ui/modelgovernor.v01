@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: modelgovernor-production-helm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: modelgovernor
+    environment: production
+    deploy-method: helm
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: modelgovernor
+  source:
+    repoURL: https://github.com/mc8h7dxz6t-ui/modelgovernor.v01
+    targetRevision: main
+    path: deploy/helm/modelgovernor
+    helm:
+      releaseName: modelgovernor
+      valueFiles:
+        - values-production.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: modelgovernor
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

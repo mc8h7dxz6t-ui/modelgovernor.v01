@@ -7,12 +7,23 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import text
 
-from .auth import require_internal_auth
+from .admin_audit import record_admin_action
+from .auth import AuthContext, require_financial_admin, require_internal_auth
 from .db import get_db_session
+from .diagnostic_mode import clear_diagnostic_mode, diagnostic_snapshot
+from .ledger_anchor import anchor_verified_chain_head
+from .ledger_seal import verify_ledger_chain
+from .metrics import get_counters
 from .schemas import (
+    AdminAuditEntryResponse,
+    AdminAuditLogResponse,
     AuditEventResponse,
+    DiagnosticStatusResponse,
     DispatchAttemptResponse,
+    LedgerAnchorResponse,
+    LedgerChainVerificationResponse,
     OperationStatusResponse,
+    OperationsListResponse,
     RecentAuditEventsResponse,
     TraceBudgetStatusResponse,
     WalletStatusResponse,
@@ -122,6 +133,28 @@ def get_operation_by_provider_request_id(
     return get_operation_status(row["idempotency_key"])
 
 
+@router.get("/operations", response_model=OperationsListResponse)
+def list_operations(
+    status: str | None = Query(default=None, description="Filter by escrow status e.g. STRANDED"),
+    limit: int = Query(default=50, ge=1, le=200),
+) -> OperationsListResponse:
+    query = """
+        SELECT idempotency_key
+        FROM escrow_ledger
+    """
+    params: dict[str, Any] = {"limit": limit}
+    if status:
+        query += " WHERE status = :status"
+        params["status"] = status
+    query += " ORDER BY created_at DESC LIMIT :limit"
+
+    with get_db_session() as session:
+        rows = session.execute(text(query), params).mappings().all()
+
+    operations = [get_operation_status(row["idempotency_key"]) for row in rows]
+    return OperationsListResponse(operations=operations, total=len(operations))
+
+
 @router.get("/trace/{trace_id}", response_model=TraceBudgetStatusResponse)
 def get_trace_budget_status(
     trace_id: str,
@@ -171,6 +204,117 @@ def get_recent_audit_events(
         for row in rows
     ]
     return RecentAuditEventsResponse(events=events)
+
+
+@router.get("/diagnostic/status", response_model=DiagnosticStatusResponse)
+def get_diagnostic_status() -> DiagnosticStatusResponse:
+    snap = diagnostic_snapshot()
+    return DiagnosticStatusResponse(
+        diagnostic_mode=bool(snap.get("diagnostic_mode")),
+        diagnostic_component=snap.get("diagnostic_component"),
+        diagnostic_reason=snap.get("diagnostic_reason"),
+    )
+
+
+@router.post(
+    "/diagnostic/clear",
+    response_model=DiagnosticStatusResponse,
+)
+def post_clear_diagnostic_mode(
+    ctx: AuthContext = Depends(require_financial_admin),
+) -> DiagnosticStatusResponse:
+    with get_db_session() as session:
+        record_admin_action(
+            session,
+            ctx=ctx,
+            action="diagnostic.clear",
+            resource="/internal/diagnostic/clear",
+            details=diagnostic_snapshot(),
+        )
+        session.commit()
+    clear_diagnostic_mode()
+    get_counters().increment("finance_audit_diagnostic_cleared_total")
+    snap = diagnostic_snapshot()
+    return DiagnosticStatusResponse(
+        diagnostic_mode=bool(snap.get("diagnostic_mode")),
+        diagnostic_component=snap.get("diagnostic_component"),
+        diagnostic_reason=snap.get("diagnostic_reason"),
+    )
+
+
+@router.get("/ledger/verify-chain", response_model=LedgerChainVerificationResponse)
+def get_ledger_verify_chain() -> LedgerChainVerificationResponse:
+    with get_db_session() as session:
+        result = verify_ledger_chain(session)
+
+    if not result.valid:
+        get_counters().increment("ledger_chain_verification_failed_total")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=result.to_dict(),
+        )
+
+    get_counters().increment("ledger_chain_verification_ok_total")
+    return LedgerChainVerificationResponse(**result.to_dict())
+
+
+@router.post("/ledger/anchor-head", response_model=LedgerAnchorResponse)
+def post_ledger_anchor_head(
+    ctx: AuthContext = Depends(require_financial_admin),
+) -> LedgerAnchorResponse:
+    with get_db_session() as session:
+        record_admin_action(
+            session,
+            ctx=ctx,
+            action="ledger.anchor_head",
+            resource="/internal/ledger/anchor-head",
+        )
+        try:
+            payload = anchor_verified_chain_head(session, source="admin_api")
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=str(exc),
+            ) from exc
+        session.commit()
+    return LedgerAnchorResponse(**payload)
+
+
+@router.get("/admin/audit/recent", response_model=AdminAuditLogResponse)
+def get_recent_admin_audit(
+    limit: int = Query(default=25, ge=1, le=200),
+) -> AdminAuditLogResponse:
+    with get_db_session() as session:
+        from .admin_audit import schema_supports_admin_audit
+
+        if not schema_supports_admin_audit(session):
+            return AdminAuditLogResponse(entries=[], total=0)
+        rows = session.execute(
+            text(
+                """
+                SELECT audit_id, actor_subject, actor_method, actor_roles,
+                       action, resource, details, recorded_at
+                FROM admin_audit_log
+                ORDER BY audit_id DESC
+                LIMIT :limit
+                """
+            ),
+            {"limit": limit},
+        ).mappings().all()
+    entries = [
+        AdminAuditEntryResponse(
+            audit_id=row["audit_id"],
+            actor_subject=row["actor_subject"],
+            actor_method=row["actor_method"],
+            actor_roles=row["actor_roles"],
+            action=row["action"],
+            resource=row["resource"],
+            details=_parse_metadata(row["details"]),
+            recorded_at=row["recorded_at"],
+        )
+        for row in rows
+    ]
+    return AdminAuditLogResponse(entries=entries, total=len(entries))
 
 
 def _parse_metadata(metadata: Any) -> dict[str, Any]:

@@ -1,0 +1,47 @@
+# Finance Ops Finals — network chaos harness (Toxiproxy).
+#
+# Usage:
+#   docker compose -f docker-compose.chaos.yml up -d --wait postgres-chaos toxiproxy
+#   docker compose -f docker-compose.chaos.yml run --rm toxiproxy-config
+#   POSTGRES_TEST_URL=postgresql+psycopg://postgres:postgres@localhost:5435/mg_chaos \
+#     pytest tests/chaos/test_toxiproxy_finance_ops.py -v
+#
+# Toxiproxy API: http://localhost:8474
+
+services:
+  postgres-chaos:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: mg_chaos
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d mg_chaos"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+    tmpfs:
+      - /var/lib/postgresql/data
+
+  toxiproxy:
+    image: ghcr.io/shopify/toxiproxy:2.9.0
+    ports:
+      - "8474:8474"
+      - "5435:5435"
+    command: ["-host", "0.0.0.0"]
+    depends_on:
+      postgres-chaos:
+        condition: service_healthy
+
+  toxiproxy-config:
+    image: curlimages/curl:8.5.0
+    depends_on:
+      - toxiproxy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        until curl -sf http://toxiproxy:8474/version; do sleep 1; done
+        curl -sf -X POST http://toxiproxy:8474/proxies -d '{"name":"postgres","listen":"0.0.0.0:5435","upstream":"postgres-chaos:5432"}'
+        echo "toxiproxy postgres proxy ready on :5435"

@@ -7,7 +7,12 @@ from decimal import Decimal
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-MONEY_QUANTUM = Decimal("0.000001")
+try:
+    from sidecar.app.metrics import get_counters as _get_counters
+except ImportError:
+    _get_counters = None  # type: ignore[assignment]
+
+from sidecar.app.money import quantize_money as _money
 
 
 def sweep_expired_reservations(session: Session, batch_size: int = 100) -> int:
@@ -57,6 +62,8 @@ def sweep_expired_reservations(session: Session, batch_size: int = 100) -> int:
                 amount_delta=Decimal("0"),
                 metadata={"reason": "reconciler_expiry_claim"},
             )
+            if _get_counters is not None:
+                _get_counters().increment("reconciler_stranded_total")
         else:
             reserved_amount = _money(row["reserved_amount"])
             session.execute(
@@ -113,9 +120,14 @@ def sweep_expired_reservations(session: Session, batch_size: int = 100) -> int:
                 amount_delta=reserved_amount,
                 metadata={"reason": "reconciler_expiry_claim"},
             )
+            _detect_duplicate_refund_events(session, row["idempotency_key"])
+            if _get_counters is not None:
+                _get_counters().increment("reconciler_expired_total")
         swept += 1
 
     session.commit()
+    if _get_counters is not None:
+        _get_counters().increment("reconciler_claimed_total", swept)
     return swept
 
 
@@ -166,8 +178,20 @@ def _append_event(
     )
 
 
-def _money(value: Decimal | str | int | float | None) -> Decimal:
-    return Decimal(value or 0).quantize(MONEY_QUANTUM)
+def _detect_duplicate_refund_events(session: Session, idempotency_key: str) -> None:
+    row = session.execute(
+        text(
+            """
+            SELECT COUNT(*) AS cnt
+            FROM ledger_events
+            WHERE idempotency_key = :idempotency_key
+              AND event_type = 'EXPIRED_SWEEP'
+            """
+        ),
+        {"idempotency_key": idempotency_key},
+    ).mappings().first()
+    if row and int(row["cnt"]) > 1 and _get_counters is not None:
+        _get_counters().increment("duplicate_refund_anomaly_total")
 
 
 def _utcnow() -> datetime:

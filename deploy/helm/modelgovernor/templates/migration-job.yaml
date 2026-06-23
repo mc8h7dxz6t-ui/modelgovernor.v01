@@ -1,0 +1,62 @@
+{{- if and .Values.migrations.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: modelgovernor-migrations
+  namespace: {{ include "modelgovernor.namespace" . }}
+  labels:
+    {{- include "modelgovernor.labels" . | nindent 4 }}
+  annotations:
+    {{- if .Values.migrations.argocd.preSyncHook }}
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    {{- end }}
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: migrate
+          image: {{ .Values.images.migrate.repository }}:{{ .Values.images.migrate.tag }}
+          imagePullPolicy: {{ .Values.images.migrate.pullPolicy }}
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              pip install -q 'psycopg[binary]'
+              python - <<'PY'
+              import glob, os, sqlite3
+              import psycopg
+              dsn = os.environ["DATABASE_URL"].replace("postgresql+psycopg://", "postgresql://")
+              files = sorted(glob.glob("/migrations/*.sql"))
+              with psycopg.connect(dsn, autocommit=True) as conn:
+                  with conn.cursor() as cur:
+                      for path in files:
+                          sql = open(path, encoding="utf-8").read()
+                          buf = []
+                          for line in sql.splitlines():
+                              buf.append(line)
+                              cand = "\n".join(buf).strip()
+                              if cand and sqlite3.complete_statement(cand):
+                                  cur.execute(cand)
+                                  buf = []
+                          tail = "\n".join(buf).strip()
+                          if tail:
+                              cur.execute(tail)
+              print("migrations applied", len(files))
+              PY
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "modelgovernor.secretName" . }}
+                  key: database-url-direct
+          volumeMounts:
+            - name: migrations
+              mountPath: /migrations
+      volumes:
+        - name: migrations
+          configMap:
+            name: migrations-bundle
+{{- end }}

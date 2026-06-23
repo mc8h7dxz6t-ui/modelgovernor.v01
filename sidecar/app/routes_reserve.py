@@ -3,31 +3,66 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from .auth import require_internal_auth
 from .config import get_settings
 from .db import get_db_session
+from .diagnostic_mode import diagnostic_snapshot, is_diagnostic_mode
+from .guardrails import (
+    GuardrailError,
+    InflightLimitExceeded,
+    RateLimitExceeded,
+    TraceDepthExceeded,
+    get_guardrails,
+)
 from .ledger import (
     ConflictError,
     InsufficientFundsError,
+    PolicyStateError,
     TraceCapExceededError,
     reserve_operation,
 )
 from .policy import PolicyDecisionError, validate_reserve_request
 from .schemas import ReserveRequest, ReserveResponse
+from .tracing import span
 
 router = APIRouter(tags=["reserve"])
 
 
 @router.post("/reserve", response_model=ReserveResponse, dependencies=[Depends(require_internal_auth)])
 def reserve(request: ReserveRequest) -> ReserveResponse:
+    if get_settings().diagnostic_mode_blocks_writes and is_diagnostic_mode():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="diagnostic mode: reserve writes halted; admin read APIs remain available",
+        )
     try:
         validate_reserve_request(request)
-        with get_db_session() as session:
-            result = reserve_operation(session, get_settings(), request)
+        with span(
+            "reserve_operation",
+            {
+                "user_id": request.user_id,
+                "trace_id": request.trace_id,
+                "idempotency_key": request.idempotency_key,
+                "model": request.model,
+            },
+        ):
+            get_guardrails().check_reserve(
+                user_id=request.user_id,
+                trace_id=request.trace_id,
+                idempotency_key=request.idempotency_key,
+            )
+            with get_db_session() as session:
+                result = reserve_operation(session, get_settings(), request)
     except PolicyDecisionError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except (RateLimitExceeded, TraceDepthExceeded, InflightLimitExceeded) as exc:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(exc)) from exc
+    except GuardrailError as exc:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(exc)) from exc
     except ConflictError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except TraceCapExceededError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except InsufficientFundsError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except PolicyStateError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
     return ReserveResponse(

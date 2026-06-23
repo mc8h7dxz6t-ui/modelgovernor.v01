@@ -1,0 +1,87 @@
+{{- if .Values.reconciler.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reconciler
+  namespace: {{ include "modelgovernor.namespace" . }}
+  labels:
+    app: reconciler
+    {{- include "modelgovernor.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  replicas: {{ .Values.reconciler.replicas }}
+  selector:
+    matchLabels:
+      app: reconciler
+  template:
+    metadata:
+      labels:
+        app: reconciler
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: reconciler
+          image: {{ .Values.images.reconciler.repository }}:{{ .Values.images.reconciler.tag }}
+          imagePullPolicy: {{ .Values.images.reconciler.pullPolicy }}
+          ports:
+            - name: http-health
+              containerPort: 8082
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "modelgovernor.secretName" . }}
+                  key: database-url
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "modelgovernor.secretName" . }}
+                  key: redis-url
+            - name: SIDECAR_INTERNAL_TOKENS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "modelgovernor.secretName" . }}
+                  key: sidecar-internal-tokens
+            - name: RECONCILER_MODE
+              value: daemon
+            - name: SWEEP_INTERVAL_SECONDS
+              value: {{ .Values.reconciler.sweepIntervalSeconds | quote }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http-health
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http-health
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.reconciler.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reconciler
+  namespace: {{ include "modelgovernor.namespace" . }}
+  labels:
+    app: reconciler
+    {{- include "modelgovernor.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: reconciler
+  ports:
+    - name: http-health
+      port: 8082
+      targetPort: http-health
+{{- end }}

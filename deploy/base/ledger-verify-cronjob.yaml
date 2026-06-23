@@ -1,0 +1,33 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ledger-chain-verify
+  namespace: modelgovernor
+spec:
+  schedule: "0 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: verify
+              image: curlimages/curl:8.5.0
+              env:
+                - name: SIDECAR_INTERNAL_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: modelgovernor-secrets
+                      key: sidecar-internal-tokens
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -e
+                  TOKEN="${SIDECAR_INTERNAL_TOKEN%%,*}"
+                  curl -sf \
+                    -H "x-internal-token: ${TOKEN}" \
+                    "http://sidecar:8081/internal/ledger/verify-chain"
+                  echo "ledger hash chain verification ok"
