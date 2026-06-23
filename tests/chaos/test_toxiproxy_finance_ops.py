@@ -154,6 +154,17 @@ def test_finance_ops_survives_toxiproxy_latency(chaos_engine) -> None:
     assert Decimal(str(balance)) == Decimal("95.000000")
 
 
+def _wait_for_proxy_ready(engine) -> None:
+    for _ in range(20):
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            return
+        except Exception:
+            time.sleep(0.25)
+    pytest.fail("postgres proxy did not recover after toxiproxy reset")
+
+
 def test_finance_ops_toxiproxy_timeout_recovers_on_reset(chaos_engine) -> None:
     _reset_proxy()
     chaos_engine.dispose()
@@ -177,8 +188,10 @@ def test_finance_ops_toxiproxy_timeout_recovers_on_reset(chaos_engine) -> None:
                 ),
             )
 
+    chaos_engine.dispose()
     _reset_proxy()
     chaos_engine.dispose()
+    _wait_for_proxy_ready(chaos_engine)
     with factory() as session:
         reserve_operation(
             session,
