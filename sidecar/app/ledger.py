@@ -11,6 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .config import Settings
+from .metrics import get_counters
 from .schemas import ReserveRequest, SettleRequest
 
 MONEY_QUANTUM = Decimal("0.000001")
@@ -62,6 +63,7 @@ def reserve_operation(session: Session, settings: Settings, request: ReserveRequ
     if existing:
         if existing["request_fingerprint"] != fingerprint:
             raise ConflictError("idempotency key replay does not match original reserve request")
+        get_counters().increment("reserve_idempotent_replay_total")
         return OperationResult(
             idempotency_key=existing["idempotency_key"],
             status=existing["status"],
@@ -108,6 +110,8 @@ def reserve_operation(session: Session, settings: Settings, request: ReserveRequ
         },
     ).mappings().first()
     if not trace_claim:
+        get_counters().increment("trace_cap_overrun_detected_total")
+        get_counters().increment("reserve_denied_trace_cap_total")
         raise TraceCapExceededError("trace cap exceeded")
 
     wallet = session.execute(
@@ -129,6 +133,7 @@ def reserve_operation(session: Session, settings: Settings, request: ReserveRequ
         },
     ).mappings().first()
     if not wallet:
+        get_counters().increment("reserve_denied_balance_total")
         raise InsufficientFundsError("wallet inactive or insufficient balance")
 
     try:
@@ -192,6 +197,7 @@ def reserve_operation(session: Session, settings: Settings, request: ReserveRequ
         },
     )
     session.commit()
+    get_counters().increment("reserve_success_total")
 
     return OperationResult(
         idempotency_key=request.idempotency_key,
@@ -472,6 +478,7 @@ def _finalize_settlement(
                     "threshold_ratio": str(_money(settings.drift_ratio_tolerance)),
                 },
             )
+            get_counters().increment("drift_enforced_total")
         else:
             _append_event(
                 session,
@@ -481,6 +488,7 @@ def _finalize_settlement(
                 amount_delta=Decimal("0"),
                 metadata={"drift_amount": str(drift_excess)},
             )
+            get_counters().increment("drift_tolerated_total")
 
     return OperationResult(
         idempotency_key=operation["idempotency_key"],

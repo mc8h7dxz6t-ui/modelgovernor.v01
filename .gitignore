@@ -19,6 +19,11 @@ build/
 dist/
 *.egg-info/
 
+# Test artefacts
+.coverage
+htmlcov/
+tests/load/reports/
+
 # Runtime/demo artifacts
 artifacts/reliability/latest_invariant_report.json
 *.sqlite3

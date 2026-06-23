@@ -49,29 +49,40 @@ See `docs/demo.md` for full walkthrough and troubleshooting.
 
 ## Proof / reliability validation
 
-### Lightweight local checks
+Three tiers of testing are available. See `docs/reliability-testing.md` for full scenario tables, metrics reference, and CI integration examples.
+
+### Tier 1 — Lightweight local checks (SQLite, < 1 second)
 
 ```bash
 pytest -q tests/integration/test_ledger_hardening.py
-pytest -q tests/load/test_load_harness.py
+pytest -q tests/integration/test_sidecar_admin_observability.py
 ```
 
-### Postgres-backed proof checks (real migrations)
+### Tier 2 — Postgres vigorous proof (real DB semantics)
 
 ```bash
-export POSTGRES_TEST_URL=<postgres-test-url>
-pytest -q tests/integration/test_postgres_reliability.py
+docker compose -f docker-compose.test.yml up -d postgres-test
+export POSTGRES_TEST_URL=postgresql+psycopg://postgres:postgres@localhost:5433/mg_test
+pytest -q tests/integration/test_postgres_vigorous.py
 ```
 
-### Generate machine-readable invariant report
+### Tier 3 — Load harness (SQLite or Postgres)
+
+```bash
+pytest -q tests/load/test_load_harness.py
+# or run all scenarios and write a JSON report:
+python tests/load/test_load_harness.py
+```
+
+Reports are written to `tests/load/reports/`.
+
+### Generate machine-readable invariant report (legacy script)
 
 ```bash
 python scripts/generate_invariant_report.py --operations 120 --workers 12
 ```
 
 Output: `artifacts/reliability/latest_invariant_report.json`
-
-See `docs/reliability-testing.md` for scope, scenarios, and interpretation notes.
 
 ## Command surface
 
@@ -103,6 +114,7 @@ LICENSE
 Makefile
 .env.example
 docker-compose.yml
+docker-compose.test.yml
 
 artifacts/reliability/
 docs/
@@ -111,7 +123,14 @@ migrations/
 reconciler/
 scripts/
 sidecar/
+  app/
+    metrics.py          # invariant counter registry
 tests/
+  integration/
+    conftest.py         # Postgres session fixtures
+    test_postgres_vigorous.py
+  load/
+    test_load_harness.py
 ```
 
 ## Precision note

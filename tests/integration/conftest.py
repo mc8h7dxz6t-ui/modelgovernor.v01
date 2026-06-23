@@ -1,0 +1,74 @@
+"""Shared pytest fixtures for Postgres-backed integration tests."""
+from __future__ import annotations
+
+import os
+import sqlite3
+from pathlib import Path
+
+import pytest
+from sqlalchemy import create_engine, text
+from sqlalchemy.engine import Engine
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+MIGRATIONS_DIR = REPO_ROOT / "migrations"
+
+_MIGRATION_FILES = [
+    "0001_init.sql",
+    "0002_seed_model_policy.sql",
+    "0003_harden_ledger_constraints.sql",
+    "0004_ledger_control_plane_hardening.sql",
+]
+
+_TRUNCATE_TABLES = [
+    "ledger_events",
+    "provider_dispatch_attempts",
+    "escrow_ledger",
+    "trace_budget_state",
+    "user_wallets",
+]
+
+
+@pytest.fixture(scope="session")
+def pg_engine() -> Engine:
+    pg_url = os.environ.get("POSTGRES_TEST_URL")
+    if not pg_url:
+        pytest.skip(
+            "POSTGRES_TEST_URL is not set — Postgres vigorous tests skipped. "
+            "Set POSTGRES_TEST_URL=postgresql://user:pass@host:port/dbname "
+            "or run `docker compose -f docker-compose.test.yml up -d` first."
+        )
+    engine = create_engine(pg_url, future=True)
+    _apply_migrations(engine)
+    yield engine
+    engine.dispose()
+
+
+def _apply_migrations(engine: Engine) -> None:
+    with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
+        for filename in _MIGRATION_FILES:
+            sql = (MIGRATIONS_DIR / filename).read_text(encoding="utf-8")
+            for statement in _iter_sql_statements(sql):
+                stripped = statement.strip()
+                if stripped:
+                    conn.execute(text(stripped))
+
+
+def _iter_sql_statements(sql: str):
+    buffer: list[str] = []
+    for line in sql.splitlines():
+        buffer.append(line)
+        candidate = "\n".join(buffer).strip()
+        if candidate and sqlite3.complete_statement(candidate):
+            yield candidate
+            buffer = []
+
+    candidate = "\n".join(buffer).strip()
+    if candidate:
+        yield candidate
+
+
+@pytest.fixture
+def clean_pg_tables(pg_engine: Engine) -> None:
+    with pg_engine.begin() as conn:
+        for table in _TRUNCATE_TABLES:
+            conn.execute(text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE"))
