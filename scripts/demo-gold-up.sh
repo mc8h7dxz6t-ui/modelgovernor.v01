@@ -3,6 +3,7 @@ set -euo pipefail
 
 source "$(cd "$(dirname "$0")" && pwd)/demo-gold-lib.sh"
 
+require_demo_prereqs
 load_env
 banner "ModelGovernor — starting institutional++ sales demo stack"
 echo "Compose file: $COMPOSE_FILE"
