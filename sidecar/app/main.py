@@ -5,6 +5,7 @@ from sqlalchemy import text
 from .db import get_db_session
 from .metrics import get_counters
 from .routes_admin import router as admin_router
+from .routes_attribution import router as attribution_router
 from .routes_metrics import router as metrics_router
 from .routes_reserve import router as reserve_router
 from .routes_settle import router as settle_router
@@ -36,4 +37,5 @@ def metrics_json() -> JSONResponse:
 app.include_router(reserve_router)
 app.include_router(settle_router)
 app.include_router(admin_router)
+app.include_router(attribution_router)
 app.include_router(metrics_router)

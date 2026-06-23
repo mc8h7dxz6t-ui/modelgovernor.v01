@@ -57,11 +57,8 @@ Three tiers of testing are available. See `docs/reliability-testing.md` for full
 
 ```bash
 pytest -q tests/integration/test_ledger_hardening.py
-pytest -q tests/integration/test_sidecar_admin_observability.py
-pytest -q tests/integration/test_phase4_anomaly.py
-pytest -q tests/integration/test_readiness.py
-pytest -q tests/integration/test_chaos_resilience.py
-pytest -q tests/integration/test_property_ledger.py
+pytest -q tests/programs/finance_ops_finals/
+pytest -q tests/programs/cost_attribution_accountability/
 ```
 
 ### Tier 2 — Postgres vigorous proof (real DB semantics)

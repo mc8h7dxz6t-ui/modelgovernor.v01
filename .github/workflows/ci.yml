@@ -36,6 +36,8 @@ jobs:
             tests/integration/test_chaos_resilience.py \
             tests/integration/test_property_ledger.py \
             tests/integration/test_migration_invariants.py \
+            tests/programs/finance_ops_finals/test_finance_ops_finals.py \
+            tests/programs/cost_attribution_accountability/test_attribution_accountability.py \
             -q
 
   test-tier2:

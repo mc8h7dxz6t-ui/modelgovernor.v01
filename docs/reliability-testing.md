@@ -247,5 +247,7 @@ Phase 4 anomaly enforcement counters (live and tested):
 | Load invariants | No negative balances under 20-worker mixed load | `test_load_mixed_activity_no_negative_balances` |
 | No cap overruns under load | Zero violations in hot-trace scenario | `test_load_hot_trace_contention_invariants` |
 | Anomaly counters | Negative wallet, duplicate settlement/refund probes | `test_phase4_anomaly.py` |
-| Admin reporting | Audit log, spend report, wallet summary behind internal auth | `test_phase4_reporting.py` |
-| Orchestration plane | Standalone/co-existing workflow, critic, semantic cache | `test_orchestration_plane.py` |
+| Readiness | `/readyz` fails when database unavailable | `test_readiness.py` |
+| Chaos resilience | Concurrent sweep/settle races preserve balance | `test_chaos_resilience.py` |
+| Property-based | Idempotent replay across random costs/replays | `test_property_ledger.py` |
+| DB backstops | Trace-cap CHECK and unique refund index on Postgres | `test_migration_invariants.py` |

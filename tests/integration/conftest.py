@@ -18,6 +18,7 @@ _MIGRATION_FILES = [
     "0003_harden_ledger_constraints.sql",
     "0004_ledger_control_plane_hardening.sql",
     "0005_invariant_constraints.sql",
+    "0006_execution_attribution_guardrails.sql",
 ]
 
 _TRUNCATE_TABLES = [

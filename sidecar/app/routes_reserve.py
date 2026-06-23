@@ -6,6 +6,7 @@ from .db import get_db_session
 from .ledger import (
     ConflictError,
     InsufficientFundsError,
+    PolicyStateError,
     TraceCapExceededError,
     reserve_operation,
 )
@@ -28,6 +29,8 @@ def reserve(request: ReserveRequest) -> ReserveResponse:
     except TraceCapExceededError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except InsufficientFundsError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except PolicyStateError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
     return ReserveResponse(

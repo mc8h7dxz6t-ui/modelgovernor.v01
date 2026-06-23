@@ -14,6 +14,11 @@ from .config import Settings
 from .metrics import get_counters
 from .schemas import ReserveRequest, SettleRequest
 
+try:
+    from . import attribution
+except ImportError:  # pragma: no cover
+    attribution = None  # type: ignore[assignment]
+
 MONEY_QUANTUM = Decimal("0.000001")
 
 
@@ -74,6 +79,23 @@ def reserve_operation(session: Session, settings: Settings, request: ReserveRequ
         )
 
     now = _utcnow()
+    identity = (
+        attribution.identity_from_reserve(request)
+        if attribution and attribution.schema_supports_attribution(session)
+        else None
+    )
+    if identity and attribution:
+        try:
+            attribution.enforce_manual_approval(session, settings, request, identity, now)
+            attribution.apply_reserve_budget_scopes(
+                session, settings, request, identity, _money(request.estimated_cost), now
+            )
+        except attribution.BudgetScopeExceededError as exc:
+            get_counters().increment("reserve_denied_trace_cap_total")
+            raise TraceCapExceededError(str(exc)) from exc
+        except attribution.AttributionPolicyError as exc:
+            raise PolicyStateError(str(exc)) from exc
+
     expires_at = now + timedelta(seconds=settings.reserve_ttl_seconds)
     trace_cap = _money(request.trace_cap or settings.default_trace_cap_amount)
     reserved_amount = _money(request.estimated_cost)
@@ -140,52 +162,96 @@ def reserve_operation(session: Session, settings: Settings, request: ReserveRequ
         raise InsufficientFundsError("wallet inactive or insufficient balance")
 
     try:
-        session.execute(
-            text(
-                """
-                INSERT INTO escrow_ledger (
-                    idempotency_key,
-                    user_id,
-                    trace_id,
-                    model,
-                    request_fingerprint,
-                    reserved_amount,
-                    actual_amount,
-                    status,
-                    terminal_reason,
-                    trace_cap_amount,
-                    created_at,
-                    expires_at
-                ) VALUES (
-                    :idempotency_key,
-                    :user_id,
-                    :trace_id,
-                    :model,
-                    :request_fingerprint,
-                    :reserved_amount,
-                    0.000000,
-                    'RESERVED',
-                    'RESERVE_CREATED',
-                    :trace_cap_amount,
-                    :created_at,
-                    :expires_at
-                )
-                """
-            ),
-            {
-                "idempotency_key": request.idempotency_key,
-                "user_id": request.user_id,
-                "trace_id": request.trace_id,
-                "model": request.model,
-                "request_fingerprint": fingerprint,
-                "reserved_amount": reserved_amount,
-                "trace_cap_amount": trace_cap,
-                "created_at": now,
-                "expires_at": expires_at,
-            },
-        )
+        if identity and attribution:
+            session.execute(
+                text(
+                    """
+                    INSERT INTO escrow_ledger (
+                        idempotency_key, tenant_id, user_id, session_id, agent_run_id,
+                        workflow_step, policy_version, trace_id, model, request_fingerprint,
+                        reserved_amount, actual_amount, status, terminal_reason,
+                        trace_cap_amount, created_at, expires_at
+                    ) VALUES (
+                        :idempotency_key, :tenant_id, :user_id, :session_id, :agent_run_id,
+                        :workflow_step, :policy_version, :trace_id, :model, :request_fingerprint,
+                        :reserved_amount, 0.000000, 'RESERVED', 'RESERVE_CREATED',
+                        :trace_cap_amount, :created_at, :expires_at
+                    )
+                    """
+                ),
+                {
+                    "idempotency_key": request.idempotency_key,
+                    "tenant_id": identity["tenant_id"],
+                    "user_id": request.user_id,
+                    "session_id": identity["session_id"],
+                    "agent_run_id": identity["agent_run_id"],
+                    "workflow_step": identity["workflow_step"],
+                    "policy_version": request.policy_version,
+                    "trace_id": request.trace_id,
+                    "model": request.model,
+                    "request_fingerprint": fingerprint,
+                    "reserved_amount": reserved_amount,
+                    "trace_cap_amount": trace_cap,
+                    "created_at": now,
+                    "expires_at": expires_at,
+                },
+            )
+        else:
+            session.execute(
+                text(
+                    """
+                    INSERT INTO escrow_ledger (
+                        idempotency_key,
+                        user_id,
+                        trace_id,
+                        model,
+                        request_fingerprint,
+                        reserved_amount,
+                        actual_amount,
+                        status,
+                        terminal_reason,
+                        trace_cap_amount,
+                        created_at,
+                        expires_at
+                    ) VALUES (
+                        :idempotency_key,
+                        :user_id,
+                        :trace_id,
+                        :model,
+                        :request_fingerprint,
+                        :reserved_amount,
+                        0.000000,
+                        'RESERVED',
+                        'RESERVE_CREATED',
+                        :trace_cap_amount,
+                        :created_at,
+                        :expires_at
+                    )
+                    """
+                ),
+                {
+                    "idempotency_key": request.idempotency_key,
+                    "user_id": request.user_id,
+                    "trace_id": request.trace_id,
+                    "model": request.model,
+                    "request_fingerprint": fingerprint,
+                    "reserved_amount": reserved_amount,
+                    "trace_cap_amount": trace_cap,
+                    "created_at": now,
+                    "expires_at": expires_at,
+                },
+            )
     except IntegrityError as exc:
         raise ConflictError("idempotency key already exists") from exc
+
+    event_metadata = {
+        "trace_id": request.trace_id,
+        "model": request.model,
+        "trace_cap_amount": str(trace_cap),
+    }
+    if identity:
+        event_metadata.update(identity)
+        event_metadata["policy_version"] = request.policy_version
 
     _append_event(
         session,
@@ -193,12 +259,20 @@ def reserve_operation(session: Session, settings: Settings, request: ReserveRequ
         user_id=request.user_id,
         event_type="RESERVE_CREATED",
         amount_delta=-reserved_amount,
-        metadata={
-            "trace_id": request.trace_id,
-            "model": request.model,
-            "trace_cap_amount": str(trace_cap),
-        },
+        metadata=event_metadata,
     )
+    if identity and attribution:
+        attribution.record_lineage(
+            session,
+            idempotency_key=request.idempotency_key,
+            identity=identity,
+            user_id=request.user_id,
+            event_type="RESERVE_CREATED",
+            request=request,
+            provider_request_id=None,
+            state_snapshot={"status": "RESERVED", "reserved_amount": str(reserved_amount)},
+            now=now,
+        )
     session.commit()
     get_counters().increment("reserve_success_total")
 
@@ -220,17 +294,24 @@ def apply_settlement(session: Session, settings: Settings, request: SettleReques
 
     if request.idempotency_key and request.idempotency_key != operation["idempotency_key"]:
         raise ConflictError("provider request id resolves to a different logical operation")
+    if attribution and attribution.schema_supports_attribution(session):
+        try:
+            attribution.validate_settlement_identity(operation, request)
+        except attribution.AttributionPolicyError as exc:
+            raise PolicyStateError(str(exc)) from exc
 
     if request.outcome == "SETTLED":
         result = _finalize_settlement(session, settings, operation, request)
     else:
-        result = _record_attempt_state(session, operation, request)
+        result = _record_attempt_state(session, settings, operation, request)
 
     session.commit()
     return result
 
 
-def _record_attempt_state(session: Session, operation: dict, request: SettleRequest) -> OperationResult:
+def _record_attempt_state(
+    session: Session, settings: Settings, operation: dict, request: SettleRequest
+) -> OperationResult:
     if operation["status"] in {"SETTLED", "EXPIRED"}:
         raise PolicyStateError("cannot record dispatch activity for a terminal operation")
 
@@ -238,6 +319,11 @@ def _record_attempt_state(session: Session, operation: dict, request: SettleRequ
         raise PolicyStateError("dispatch_attempt_key is required for non-terminal execution updates")
 
     now = _utcnow()
+    if attribution and attribution.schema_supports_attribution(session):
+        try:
+            attribution.enforce_loop_guardrail(session, operation, request, settings, now)
+        except attribution.AttributionPolicyError as exc:
+            raise PolicyStateError(str(exc)) from exc
     _upsert_attempt(session, operation["idempotency_key"], request, now)
 
     status = request.outcome
@@ -407,6 +493,19 @@ def _finalize_settlement(
             },
         )
 
+    budget_delta = Decimal("0")
+    if reserved_still_held:
+        budget_delta = _money(actual_amount - reserved_amount)
+    elif actual_amount:
+        budget_delta = actual_amount
+    if attribution and attribution.schema_supports_attribution(session) and budget_delta:
+        try:
+            attribution.apply_settlement_budget_scopes(
+                session, settings, operation, budget_delta, now
+            )
+        except attribution.BudgetScopeExceededError as exc:
+            raise TraceCapExceededError(str(exc)) from exc
+
     drift_amount = _money(actual_amount - reserved_amount)
     terminal_reason = "SETTLED_FINAL"
     if late_after_expiry:
@@ -449,6 +548,22 @@ def _finalize_settlement(
     )
     _detect_duplicate_settlement_events(session, operation["idempotency_key"])
     _enforce_non_negative_wallet_balance(session, operation["user_id"])
+    if attribution and attribution.schema_supports_attribution(session):
+        attribution.record_lineage(
+            session,
+            idempotency_key=operation["idempotency_key"],
+            identity=attribution.identity_from_operation(operation),
+            user_id=operation["user_id"],
+            event_type=terminal_reason,
+            request=request,
+            provider_request_id=request.provider_request_id,
+            state_snapshot={
+                "status": "SETTLED",
+                "actual_amount": str(actual_amount),
+                "reserved_amount": str(reserved_amount),
+            },
+            now=now,
+        )
 
     drift_excess = max(Decimal("0"), drift_amount)
     if drift_excess:

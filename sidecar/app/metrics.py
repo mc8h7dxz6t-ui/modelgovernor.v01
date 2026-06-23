@@ -19,6 +19,10 @@ _COUNTER_NAMES: tuple[str, ...] = (
     "reconciler_claimed_total",
     "reconciler_expired_total",
     "reconciler_stranded_total",
+    "budget_scope_exceeded_total",
+    "guardrail_approval_required_total",
+    "agent_loop_detected_total",
+    "attribution_identity_mismatch_total",
 )
 
 _collector_registered = False
