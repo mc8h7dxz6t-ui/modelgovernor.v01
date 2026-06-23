@@ -2,6 +2,13 @@
 
 A production-grade, ledger-backed AI governance control plane for reliable spend control, policy enforcement, and auditable reconciliation across multi-provider and agentic workloads.
 
+## Supported operating modes
+
+- **Governed mode**: gateway + sidecar + ledger controls, where governed inference is mediated through gateway contracts and sidecar enforcement.
+- **Standalone mode**: direct sidecar API integration (no gateway in the request path), while retaining reserve/settle governance controls and auditability.
+
+The **sidecar API is the stable integration boundary** in both modes. Governance metadata (`tenant_id`, `session_id`, `agent_run_id`, `workflow_step`) is required in headers, and can be mapped from either gateway traffic or standalone callers.
+
 ## What this repository demonstrates
 
 - Reserve-before-dispatch governance semantics
@@ -46,6 +53,62 @@ make demo-down
 ```
 
 See `docs/demo.md` for full walkthrough and troubleshooting.
+
+## Standalone quickstart (direct sidecar API)
+
+Use this path when you want sidecar governance controls without routing through the gateway.
+
+### Minimal runtime config
+
+- `DATABASE_URL`
+- `REDIS_URL`
+- `SIDECAR_INTERNAL_TOKENS`
+- request headers:
+  - `x-internal-token`
+  - `x-tenant-id`
+  - `x-session-id`
+  - `x-agent-run-id`
+  - `x-workflow-step`
+
+### Local SQLite/test path
+
+Integration tests run sidecar directly with SQLite (`tests/integration/test_sidecar_admin_observability.py`) for portable standalone validation.
+
+### Docker Compose/Postgres path
+
+`make demo-up` is the standalone/local evaluation runtime path in this repository (sidecar + reconciler + Postgres + Redis). It does not currently run the gateway container.
+
+### Direct reserve + settle example
+
+```bash
+curl -X POST http://localhost:8081/reserve \
+  -H "x-internal-token: $SIDECAR_PRIMARY_TOKEN" \
+  -H "x-tenant-id: tenant-demo" \
+  -H "x-session-id: session-demo" \
+  -H "x-agent-run-id: run-demo" \
+  -H "x-workflow-step: step-1" \
+  -H "content-type: application/json" \
+  -d '{
+    "user_id":"demo-user",
+    "trace_id":"trace-standalone-1",
+    "idempotency_key":"op-standalone-1",
+    "model":"gpt-4o-mini",
+    "estimated_cost":"1.000000"
+  }'
+
+curl -X POST http://localhost:8081/settle \
+  -H "x-internal-token: $SIDECAR_PRIMARY_TOKEN" \
+  -H "x-tenant-id: tenant-demo" \
+  -H "x-session-id: session-demo" \
+  -H "x-agent-run-id: run-demo" \
+  -H "x-workflow-step: step-1" \
+  -H "content-type: application/json" \
+  -d '{
+    "idempotency_key":"op-standalone-1",
+    "outcome":"SETTLED",
+    "actual_cost":"0.900000"
+  }'
+```
 
 ## Proof / reliability validation
 

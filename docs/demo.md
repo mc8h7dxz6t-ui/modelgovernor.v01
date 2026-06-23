@@ -1,6 +1,7 @@
 # Local demo (Docker Compose first)
 
 This demo path is for evaluator walkthroughs, not performance claims.
+This is the repository's **standalone/local evaluation mode**: sidecar + reconciler + Postgres + Redis (no gateway container in this Compose runtime).
 
 ## Prerequisites
 

@@ -17,6 +17,20 @@ The platform separates model routing from governance state management:
 
 modelgovernor.v01 is designed around a ledger-backed reserve-before-dispatch control model. Its primary industry edge is Adaptive Reservation Sizing: a policy-bounded statistical reservation system that reduces unnecessary capital lock-up while preserving deterministic financial control and auditability.
 
+## Supported operating modes
+
+### Governed mode (gateway + sidecar)
+- Gateway remains the request ingress for OpenAI-compatible workloads.
+- Sidecar remains the enforcement and ledger transition authority.
+- Postgres remains the governance system of record.
+
+### Standalone mode (direct sidecar API)
+- Clients call sidecar reserve/settle APIs directly.
+- The same internal-auth, execution-identity, and ledger controls still apply.
+- Postgres remains the governance system of record.
+
+In both modes, the sidecar contract is the stable control-plane boundary. Governance metadata stays first-class and auditable independent of whether traffic arrived through gateway mediation or direct sidecar integration.
+
 ## Trust boundaries
 
 - Application and agent workloads do not call providers directly.
