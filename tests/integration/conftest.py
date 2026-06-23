@@ -8,6 +8,8 @@ import pytest
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 
+from tests.support.pg_migrations import apply_migrations_to_engine
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MIGRATIONS_DIR = REPO_ROOT / "migrations"
 
@@ -50,53 +52,7 @@ def pg_engine() -> Engine:
 
 
 def _apply_migrations(engine: Engine) -> None:
-    with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
-        for filename in _MIGRATION_FILES:
-            sql = (MIGRATIONS_DIR / filename).read_text(encoding="utf-8")
-            for statement in _iter_pg_sql_statements(sql):
-                conn.execute(text(statement))
-
-
-def _iter_pg_sql_statements(sql: str):
-    """Split SQL on semicolons outside PostgreSQL dollar-quoted blocks."""
-    statements: list[str] = []
-    buf: list[str] = []
-    i = 0
-    n = len(sql)
-    in_dollar = False
-    dollar_tag = ""
-
-    while i < n:
-        if not in_dollar and sql[i] == "$":
-            j = i + 1
-            while j < n and (sql[j].isalnum() or sql[j] == "_"):
-                j += 1
-            if j < n and sql[j] == "$":
-                dollar_tag = sql[i : j + 1]
-                in_dollar = True
-                buf.append(dollar_tag)
-                i = j + 1
-                continue
-        if in_dollar and sql.startswith(dollar_tag, i):
-            buf.append(dollar_tag)
-            i += len(dollar_tag)
-            in_dollar = False
-            dollar_tag = ""
-            continue
-        if not in_dollar and sql[i] == ";":
-            stmt = "".join(buf).strip()
-            if stmt:
-                statements.append(stmt)
-            buf = []
-            i += 1
-            continue
-        buf.append(sql[i])
-        i += 1
-
-    tail = "".join(buf).strip()
-    if tail:
-        statements.append(tail)
-    return statements
+    apply_migrations_to_engine(engine, MIGRATIONS_DIR, _MIGRATION_FILES)
 
 
 @pytest.fixture

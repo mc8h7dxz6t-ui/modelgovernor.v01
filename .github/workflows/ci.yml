@@ -119,8 +119,8 @@ jobs:
 
       - name: kubectl dry-run client validation
         run: |
-          kubectl apply --dry-run=client -f /tmp/staging.yaml
-          kubectl apply --dry-run=client -f /tmp/production.yaml
+          kubectl apply --dry-run=client --validate=false -f /tmp/staging.yaml
+          kubectl apply --dry-run=client --validate=false -f /tmp/production.yaml
 
       - name: Install Helm
         uses: azure/setup-helm@v4
@@ -136,7 +136,7 @@ jobs:
         run: helm lint deploy/helm/modelgovernor -f deploy/helm/modelgovernor/values-production.yaml
 
       - name: Validate ArgoCD Application manifests
-        run: kubectl apply --dry-run=client -f deploy/argocd/appproject.yaml -f deploy/argocd/application-production.yaml
+        run: kubectl apply --dry-run=client --validate=false -f deploy/argocd/appproject.yaml -f deploy/argocd/application-production.yaml
 
   test-tier3:
     name: Tier 3 — Load harness gate

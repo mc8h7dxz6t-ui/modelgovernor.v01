@@ -23,6 +23,7 @@ from reconciler.app.sweeper import sweep_expired_reservations
 from sidecar.app.config import Settings
 from sidecar.app.ledger import ConflictError, TraceCapExceededError, apply_settlement, reserve_operation
 from sidecar.app.schemas import ReserveRequest, SettleRequest
+from tests.support.pg_migrations import iter_pg_sql_statements
 
 MIGRATIONS_DIR = REPO_ROOT / "migrations"
 MIGRATION_FILES = sorted(MIGRATIONS_DIR.glob("*.sql"))
@@ -98,8 +99,7 @@ def _apply_migrations(database_url: str) -> None:
         with conn.cursor() as cur:
             for migration_file in MIGRATION_FILES:
                 script = migration_file.read_text(encoding="utf-8")
-                statements = [statement.strip() for statement in script.split(";") if statement.strip()]
-                for statement in statements:
+                for statement in iter_pg_sql_statements(script):
                     cur.execute(f"{statement};")
 
 
