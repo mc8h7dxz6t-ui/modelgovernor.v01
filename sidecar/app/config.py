@@ -50,6 +50,7 @@ class Settings(BaseSettings):
     oidc_internal_token_is_admin: bool = True
     oidc_viewer_roles: str = "viewer,modelgovernor-viewer"
     oidc_financial_admin_roles: str = "financial-admin,modelgovernor-financial-admin"
+    ledger_anchor_webhook_url: str | None = None
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

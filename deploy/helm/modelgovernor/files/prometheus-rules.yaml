@@ -177,6 +177,17 @@ spec:
             description: >-
               Restore Redis HA or reduce ingress until guardrails recover.
 
+        - alert: ModelGovernorCircuitBreakerLocalFallback
+          expr: increase(modelgovernor_invariant_events_total{event="provider_circuit_local_fallback_total"}[5m]) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Provider circuit breaker using local fallback
+            description: >-
+              Redis is unavailable; circuit breaker state is per-pod in-memory.
+              Restore Redis HA for cluster-wide breaker coherence.
+
         - alert: ModelGovernorLedgerChainVerificationFailed
           expr: increase(modelgovernor_invariant_events_total{event="ledger_chain_verification_failed_total"}[1h]) > 0
           for: 0m

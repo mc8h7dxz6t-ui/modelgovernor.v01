@@ -67,6 +67,13 @@ spec:
         - protocol: TCP
           port: 6432
     - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    - to:
         - namespaceSelector: {}
       ports:
         - protocol: UDP

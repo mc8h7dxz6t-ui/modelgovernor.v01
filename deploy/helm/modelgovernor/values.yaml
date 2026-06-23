@@ -155,6 +155,14 @@ ledgerChainVerify:
   enabled: true
   schedule: "0 * * * *"
 
+ledgerChainAnchor:
+  enabled: true
+  schedule: "15 * * * *"
+
+governanceCanary:
+  enabled: true
+  schedule: "*/10 * * * *"
+
 networkPolicy:
   enabled: true
 
@@ -171,3 +179,11 @@ config:
   maxTraceDepth: "50"
   maxUserInflight: "10"
   circuitBreakerEnabled: "true"
+  fallbackGlobalTokensPerSecond: "20"
+  fallbackTokenBucketCapacity: "40"
+  fallbackRateLimitPerMinute: "60"
+  fallbackMaxUserInflight: "5"
+  oidcEnabled: "false"
+  oidcAllowInternalTokenFallback: "true"
+  oidcViewerRoles: "viewer,modelgovernor-viewer"
+  oidcFinancialAdminRoles: "financial-admin,modelgovernor-financial-admin"

@@ -40,9 +40,19 @@ local). On violation:
 - Critical alert counter: `finance_audit_diagnostic_entered_total`
 - **Sweeps halted** (reconciler stays `/readyz` 200 with `"status":"diagnostic"`)
 - **Sidecar writes blocked** (`/reserve` → 503) while `/internal/*` read APIs remain up
-- Operators can investigate and `clear_diagnostic_mode()` after repair
+- Operators can investigate and `POST /internal/diagnostic/clear` after repair
 
 Prometheus alert: `ModelGovernorFinanceDiagnosticMode` (see `prometheus-rules.yaml`).
+
+**Hardened:** Reconciler publishes diagnostic mode to Redis (`REDIS_URL` on reconciler
+Deployment + NetworkPolicy egress). Governance canary exercises diagnostic + verify-chain.
+
+### 4. Circuit breaker Redis bypass ✅ Implemented
+
+**Problem:** Circuit breaker silently allowed all traffic when Redis was down.
+
+**Fix:** `sidecar/app/circuit_breaker.py` — in-process sliding-window fallback mirrors
+Redis thresholds per pod. Metric: `provider_circuit_local_fallback_total`.
 
 ---
 
@@ -68,9 +78,12 @@ Prometheus alert: `ModelGovernorFinanceDiagnosticMode` (see `prometheus-rules.ya
 | Viewer | `GET /internal/*` read surfaces |
 | Financial Admin | `POST /internal/diagnostic/clear` and other destructive ops |
 
-Enable with `OIDC_ENABLED=true`, `OIDC_ISSUER_URL`, `OIDC_AUDIENCE`.
+Enable with `OIDC_ENABLED=true`, `OIDC_ISSUER_URL`, `OIDC_AUDIENCE` (also in K8s ConfigMap).
 
-**Remaining:** Gateway-level OIDC termination, full audit log of admin actions per subject.
+**Shipped:** Privileged admin audit log (`0010_admin_audit_log.sql`, hash-chained),
+`GET /internal/admin/audit/recent`.
+
+**Remaining:** Gateway-level OIDC termination.
 
 ### 2. Tamper-evident ledger sealing — Verification shipped ✅
 
@@ -79,19 +92,22 @@ Enable with `OIDC_ENABLED=true`, `OIDC_ISSUER_URL`, `OIDC_AUDIENCE`.
 to the previous row on Postgres.
 
 **Shipped:** `GET /internal/ledger/verify-chain` (422 on break), hourly
-`ledger-chain-verify` CronJob, alert `ModelGovernorLedgerChainVerificationFailed`.
+`ledger-chain-verify` CronJob, `ledger-chain-anchor` CronJob, `ledger_chain_anchors`
+table, optional `LEDGER_ANCHOR_WEBHOOK_URL`, alert `ModelGovernorLedgerChainVerificationFailed`.
 
-**Remaining:** External anchor (S3 Object Lock / transparency log).
+**Remaining:** S3 Object Lock / transparency log external anchor.
 
-### 3. Zero-trust egress — Planned
+### 3. Zero-trust egress — Scaffold shipped ✅
 
 | Today | Target |
 |---|---|
 | NetworkPolicy for in-cluster traffic | Egress proxy / service mesh |
 | Gateway needs public LLM APIs | Envoy/Istio allowlist: `api.openai.com`, `api.anthropic.com` only |
 
-**Scaffold:** `deploy/base/egress-policy.yaml` (documented) + Istio `ServiceEntry` examples
-in `deploy/overlays/enterprise/`.
+**Shipped:** `deploy/overlays/enterprise/` — Istio `ServiceEntry`, `AuthorizationPolicy`
+for gateway egress allowlist.
+
+**Remaining:** mTLS service mesh, production Istio rollout.
 
 ---
 
@@ -121,4 +137,4 @@ if sidecar rolls after migration.
 
 - `docs/slo-definitions.md`
 - `docs/gitops.md`
-- `docs/observability.md`
+- `docs/institutional-reliability.md`

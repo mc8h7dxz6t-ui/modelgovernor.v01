@@ -15,6 +15,8 @@ configMapGenerator:
       - migrations/0007_wallet_nonnegative_backstop.sql
       - migrations/0008_micro_token_precision.sql
       - migrations/0009_ledger_hash_chain.sql
+      - migrations/0010_admin_audit_log.sql
+      - migrations/0011_ledger_chain_anchors.sql
 
 resources:
   - namespace.yaml
@@ -34,6 +36,8 @@ resources:
   - reconciler-podmonitor.yaml
   - synthetic-probe-cronjob.yaml
   - ledger-verify-cronjob.yaml
+  - governance-canary-cronjob.yaml
+  - ledger-chain-anchor-cronjob.yaml
 
 labels:
   - pairs:

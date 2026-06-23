@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ledger-chain-anchor
+  namespace: modelgovernor
+spec:
+  schedule: "15 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: anchor
+              image: curlimages/curl:8.5.0
+              env:
+                - name: SIDECAR_INTERNAL_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: modelgovernor-secrets
+                      key: sidecar-internal-tokens
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -e
+                  TOKEN="${SIDECAR_INTERNAL_TOKEN%%,*}"
+                  curl -sf -H "x-internal-token: ${TOKEN}" \
+                    -X POST http://sidecar:8081/internal/ledger/anchor-head
+                  echo "ledger chain head anchored"

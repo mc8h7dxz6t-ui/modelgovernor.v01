@@ -1,0 +1,34 @@
+{{- if .Values.ledgerChainAnchor.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ledger-chain-anchor
+  namespace: {{ include "modelgovernor.namespace" . }}
+  labels:
+    {{- include "modelgovernor.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.ledgerChainAnchor.schedule | quote }}
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: anchor
+              image: curlimages/curl:8.5.0
+              env:
+                - name: SIDECAR_INTERNAL_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "modelgovernor.secretName" . }}
+                      key: sidecar-internal-tokens
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -e
+                  TOKEN="${SIDECAR_INTERNAL_TOKEN%%,*}"
+                  curl -sf -H "x-internal-token: ${TOKEN}" \
+                    -X POST http://sidecar:8081/internal/ledger/anchor-head
+                  echo "ledger chain head anchored"
+{{- end }}

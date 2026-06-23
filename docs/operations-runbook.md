@@ -70,7 +70,8 @@ The Kubernetes deployment already wires `/healthz` as a liveness probe and
    latest file.
 4. Start or roll the sidecar deployment.
 5. Confirm `/readyz` and `/metrics` respond before sending governed traffic.
-6. Enable the reconciler CronJob only after the database schema is current.
+6. Start the reconciler Deployment (`RECONCILER_MODE=daemon`) only after the database
+   schema is current and Redis is reachable (required for cluster-wide diagnostic mode).
 
 ### Rollout guardrails
 
@@ -124,6 +125,8 @@ Operators should be able to observe:
 - Diagnostic mode status: `GET /internal/diagnostic/status`
 - Clear diagnostic mode (Financial Admin): `POST /internal/diagnostic/clear`
 - Ledger hash-chain verification: `GET /internal/ledger/verify-chain` (422 on tamper)
+- Ledger head anchor: `POST /internal/ledger/anchor-head` (Financial Admin)
+- Privileged admin audit: `GET /internal/admin/audit/recent`
 - Attribution summary: `GET /internal/attribution/summary`
 - Guardrail incidents: `GET /internal/guardrail/incidents`
 - Execution lineage: `GET /internal/lineage/{idempotency_key}`
@@ -138,6 +141,8 @@ The shipped Prometheus rules alert on:
 - increasing stranded operations
 - negative wallet invariant violations
 - post-sweep finance audit failures
+- finance diagnostic mode entry
+- ledger hash-chain verification failures
 - Redis guardrail degradation
 
 Treat missing scrape data, repeated readiness failures, or sustained stranded
@@ -175,24 +180,25 @@ Response:
 
 Symptoms:
 - expired holds remain `RESERVED`
-- CronJob failures or no recent job history
+- `modelgovernor_reconciler_leader == 0` for 15+ minutes
+- reconciler pod logs show sweep errors or diagnostic mode active
 
 Response:
-1. Check CronJob history and pod logs.
-2. Verify `DATABASE_URL` and database reachability.
-3. Confirm migrations are current.
-4. Re-run a reconciler job after the underlying connectivity or schema issue is
-   fixed.
+1. Check reconciler Deployment pod logs and `/readyz` on port 8082.
+2. Verify `DATABASE_URL`, `REDIS_URL`, and database reachability.
+3. Confirm migrations are current and no pod holds the advisory lock indefinitely.
+4. If diagnostic mode is active, repair data then `POST /internal/diagnostic/clear`.
 
 ### Redis unavailable
 
 Symptoms:
-- runtime guardrail enforcement degraded
+- `guardrail_degraded_total` and `provider_circuit_local_fallback_total` increasing
+- `local_fallback_rate_limit_total` under surge
 
 Response:
-1. Confirm reserve/settle still operate against Postgres.
+1. Confirm reserve/settle still operate against Postgres (with per-pod local limits).
 2. Restore Redis or fail over Redis HA.
-3. Review whether any temporary guardrail bypass changed effective risk posture.
+3. Review local fallback pressure; scale sidecar cautiously if Redis remains down.
 
 ### Postgres failover
 

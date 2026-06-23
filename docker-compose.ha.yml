@@ -65,12 +65,15 @@ services:
       dockerfile: reconciler/Dockerfile
     environment:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@pgbouncer:6432/modelgovernor
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      SIDECAR_INTERNAL_TOKENS: ${SIDECAR_INTERNAL_TOKENS:-dev-token}
       RECONCILER_MODE: daemon
       SWEEP_INTERVAL_SECONDS: ${SWEEP_INTERVAL_SECONDS:-30}
       DB_POOL_SIZE: 2
       DB_MAX_OVERFLOW: 1
     depends_on:
       - pgbouncer
+      - redis
     ports:
       - "8082:8082"
 

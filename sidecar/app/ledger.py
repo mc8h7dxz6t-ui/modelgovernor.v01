@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
@@ -20,6 +21,8 @@ except ImportError:  # pragma: no cover
     attribution = None  # type: ignore[assignment]
 
 from .money import quantize_money as _money
+
+logger = logging.getLogger(__name__)
 
 
 class LedgerError(Exception):
@@ -856,15 +859,20 @@ def _maybe_seal_event(
     amount_delta: Decimal,
     metadata: dict,
 ) -> None:
-    try:
-        from . import ledger_seal
+    from . import ledger_seal
+    from .metrics import get_counters
 
-        if not ledger_seal.schema_supports_ledger_seal(session):
-            return
+    if not ledger_seal.schema_supports_ledger_seal(session):
+        return
+
+    dialect = session.bind.dialect.name
+    recorded_expr = "recorded_at::text" if dialect == "postgresql" else "recorded_at"
+
+    try:
         row = session.execute(
             text(
-                """
-                SELECT event_id, recorded_at::text AS recorded_at
+                f"""
+                SELECT event_id, {recorded_expr} AS recorded_at
                 FROM ledger_events
                 WHERE idempotency_key = :idempotency_key
                 ORDER BY event_id DESC
@@ -885,8 +893,10 @@ def _maybe_seal_event(
             metadata=metadata,
             recorded_at=str(row["recorded_at"]),
         )
-    except Exception:
-        pass
+        get_counters().increment("ledger_event_sealed_total")
+    except Exception as exc:
+        get_counters().increment("ledger_event_seal_failed_total")
+        logger.warning("ledger event seal failed idempotency_key=%s: %s", idempotency_key, exc)
 
 
 def _fingerprint_reserve_request(request: ReserveRequest) -> str:

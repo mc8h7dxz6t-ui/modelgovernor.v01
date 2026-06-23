@@ -163,6 +163,32 @@ class LedgerChainVerificationResponse(BaseModel):
     first_break: Optional[LedgerChainBreakResponse] = None
 
 
+class LedgerAnchorResponse(BaseModel):
+    anchored: bool
+    anchor_id: Optional[int] = None
+    head_hash: Optional[str] = None
+    sealed_count: int = 0
+    total_events: int = 0
+    source: Optional[str] = None
+    reason: Optional[str] = None
+
+
+class AdminAuditEntryResponse(BaseModel):
+    audit_id: int
+    actor_subject: str
+    actor_method: str
+    actor_roles: Optional[str]
+    action: str
+    resource: str
+    details: dict[str, Any]
+    recorded_at: datetime
+
+
+class AdminAuditLogResponse(BaseModel):
+    entries: list[AdminAuditEntryResponse]
+    total: int
+
+
 class AttributionSummaryRow(BaseModel):
     group_key: str
     operations: int

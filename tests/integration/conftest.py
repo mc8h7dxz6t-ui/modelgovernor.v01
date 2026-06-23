@@ -22,6 +22,8 @@ _MIGRATION_FILES = [
     "0007_wallet_nonnegative_backstop.sql",
     "0008_micro_token_precision.sql",
     "0009_ledger_hash_chain.sql",
+    "0010_admin_audit_log.sql",
+    "0011_ledger_chain_anchors.sql",
 ]
 
 _TRUNCATE_TABLES = [
