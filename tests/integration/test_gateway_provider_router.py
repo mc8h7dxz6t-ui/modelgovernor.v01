@@ -13,8 +13,21 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from gateway.app.config import Settings
-from gateway.app.pricing import compute_token_cost
+from gateway.app.pricing import compute_token_cost, estimate_chat_reserve_cost
 from gateway.app.providers.router import ProviderRouter, _resolve_provider_name
+
+
+def test_estimate_chat_reserve_cost() -> None:
+    from gateway.app.config import Settings
+
+    settings = Settings(provider_max_output_tokens=512)
+    cost = estimate_chat_reserve_cost(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": "hello"}],
+        max_tokens=100,
+        settings=settings,
+    )
+    assert cost >= Decimal("0.010000")
 
 
 def test_compute_token_cost_micro_precision() -> None:

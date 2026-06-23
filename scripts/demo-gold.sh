@@ -31,6 +31,13 @@ DISPATCH=$(curl -fsS -X POST "http://localhost:8080/governed/dispatch" \
   -d "{\"user_id\":\"demo-user\",\"trace_id\":\"trace-gold\",\"model\":\"gpt-4o-mini\",\"estimated_cost\":\"5.000000\",\"idempotency_key\":\"$OP_KEY\",\"prompt\":\"Explain reserve-before-dispatch in one sentence.\"}")
 echo "$DISPATCH" | python3 -m json.tool 2>/dev/null || echo "$DISPATCH"
 echo ""
+OPENAI_RESP=$(curl -fsS -X POST "http://localhost:8080/v1/chat/completions" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "content-type: application/json" \
+  -d "{\"model\":\"gpt-4o-mini\",\"messages\":[{\"role\":\"user\",\"content\":\"One sentence on governed LLM spend.\"}],\"user\":\"demo-user\"}")
+echo "  OpenAI SDK drop-in (/v1/chat/completions):"
+echo "$OPENAI_RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); print('  ', d['choices'][0]['message']['content'][:120])" 2>/dev/null || echo "$OPENAI_RESP"
+echo ""
 echo "  Sales point: OpenAI / Anthropic / Vertex routers plug in with PROVIDER_MODE=live"
 
 step "3/7  Multi-provider routing (mock — same gateway, different models)"

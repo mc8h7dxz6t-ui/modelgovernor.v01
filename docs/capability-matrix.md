@@ -6,6 +6,7 @@ Use this table in RFPs, security questionnaires, and enterprise diligence calls.
 |---|---|---|---|
 | Reserve-before-dispatch governance | ✅ | `make demo-gold` | Gateway + sidecar |
 | Multi-provider routing (OpenAI, Anthropic, Vertex) | ✅ | Mock mode | `PROVIDER_MODE=live` |
+| OpenAI-compatible API (`/v1/chat/completions`) | ✅ | Step 2 in `demo-gold` | `OPENAI_COMPAT_ENABLED` |
 | Micro-cent token pricing (`NUMERIC(24,12)`) | ✅ | Auto | Migration `0008` |
 | Append-only ledger + idempotent lifecycle | ✅ | Auto | Postgres |
 | Per-trace atomic budget caps | ✅ | Auto | Sidecar |

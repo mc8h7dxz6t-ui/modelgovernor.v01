@@ -207,4 +207,6 @@ config:
   gatewayOidcIssuerUrl: ""
   gatewayOidcAudience: ""
   gatewayOidcDispatchRoles: "dispatch,modelgovernor-dispatch"
+  openaiCompatEnabled: "true"
+  openaiCompatDefaultUserId: "default-user"
   ledgerAnchorS3ObjectLockEnabled: "false"

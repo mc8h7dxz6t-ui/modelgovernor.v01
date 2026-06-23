@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     mock_output_tokens: int = 32
     provider_timeout_seconds: float = 30.0
     provider_max_output_tokens: int = 1024
+    openai_compat_enabled: bool = True
+    openai_compat_api_key: str | None = None
+    openai_compat_default_user_id: str = "default-user"
     openai_api_key: str | None = None
     anthropic_api_key: str | None = None
     vertex_project_id: str | None = None

@@ -33,4 +33,6 @@ data:
   GATEWAY_OIDC_ISSUER_URL: {{ .Values.config.gatewayOidcIssuerUrl | quote }}
   GATEWAY_OIDC_AUDIENCE: {{ .Values.config.gatewayOidcAudience | quote }}
   GATEWAY_OIDC_DISPATCH_ROLES: {{ .Values.config.gatewayOidcDispatchRoles | quote }}
+  OPENAI_COMPAT_ENABLED: {{ .Values.config.openaiCompatEnabled | quote }}
+  OPENAI_COMPAT_DEFAULT_USER_ID: {{ .Values.config.openaiCompatDefaultUserId | quote }}
   LEDGER_ANCHOR_S3_OBJECT_LOCK_ENABLED: {{ .Values.config.ledgerAnchorS3ObjectLockEnabled | quote }}
