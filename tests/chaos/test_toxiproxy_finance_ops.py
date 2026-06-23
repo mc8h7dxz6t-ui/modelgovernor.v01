@@ -50,9 +50,21 @@ def _postgres_url() -> str:
     return url
 
 
-def _reset_proxy() -> None:
+def _reset_proxy(*, recreate: bool = False) -> None:
     try:
-        requests.delete(f"{TOXIPROXY_API}/proxies/{PROXY_NAME}/toxics", timeout=2)
+        requests.delete(f"{TOXIPROXY_API}/proxies/{PROXY_NAME}/toxics", timeout=5)
+        if recreate:
+            requests.delete(f"{TOXIPROXY_API}/proxies/{PROXY_NAME}", timeout=5)
+            requests.post(
+                f"{TOXIPROXY_API}/proxies",
+                json={
+                    "name": PROXY_NAME,
+                    "listen": "0.0.0.0:5435",
+                    "upstream": "postgres-chaos:5432",
+                    "enabled": True,
+                },
+                timeout=5,
+            ).raise_for_status()
     except requests.RequestException:
         pytest.skip("toxiproxy API unavailable")
 
@@ -65,6 +77,15 @@ def _add_latency(ms: int) -> None:
     ).raise_for_status()
 
 
+def _add_connection_timeout_toxic() -> None:
+    # timeout=0 means "never close" in toxiproxy; use 1ms to force fast failure.
+    requests.post(
+        f"{TOXIPROXY_API}/proxies/{PROXY_NAME}/toxics",
+        json={"name": "timeout", "type": "timeout", "attributes": {"timeout": 1}},
+        timeout=5,
+    ).raise_for_status()
+
+
 @pytest.fixture(scope="module")
 def chaos_engine():
     database_url = _postgres_url()
@@ -72,7 +93,8 @@ def chaos_engine():
     engine = create_engine(
         database_url,
         future=True,
-        connect_args={"connect_timeout": 10},
+        connect_args={"connect_timeout": 3},
+        pool_pre_ping=True,
     )
     apply_migrations_to_engine(engine, MIGRATIONS_DIR, _MIGRATION_FILES)
     yield engine
@@ -100,22 +122,27 @@ def _settings(database_url: str) -> Settings:
     )
 
 
-def test_finance_ops_survives_toxiproxy_latency(chaos_engine) -> None:
-    _reset_proxy()
-    _add_latency(250)
-    settings = _settings(str(chaos_engine.url))
-    factory = sessionmaker(bind=chaos_engine, autoflush=False, autocommit=False, future=True)
-
+def _seed_wallet(factory: sessionmaker, *, balance: Decimal = Decimal("100.000000")) -> None:
     with factory() as session:
         session.execute(
             text(
                 """
                 INSERT INTO user_wallets (user_id, balance, active)
-                VALUES ('chaos-user', 100, TRUE)
-                ON CONFLICT (user_id) DO UPDATE SET balance = 100, active = TRUE
+                VALUES ('chaos-user', :balance, TRUE)
+                ON CONFLICT (user_id) DO UPDATE SET balance = EXCLUDED.balance, active = TRUE
                 """
-            )
+            ),
+            {"balance": str(balance)},
         )
+        session.commit()
+
+
+def test_finance_ops_survives_toxiproxy_latency(chaos_engine) -> None:
+    _reset_proxy()
+    _add_latency(250)
+    settings = _settings(str(chaos_engine.url))
+    factory = sessionmaker(bind=chaos_engine, autoflush=False, autocommit=False, future=True)
+    _seed_wallet(factory)
 
     t0 = time.perf_counter()
     with factory() as session:
@@ -127,7 +154,7 @@ def test_finance_ops_survives_toxiproxy_latency(chaos_engine) -> None:
                 trace_id="chaos-trace",
                 idempotency_key="chaos-op",
                 model="gpt-4o-mini",
-                estimated_cost=Decimal("5"),
+                estimated_cost=Decimal("5.000000"),
             ),
         )
     elapsed_ms = (time.perf_counter() - t0) * 1000
@@ -142,11 +169,8 @@ def test_finance_ops_survives_toxiproxy_latency(chaos_engine) -> None:
 
 def test_finance_ops_toxiproxy_timeout_recovers_on_reset(chaos_engine) -> None:
     _reset_proxy()
-    requests.post(
-        f"{TOXIPROXY_API}/proxies/{PROXY_NAME}/toxics",
-        json={"name": "timeout", "type": "timeout", "attributes": {"timeout": 0}},
-        timeout=5,
-    ).raise_for_status()
+    chaos_engine.dispose()
+    _add_connection_timeout_toxic()
 
     settings = _settings(str(chaos_engine.url))
     factory = sessionmaker(bind=chaos_engine, autoflush=False, autocommit=False, future=True)
@@ -161,11 +185,12 @@ def test_finance_ops_toxiproxy_timeout_recovers_on_reset(chaos_engine) -> None:
                     trace_id="chaos-trace-2",
                     idempotency_key="chaos-op-2",
                     model="gpt-4o-mini",
-                    estimated_cost=Decimal("1"),
+                    estimated_cost=Decimal("1.000000"),
                 ),
             )
 
-    _reset_proxy()
+    _reset_proxy(recreate=True)
+    chaos_engine.dispose()
     with factory() as session:
         reserve_operation(
             session,
@@ -175,6 +200,6 @@ def test_finance_ops_toxiproxy_timeout_recovers_on_reset(chaos_engine) -> None:
                 trace_id="chaos-trace-2",
                 idempotency_key="chaos-op-3",
                 model="gpt-4o-mini",
-                estimated_cost=Decimal("1"),
+                estimated_cost=Decimal("1.000000"),
             ),
         )
