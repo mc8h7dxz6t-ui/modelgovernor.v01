@@ -79,6 +79,7 @@ def reserve_operation(session: Session, settings: Settings, request: ReserveRequ
         )
 
     now = _utcnow()
+    _assert_circuit_closed(request.model)
     identity = (
         attribution.identity_from_reserve(request)
         if attribution and attribution.schema_supports_attribution(session)
@@ -552,6 +553,8 @@ def _finalize_settlement(
     )
     _detect_duplicate_settlement_events(session, operation["idempotency_key"])
     _enforce_non_negative_wallet_balance(session, operation["user_id"])
+    provider_key = request.provider_name or operation.get("model") or "unknown"
+    _record_provider_success(provider_key)
     if attribution and attribution.schema_supports_attribution(session):
         attribution.record_lineage(
             session,
@@ -898,11 +901,31 @@ def _release_inflight_guardrail(user_id: str) -> None:
         pass
 
 
+def _assert_circuit_closed(provider_key: str) -> None:
+    try:
+        from .circuit_breaker import CircuitOpenError, get_circuit_breaker
+
+        get_circuit_breaker().assert_closed(provider_key)
+    except CircuitOpenError:
+        raise PolicyStateError(f"provider circuit open for {provider_key}") from None
+    except Exception:
+        pass
+
+
 def _record_provider_failure(provider_name: str) -> None:
     try:
         from .circuit_breaker import get_circuit_breaker
 
         get_circuit_breaker().record_failure(provider_name)
+    except Exception:
+        pass
+
+
+def _record_provider_success(provider_name: str) -> None:
+    try:
+        from .circuit_breaker import get_circuit_breaker
+
+        get_circuit_breaker().record_success(provider_name)
     except Exception:
         pass
 

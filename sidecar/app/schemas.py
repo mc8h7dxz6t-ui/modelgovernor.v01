@@ -113,7 +113,12 @@ class OperationStatusResponse(BaseModel):
     dispatch_started_at: Optional[datetime]
     settled_at: Optional[datetime]
     expired_at: Optional[datetime]
-    attempts: list[DispatchAttemptResponse]
+    attempts: list[DispatchAttemptResponse] = Field(default_factory=list)
+
+
+class OperationsListResponse(BaseModel):
+    operations: list[OperationStatusResponse]
+    total: int
 
 
 class TraceBudgetStatusResponse(BaseModel):

@@ -18,19 +18,15 @@ _audit_failed = {"value": False}
 
 
 def _run_finance_audit(session) -> None:
-    try:
-        from sidecar.app.finance_ops import FinanceOpsInvariantError, assert_finance_ops_invariants
-        from sidecar.app.metrics import get_counters
+    from sidecar.app.finance_ops import FinanceOpsInvariantError, assert_finance_ops_invariants
+    from sidecar.app.metrics import get_counters
 
+    try:
         assert_finance_ops_invariants(session)
     except FinanceOpsInvariantError:
-        from sidecar.app.metrics import get_counters
-
         get_counters().increment("finance_audit_violation_total")
         _audit_failed["value"] = True
         logger.error("post-sweep finance invariant audit failed")
-    except ImportError:
-        pass
 
 
 def _handle_signal(signum: int, _frame) -> None:
@@ -45,6 +41,7 @@ def run_once() -> int:
             if not is_leader:
                 return 0
             swept = sweep_expired_reservations(session)
+            _run_finance_audit(session)
     print(f"reconciler completed; expired reservations scanned={swept}")
     return swept
 

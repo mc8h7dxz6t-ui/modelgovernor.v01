@@ -42,6 +42,36 @@ spec:
             description: >-
               Reserve p95 latency exceeded the 500ms institutional target.
 
+        - alert: ModelGovernorReserveAvailabilityBurnFast
+          expr: (1 - modelgovernor:reserve_success_rate:5m) > (1 - 0.995) * 14.4
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Fast burn — reserve error budget depleting rapidly
+            description: >-
+              5m reserve failure rate exceeds 14.4x the 30-day error budget burn threshold.
+
+        - alert: ModelGovernorReserveAvailabilityBurnSlow
+          expr: (1 - modelgovernor:reserve_success_rate:5m) > (1 - 0.995) * 3
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: Slow burn — reserve error budget trending down
+            description: >-
+              30m reserve failure rate exceeds 3x the 30-day error budget burn threshold.
+
+        - alert: ModelGovernorReconcilerNotLeader
+          expr: modelgovernor_reconciler_leader == 0
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: No reconciler pod reports leadership
+            description: >-
+              No reconciler instance has acquired the advisory lock for 15 minutes.
+
     - name: modelgovernor.invariants
       rules:
         - alert: ModelGovernorNegativeWalletDetected

@@ -41,7 +41,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: modelgovernor-secrets
-                  key: database-url
+                  key: database-url-direct
           volumeMounts:
             - name: migrations
               mountPath: /migrations

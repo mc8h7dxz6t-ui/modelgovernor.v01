@@ -13,6 +13,7 @@ from .schemas import (
     AuditEventResponse,
     DispatchAttemptResponse,
     OperationStatusResponse,
+    OperationsListResponse,
     RecentAuditEventsResponse,
     TraceBudgetStatusResponse,
     WalletStatusResponse,
@@ -120,6 +121,28 @@ def get_operation_by_provider_request_id(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="provider request id not found")
 
     return get_operation_status(row["idempotency_key"])
+
+
+@router.get("/operations", response_model=OperationsListResponse)
+def list_operations(
+    status: str | None = Query(default=None, description="Filter by escrow status e.g. STRANDED"),
+    limit: int = Query(default=50, ge=1, le=200),
+) -> OperationsListResponse:
+    query = """
+        SELECT idempotency_key
+        FROM escrow_ledger
+    """
+    params: dict[str, Any] = {"limit": limit}
+    if status:
+        query += " WHERE status = :status"
+        params["status"] = status
+    query += " ORDER BY created_at DESC LIMIT :limit"
+
+    with get_db_session() as session:
+        rows = session.execute(text(query), params).mappings().all()
+
+    operations = [get_operation_status(row["idempotency_key"]) for row in rows]
+    return OperationsListResponse(operations=operations, total=len(operations))
 
 
 @router.get("/trace/{trace_id}", response_model=TraceBudgetStatusResponse)

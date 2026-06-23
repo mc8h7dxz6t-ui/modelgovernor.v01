@@ -17,7 +17,8 @@ services:
 
   sidecar:
     build:
-      context: ./sidecar
+      context: .
+      dockerfile: sidecar/Dockerfile
     environment:
       DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: ${REDIS_URL}
@@ -37,7 +38,8 @@ services:
 
   reconciler:
     build:
-      context: ./reconciler
+      context: .
+      dockerfile: reconciler/Dockerfile
     environment:
       DATABASE_URL: ${DATABASE_URL}
       DB_POOL_SIZE: ${DB_POOL_SIZE:-2}
@@ -48,6 +50,19 @@ services:
       - postgres
     ports:
       - "8082:8082"
+
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    environment:
+      SIDECAR_INTERNAL_TOKEN: ${SIDECAR_PRIMARY_TOKEN:-dev-token}
+      SIDECAR_URL: http://sidecar:8081
+      MOCK_DISPATCH_COST: ${MOCK_DISPATCH_COST:-1.000000}
+    depends_on:
+      - sidecar
+    ports:
+      - "8080:8080"
 
 volumes:
   postgres_data:

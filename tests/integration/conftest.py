@@ -19,6 +19,7 @@ _MIGRATION_FILES = [
     "0004_ledger_control_plane_hardening.sql",
     "0005_invariant_constraints.sql",
     "0006_execution_attribution_guardrails.sql",
+    "0007_wallet_nonnegative_backstop.sql",
 ]
 
 _TRUNCATE_TABLES = [

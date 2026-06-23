@@ -43,7 +43,8 @@ services:
 
   sidecar:
     build:
-      context: ./sidecar
+      context: .
+      dockerfile: sidecar/Dockerfile
     environment:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@pgbouncer:6432/modelgovernor
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
@@ -60,7 +61,8 @@ services:
 
   reconciler:
     build:
-      context: ./reconciler
+      context: .
+      dockerfile: reconciler/Dockerfile
     environment:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@pgbouncer:6432/modelgovernor
       RECONCILER_MODE: daemon

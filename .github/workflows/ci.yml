@@ -35,6 +35,9 @@ jobs:
             tests/integration/test_readiness.py \
             tests/integration/test_guardrails.py \
             tests/integration/test_prometheus_scrape.py \
+            tests/integration/test_circuit_breaker.py \
+            tests/integration/test_operations_list.py \
+            tests/integration/test_gateway_governance.py \
             tests/integration/test_chaos_resilience.py \
             tests/integration/test_property_ledger.py \
             tests/integration/test_migration_invariants.py \
@@ -75,7 +78,7 @@ jobs:
       - name: Tier 2 Postgres vigorous tests
         env:
           POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5432/mg_test
-        run: PYTHONPATH=. pytest tests/integration/test_postgres_vigorous.py tests/integration/test_migration_invariants.py tests/programs/finance_ops_finals/test_reconciler_leader_election.py -q
+        run: PYTHONPATH=. pytest tests/integration/test_postgres_vigorous.py tests/integration/test_postgres_reliability.py tests/integration/test_migration_invariants.py tests/programs/finance_ops_finals/test_reconciler_leader_election.py -q
 
   validate-manifests:
     name: Kustomize manifest validation
@@ -195,3 +198,15 @@ jobs:
       - name: Tear down chaos stack
         if: always()
         run: docker compose -f docker-compose.chaos.yml down -v
+
+  build-images:
+    name: Container image build gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build sidecar, reconciler, gateway images
+        run: |
+          docker build -f sidecar/Dockerfile -t modelgovernor/sidecar:ci .
+          docker build -f reconciler/Dockerfile -t modelgovernor/reconciler:ci .
+          docker build -f gateway/Dockerfile -t modelgovernor/gateway:ci .

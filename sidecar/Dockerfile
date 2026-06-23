@@ -5,10 +5,13 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-COPY requirements.txt ./requirements.txt
+COPY sidecar/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app ./app
+COPY sidecar/app ./app
+
+RUN useradd --create-home --uid 1000 sidecar
+USER sidecar
 
 EXPOSE 8081
 

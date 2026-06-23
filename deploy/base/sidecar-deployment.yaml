@@ -55,6 +55,10 @@ spec:
                 secretKeyRef:
                   name: modelgovernor-secrets
                   key: sidecar-internal-tokens
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://otel-collector:4318
+            - name: OTEL_SERVICE_NAME
+              value: modelgovernor-sidecar
           livenessProbe:
             httpGet:
               path: /healthz

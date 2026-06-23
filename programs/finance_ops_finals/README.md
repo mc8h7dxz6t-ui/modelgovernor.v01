@@ -19,6 +19,7 @@ Institutional++ settlement, reconciliation, and finance-plane invariant program 
 | Reconciler daemon | Long-running sweep loop + `/healthz` `/readyz` on :8082 |
 | Standby reconciler | Offset CronJob (`reconciler-standby` in K8s manifests) |
 | Network chaos | Toxiproxy harness (`docker-compose.chaos.yml`, `tests/chaos/`) |
+| Governance gateway | `gateway/app/main.py` — reserve→dispatch→settle proxy |
 | Kubernetes | `deploy/base/` + `deploy/overlays/{staging,production}` |
 | Promotion gate | `.github/workflows/promote.yml` |
 

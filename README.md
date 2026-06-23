@@ -49,7 +49,7 @@ See `docs/demo.md` for full walkthrough and troubleshooting.
 
 ## Proof / reliability validation
 
-Institutional++ grade: runtime anomaly probes, DB invariant backstops (`migrations/0005`–`0007`), Redis guardrails with graceful degradation, OpenTelemetry-ready tracing, HTTP RED metrics, property-based and chaos tests, SLO recording rules, CI gates, and Prometheus alert rules (`deploy/base/prometheus-rules.yaml`). See `docs/slo-definitions.md`.
+Institutional++ **gold standard**: runtime anomaly probes, DB invariant backstops (`migrations/0005`–`0007`), Redis guardrails with graceful degradation, provider circuit breakers, OpenTelemetry-ready tracing, governance gateway, HTTP RED metrics, SLO burn-rate alerts, synthetic canary probes, property/chaos tests, and full K8s deploy manifests. See `docs/slo-definitions.md` and `docs/observability.md`.
 
 Three tiers of testing are available. See `docs/reliability-testing.md` for full scenario tables, metrics reference, and CI integration examples.
 

@@ -15,11 +15,16 @@ spec:
       labels:
         app: reconciler
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
       containers:
         - name: reconciler
           image: modelgovernor/reconciler:latest
           ports:
-            - containerPort: 8082
+            - name: http-health
+              containerPort: 8082
           env:
             - name: DATABASE_URL
               valueFrom:
@@ -36,13 +41,13 @@ spec:
           livenessProbe:
             httpGet:
               path: /healthz
-              port: 8082
+              port: http-health
             initialDelaySeconds: 10
             periodSeconds: 20
           readinessProbe:
             httpGet:
               path: /readyz
-              port: 8082
+              port: http-health
             initialDelaySeconds: 5
             periodSeconds: 10
           resources:
@@ -52,55 +57,21 @@ spec:
             limits:
               cpu: 200m
               memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
 
 ---
-apiVersion: batch/v1
-kind: CronJob
+apiVersion: v1
+kind: Service
 metadata:
-  name: reconciler-cron
+  name: reconciler
   namespace: modelgovernor
 spec:
-  schedule: "*/2 * * * *"
-  concurrencyPolicy: Forbid
-  jobTemplate:
-    spec:
-      template:
-        spec:
-          containers:
-            - name: reconciler
-              image: modelgovernor/reconciler:latest
-              env:
-                - name: DATABASE_URL
-                  valueFrom:
-                    secretKeyRef:
-                      name: modelgovernor-secrets
-                      key: database-url
-                - name: RECONCILER_MODE
-                  value: once
-          restartPolicy: Never
-
----
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: reconciler-standby
-  namespace: modelgovernor
-spec:
-  schedule: "1-59/2 * * * *"
-  concurrencyPolicy: Forbid
-  jobTemplate:
-    spec:
-      template:
-        spec:
-          containers:
-            - name: reconciler
-              image: modelgovernor/reconciler:latest
-              env:
-                - name: DATABASE_URL
-                  valueFrom:
-                    secretKeyRef:
-                      name: modelgovernor-secrets
-                      key: database-url
-                - name: RECONCILER_MODE
-                  value: once
-          restartPolicy: Never
+  selector:
+    app: reconciler
+  ports:
+    - name: http-health
+      port: 8082
+      targetPort: http-health

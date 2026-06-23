@@ -37,6 +37,9 @@ jobs:
             tests/integration/test_readiness.py \
             tests/integration/test_guardrails.py \
             tests/integration/test_prometheus_scrape.py \
+            tests/integration/test_circuit_breaker.py \
+            tests/integration/test_operations_list.py \
+            tests/integration/test_gateway_governance.py \
             tests/integration/test_chaos_resilience.py \
             tests/integration/test_property_ledger.py \
             tests/integration/test_migration_invariants.py \

@@ -17,14 +17,20 @@ configMapGenerator:
 resources:
   - namespace.yaml
   - configmap.yaml
+  - postgres.yaml
   - pgbouncer.yaml
   - redis.yaml
   - network-policy.yaml
   - sidecar-deployment.yaml
+  - gateway-deployment.yaml
   - reconciler-deployment.yaml
   - migration-job.yaml
+  - otel-collector.yaml
   - prometheus-rules.yaml
+  - grafana-dashboard.yaml
   - sidecar-podmonitor.yaml
+  - reconciler-podmonitor.yaml
+  - synthetic-probe-cronjob.yaml
 
 labels:
   - pairs:

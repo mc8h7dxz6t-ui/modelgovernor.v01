@@ -219,10 +219,13 @@ Phase 4 anomaly enforcement counters (live and tested):
 
 `.github/workflows/ci.yml` runs on every push:
 
-- **Tier 1** (`test-tier1`): ledger hardening, admin observability, Phase 4 anomaly probes, readiness, chaos resilience, property-based ledger tests, migration invariant definitions.
-- **Tier 2** (`test-tier2`): Postgres vigorous proof tests plus DB constraint validation against `postgres:16`.
-- **Tier 3** (`test-load`): load harness pytest gate plus `python tests/load/test_load_harness.py` with zero-invariant-violation validation; uploads JSON artifact.
-- **Migration invariant definitions** (`validate-migrations`): verifies `0005_invariant_constraints.sql` is present.
+- **Tier 1** (`test-tier1`): ledger hardening, admin observability, Phase 4 anomaly probes, readiness, guardrails, prometheus scrape, circuit breaker, gateway governance, operations list, chaos resilience, property-based ledger tests, migration invariant definitions, program suites.
+- **Tier 2** (`test-tier2`): Postgres vigorous + postgres reliability + DB constraint validation against `postgres:16`.
+- **Tier 3** (`test-tier3`): load harness pytest gate plus `python tests/load/test_load_harness.py` with zero-invariant-violation validation; uploads JSON artifact.
+- **Tier 4** (`test-tier4-chaos`): Toxiproxy Postgres latency/timeout chaos tests.
+- **Container build** (`build-images`): `docker build` for sidecar, reconciler, gateway.
+- **Kustomize validation** (`validate-manifests`): render staging/production overlays.
+- **Migration invariant definitions** (`validate-migrations`): verifies invariant migrations through `0007`.
 
 ---
 
@@ -230,9 +233,12 @@ Phase 4 anomaly enforcement counters (live and tested):
 
 - `/healthz` — process liveness
 - `/readyz` — database connectivity probe (503 when DB unreachable)
+- `/metrics/prometheus` — unauthenticated scrape surface (PodMonitor)
 - `/metrics` — DB-aggregate Prometheus text plus process invariant counters (internal auth)
 - `/metrics.json` — invariant counter snapshot
-- `deploy/base/prometheus-rules.yaml` — alert rules for financial-safety anomalies
+- `deploy/base/prometheus-rules.yaml` — SLO recording rules + financial-safety alerts
+- `docs/slo-definitions.md` — formal SLI/SLO targets
+- `docs/observability.md` — tracing, dashboards, synthetic probes
 
 ---
 
