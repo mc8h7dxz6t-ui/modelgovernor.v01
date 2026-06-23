@@ -50,9 +50,21 @@ def _postgres_url() -> str:
     return url
 
 
-def _reset_proxy() -> None:
+def _reset_proxy(*, recreate: bool = False) -> None:
     try:
         requests.delete(f"{TOXIPROXY_API}/proxies/{PROXY_NAME}/toxics", timeout=5)
+        if recreate:
+            requests.delete(f"{TOXIPROXY_API}/proxies/{PROXY_NAME}", timeout=5)
+            requests.post(
+                f"{TOXIPROXY_API}/proxies",
+                json={
+                    "name": PROXY_NAME,
+                    "listen": "0.0.0.0:5435",
+                    "upstream": "postgres-chaos:5432",
+                    "enabled": True,
+                },
+                timeout=5,
+            ).raise_for_status()
     except requests.RequestException:
         pytest.skip("toxiproxy API unavailable")
 
@@ -177,7 +189,7 @@ def test_finance_ops_toxiproxy_timeout_recovers_on_reset(chaos_engine) -> None:
                 ),
             )
 
-    _reset_proxy()
+    _reset_proxy(recreate=True)
     chaos_engine.dispose()
     with factory() as session:
         reserve_operation(
