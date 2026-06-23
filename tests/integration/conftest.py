@@ -33,6 +33,12 @@ _TRUNCATE_TABLES = [
     "escrow_ledger",
     "trace_budget_state",
     "user_wallets",
+    "budget_scope_state",
+    "guardrail_incidents",
+    "execution_lineage",
+    "execution_loop_state",
+    "admin_audit_log",
+    "ledger_chain_anchors",
 ]
 
 
