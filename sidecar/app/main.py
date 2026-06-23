@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from .metrics import get_counters
+from .routes_orchestration import router as orchestration_router
 from .routes_audit import router as audit_router
 from .routes_reconcile import router as reconcile_router
 from .routes_reserve import router as reserve_router
@@ -48,3 +49,4 @@ app.include_router(reserve_router)
 app.include_router(settle_router)
 app.include_router(reconcile_router)
 app.include_router(audit_router)
+app.include_router(orchestration_router)

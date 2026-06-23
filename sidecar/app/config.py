@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     db_pool_timeout_seconds: int = 5
     db_pool_recycle_seconds: int = 1800
     app_env: str = "development"
+    orchestration_runtime_mode: str = "coexisting"
+    orchestration_shadow_mode: bool = True
+    orchestration_cache_ttl_seconds: int = 900
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

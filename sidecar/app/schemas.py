@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Dict, Literal, Optional
+from typing import Any, Dict, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -151,3 +151,65 @@ class WalletSummaryResponse(BaseModel):
     locked_at: Optional[datetime]
     last_event_type: Optional[str]
     last_event_at: Optional[datetime]
+
+
+class SourceDocument(BaseModel):
+    document_id: str = Field(..., min_length=1, max_length=255)
+    source_uri: str = Field(..., min_length=1, max_length=1024)
+    content: str = Field(..., min_length=1, max_length=20000)
+
+
+class ComputationTask(BaseModel):
+    task_id: str = Field(..., min_length=1, max_length=255)
+    expression: str = Field(..., min_length=1, max_length=1024)
+    variables: Dict[str, Decimal] = Field(default_factory=dict)
+    expected_unit: Optional[str] = Field(default=None, max_length=64)
+
+
+class WorkflowCitation(BaseModel):
+    source_uri: str
+    document_id: str
+    quote: str = Field(..., min_length=1, max_length=1024)
+
+
+class WorkflowComputationResult(BaseModel):
+    task_id: str
+    value: Decimal
+    expected_unit: Optional[str]
+
+
+class AgentDecision(BaseModel):
+    agent: Literal["ingest", "retrieve", "compute", "report", "critic"]
+    status: Literal["OK", "REJECTED", "SKIPPED"]
+    reason: str
+    latency_ms: int = Field(..., ge=0)
+    routing_tier: Literal["fast-8b", "reasoning-large"] = "fast-8b"
+
+
+class OrchestrationWorkflowRequest(BaseModel):
+    workflow_id: str = Field(..., min_length=1, max_length=255)
+    user_id: str = Field(..., min_length=1, max_length=255)
+    query: str = Field(..., min_length=1, max_length=4000)
+    runtime_mode: Optional[Literal["coexisting", "standalone"]] = None
+    external_context_id: Optional[str] = Field(default=None, max_length=255)
+    regulated: bool = False
+    max_cost: Decimal = Field(default=Decimal("2.500000"), gt=0)
+    max_latency_ms: int = Field(default=4000, ge=100, le=120000)
+    documents: list[SourceDocument] = Field(default_factory=list)
+    computations: list[ComputationTask] = Field(default_factory=list)
+
+
+class OrchestrationWorkflowResponse(BaseModel):
+    run_id: str
+    workflow_id: str
+    runtime_mode: Literal["coexisting", "standalone"]
+    state: Literal["PUBLISHED", "REJECTED"]
+    cache_hit: bool
+    routing_tier: Literal["fast-8b", "reasoning-large"]
+    estimated_cost: Decimal
+    citations: list[WorkflowCitation]
+    computations: list[WorkflowComputationResult]
+    report_payload: Dict[str, Any]
+    critic_passed: bool
+    critic_issues: list[str]
+    agent_decisions: list[AgentDecision]

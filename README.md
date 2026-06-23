@@ -11,6 +11,7 @@ It combines:
 - a hardened policy enforcement sidecar,
 - a Postgres-backed escrow and audit ledger,
 - Redis-based runtime guardrails,
+- a deterministic orchestration plane for multi-agent validation workflows,
 - and portable local-to-production deployment.
 
 The system is designed to support serious governance standards for AI infrastructure across laptops, VPS deployments, cloud environments, and enterprise platforms.
@@ -28,6 +29,7 @@ The system is designed to support serious governance standards for AI infrastruc
 - Drift anomaly enforcement with wallet lockout
 - Runtime trace and concurrency guardrails
 - Deterministic stale-reservation reconciliation
+- Dual-plane orchestration (co-existing + standalone runtime modes)
 - Portable Docker-first deployment
 
 ## Architecture overview
@@ -39,6 +41,7 @@ modelgovernor.v01 is built as a layered control plane:
 3. **Postgres ledger** as the system of record for balances, reservations, and audit events.
 4. **Redis guardrails** for trace depth, concurrency controls, and short-window rate limits.
 5. **Reconciler worker** for stale reservation cleanup, stranded-hold transitions, and append-only operational repair.
+6. **Orchestration plane** for ingest/retrieve/compute/report/critic workflows with JSON-only outputs and immutable decision logs.
 
 ## Institutional-grade design principles
 
@@ -82,6 +85,8 @@ migrations/
   0003_harden_ledger_constraints.sql
   0004_ledger_control_plane_hardening.sql
   0005_phase3_reconciliation.sql
+  0006_audit_report_indexes.sql
+  0007_orchestration_plane.sql
 
 sidecar/
   Dockerfile
@@ -98,6 +103,7 @@ sidecar/
     routes_reserve.py
     routes_settle.py
     routes_reconcile.py       ← Phase 3
+    routes_orchestration.py   ← Phase 5
 
 reconciler/
   Dockerfile
@@ -197,6 +203,13 @@ machine-readable JSON report artifact to `tests/load/reports/`.
 - Admin audit log (`admin_audit_log` table) for all administrative interventions
 - Kubernetes deployment manifests (`deploy/base` + `deploy/overlays/{staging,production}`)
 - HA and multi-region architecture documentation
+
+### Phase 5 ✓
+- Dual-plane orchestration API (`/orchestration/workflows/run`)
+- Co-existing and standalone orchestration runtime modes
+- Deterministic compute sandbox for financial math expressions
+- Citation-enforced critic validation loop
+- Immutable orchestration decision audit log + semantic cache
 
 ## Quality standard
 

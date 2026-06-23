@@ -11,6 +11,7 @@ The platform separates model routing from governance state management:
 - **Postgres** serves as the exact-decimal ledger and audit system of record.
 - **Redis** provides volatile runtime guardrails such as trace depth, concurrency, and rate-limit counters.
 - **Reconciler** claims expired work, expires safe holds, preserves stranded holds, and appends deterministic correction events.
+- **Orchestration plane** runs multi-agent workflows (ingest, retrieve, compute, report, critic) in a non-authoritative lane with strict JSON schemas and citation gates.
 
 ## Primary differentiation
 
@@ -23,6 +24,7 @@ modelgovernor.v01 is designed around a ledger-backed reserve-before-dispatch con
 - Financial state transitions occur only inside Postgres transactions.
 - Redis is never the source of truth for balances or reservations.
 - Final settlement uses authoritative provider usage where available.
+- Orchestration workflows can suggest actions but cannot directly mutate ledger balances.
 
 ## Request lifecycle
 
@@ -86,6 +88,27 @@ Key properties:
 - auditable reserve-versus-realized drift measurement
 
 See `docs/adaptive-reservation.md` for the full specification.
+
+## Dual-plane orchestration model
+
+Institutional workflows now run with two explicit planes:
+
+- **Deterministic finance plane (authoritative):** sidecar ledger + reconciler.
+- **LLM orchestration plane (non-authoritative):** `/orchestration/workflows/run`.
+
+### Runtime modes
+
+- **coexisting:** external orchestrators provide `external_context_id` and invoke governed APIs.
+- **standalone:** document parsing/retrieval/compute run inside sidecar orchestration routes.
+
+### Orchestration controls
+
+- strict Pydantic contracts at each agent boundary
+- deterministic arithmetic via sandboxed expression evaluator
+- citation-required critic pass for regulated workflows
+- prompt-injection filtering on retrieval chunks
+- semantic cache and model-tier routing for cost/latency control
+- append-only orchestration decision records in `orchestration_audit_log`
 
 ## Deployment modes
 
