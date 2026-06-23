@@ -71,6 +71,7 @@ docker-compose.yml
 docs/
   architecture.md
   build-plan.md
+  operations-runbook.md
   quality-bar.md
   reliability-testing.md
   ha-strategy.md
@@ -184,6 +185,44 @@ Exercises hot-trace contention, distributed contention, and mixed
 reserve/settle/sweep activity.  Captures p50/p95/p99 latency and writes a
 machine-readable JSON report artifact to `tests/load/reports/`.
 
+### Additional validation gates
+
+The repository also carries non-functional validation gates that should pass
+before treating a change as production-credible:
+
+```bash
+python -m compileall -q sidecar/app reconciler/app
+python - <<'EOF'
+import sqlite3, pathlib
+
+migrations_dir = pathlib.Path("migrations")
+conn = sqlite3.connect(":memory:")
+skip_prefixes = ("alter type", "create extension", "comment on", "create type")
+
+for path in sorted(migrations_dir.glob("*.sql")):
+    sql = path.read_text()
+    for stmt in sql.split(";"):
+        stripped = stmt.strip().lower()
+        if not stripped or any(stripped.startswith(prefix) for prefix in skip_prefixes):
+            continue
+        try:
+            conn.execute(stmt)
+        except sqlite3.OperationalError as exc:
+            msg = f"{stmt}\n{exc}".lower()
+            known_incompatible = (
+                "timestamptz", "jsonb", "bigserial", "for update", "skip locked",
+                "returning", "::jsonb", "::text", "filter (where", "if not exists",
+                "create type", "alter type", "include (",
+            )
+            if not any(token in msg for token in known_incompatible):
+                raise
+print("All migration files parsed successfully.")
+EOF
+```
+
+Kubernetes overlays are also rendered in CI with pinned `kustomize` so staging
+and production manifests stay reproducible.
+
 ## Development roadmap
 
 ### Phase 1 ✓
@@ -227,9 +266,18 @@ machine-readable JSON report artifact to `tests/load/reports/`.
 ## Quality standard
 
 All changes should meet the repository quality bar in `docs/quality-bar.md`.
+Operational startup, rollout, observability, and recovery expectations are
+documented in `docs/operations-runbook.md`.
 
 ## Status
 
-All five phases are complete.  The platform is production-ready and deployable
-from a single Docker Compose command for local development, or via the
-Kubernetes manifests in `deploy/` for container platform deployments.
+All five roadmap phases are complete and the production baseline is implemented.
+The repository now includes fast correctness tests, Postgres proof tests, a
+load-harness gate, migration parsing checks, manifest rendering validation,
+health/readiness probes, Prometheus scrape surfaces, and operator runbooks.
+
+Readiness is therefore evidence-backed rather than aspirational, but final
+production sign-off remains environment-specific: operators still need to wire
+external secrets management, run migrations in order, front Postgres with a
+transaction-pooling proxy, and rehearse failover/recovery in their own target
+platform.

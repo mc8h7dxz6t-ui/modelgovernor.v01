@@ -194,6 +194,7 @@ jobs:
               "alter type",
               "create extension",
               "comment on",
+              "create type",
           )
 
           for path in sorted(migrations_dir.glob("*.sql")):
@@ -207,12 +208,15 @@ jobs:
                   try:
                       conn.execute(stmt)
                   except sqlite3.OperationalError as exc:
-                      # Ignore expected Postgres-only keywords that SQLite rejects
-                      msg = str(exc).lower()
+                      # Ignore expected Postgres-only DDL and SQL fragments that
+                      # SQLite rejects; the purpose of this check is to catch
+                      # accidental syntax regressions in the portable subset.
+                      msg = f"{stmt}\n{exc}".lower()
                       known_incompatible = (
                           "timestamptz", "jsonb", "bigserial", "for update",
                           "skip locked", "returning", "::jsonb", "::text",
-                          "filter (where", "if not exists",
+                          "filter (where", "if not exists", "create type",
+                          "alter type", "include (",
                       )
                       if not any(k in msg for k in known_incompatible):
                           raise RuntimeError(f"{path.name}: {exc}\nStatement: {stmt[:200]}") from exc

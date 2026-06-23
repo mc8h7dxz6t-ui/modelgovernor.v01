@@ -1,8 +1,9 @@
 # Reliability Testing Guide
 
-This document explains the two testing tiers for `modelgovernor.v01` and how
-to run each one.  The distinction matters because the two tiers serve different
-purposes and make different guarantees.
+This document explains the three testing tiers for `modelgovernor.v01` and the
+supporting validation gates around them.  The distinction matters because the
+tiered tests and non-functional checks serve different purposes and make
+different guarantees.
 
 ---
 
@@ -225,8 +226,26 @@ All three tiers run on every push:
   `postgres:16` service container.
 - **Tier 3** (`test-load`): Load harness gate that validates zero invariant
   violations; uploads a machine-readable JSON artifact.
+- **Compile check**: `python -m compileall -q sidecar/app reconciler/app`
+  catches import-time and syntax regressions in the shipped Python modules.
+- **Migration syntax check**: applies the SQLite-compatible subset of the SQL
+  migrations to catch portable DDL regressions while gracefully skipping
+  Postgres-only constructs such as enums and JSONB-specific expressions.
+- **Manifest validation**: renders the staging and production overlays with
+  pinned `kustomize` to keep deployment artifacts reproducible.
 - **Promotion gate** (`promote.yml`): Tier 1 + Tier 2 + Tier 3 must all pass
   before a production image tag is dry-run applied.
+
+---
+
+## Production-readiness evidence outside tests
+
+Testing alone is not the full readiness story.  The repository also exposes:
+
+- `/healthz` and `/readyz` probes for the sidecar
+- `/metrics` and `/metrics.json` for observability and load-report correlation
+- Kubernetes probes and Prometheus resources in `deploy/base/`
+- operator recovery guidance in `docs/operations-runbook.md`
 
 ---
 

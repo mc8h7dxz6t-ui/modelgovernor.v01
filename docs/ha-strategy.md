@@ -142,6 +142,9 @@ inject them at deploy time.
 
 ## Operational runbook references
 
+See `docs/operations-runbook.md` for startup order, rollout checks, observability
+expectations, and recovery playbooks that complement this HA guidance.
+
 | Scenario | Resolution |
 |---|---|
 | Sidecar pod OOMKilled | Increase memory limit in overlay patch; investigate Postgres query plan |

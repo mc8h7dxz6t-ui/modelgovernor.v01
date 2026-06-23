@@ -39,5 +39,7 @@ patches:
       kind: Deployment
       name: sidecar
 
-commonLabels:
-  environment: production
+labels:
+  - includeSelectors: true
+    pairs:
+      environment: production

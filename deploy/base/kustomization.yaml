@@ -11,6 +11,8 @@ resources:
   - sidecar-podmonitor.yaml
   - prometheus-rules.yaml
 
-commonLabels:
-  app.kubernetes.io/managed-by: kustomize
-  app.kubernetes.io/part-of: modelgovernor
+labels:
+  - includeSelectors: true
+    pairs:
+      app.kubernetes.io/managed-by: kustomize
+      app.kubernetes.io/part-of: modelgovernor
