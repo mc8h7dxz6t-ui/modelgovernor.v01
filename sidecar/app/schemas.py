@@ -106,3 +106,48 @@ class WalletUnlockResponse(BaseModel):
     user_id: str
     unlocked: bool
     message: str
+
+
+class AuditLogEntry(BaseModel):
+    log_id: int
+    admin_user_id: str
+    action_type: str
+    subject_key: str
+    wallet_id: Optional[str]
+    operation_id: Optional[str]
+    details: Dict[str, object]
+    applied_at: datetime
+
+
+class AuditLogResponse(BaseModel):
+    items: list[AuditLogEntry]
+    total: int
+    limit: int
+    offset: int
+
+
+class SpendReportItem(BaseModel):
+    wallet_id: str
+    model: str
+    operations: int
+    total_cost: Decimal
+    input_tokens: int = 0
+    output_tokens: int = 0
+
+
+class SpendReportResponse(BaseModel):
+    generated_at: datetime
+    from_timestamp: Optional[datetime]
+    to_timestamp: Optional[datetime]
+    items: list[SpendReportItem]
+
+
+class WalletSummaryResponse(BaseModel):
+    wallet_id: str
+    balance: Decimal
+    reserved_total: Decimal
+    locked: bool
+    lock_reason: Optional[str]
+    locked_at: Optional[datetime]
+    last_event_type: Optional[str]
+    last_event_at: Optional[datetime]

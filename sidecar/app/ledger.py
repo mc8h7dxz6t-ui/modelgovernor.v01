@@ -15,10 +15,15 @@ from .metrics import get_counters
 from .schemas import (
     AdminCorrectionRequest,
     AdminCorrectionResponse,
+    AuditLogEntry,
+    AuditLogResponse,
     ReconciliationSummary,
     ReserveRequest,
     SettleRequest,
+    SpendReportItem,
+    SpendReportResponse,
     StrandedOperationSummary,
+    WalletSummaryResponse,
     WalletUnlockResponse,
 )
 
@@ -452,6 +457,8 @@ def _finalize_settlement(
             "previous_status": previous_status,
         },
     )
+    _detect_duplicate_settlement_events(session, operation["idempotency_key"])
+    _enforce_non_negative_wallet_balance(session, operation["user_id"])
 
     drift_excess = max(Decimal("0"), drift_amount)
     if drift_excess:
@@ -741,8 +748,49 @@ def _drift_exceeds_tolerance(drift_amount: Decimal, reserved_amount: Decimal, se
     return (drift_amount / reserved_amount) > ratio_threshold
 
 
+def _detect_duplicate_settlement_events(session: Session, idempotency_key: str) -> None:
+    row = session.execute(
+        text(
+            """
+            SELECT COUNT(*) AS cnt
+            FROM ledger_events
+            WHERE idempotency_key = :idempotency_key
+              AND event_type IN ('SETTLED_FINAL', 'RECONCILED_LATE_SETTLE')
+            """
+        ),
+        {"idempotency_key": idempotency_key},
+    ).mappings().first()
+    if row and int(row["cnt"]) > 1:
+        get_counters().increment("duplicate_settlement_anomaly_total")
+
+
+def _enforce_non_negative_wallet_balance(session: Session, user_id: str) -> None:
+    row = session.execute(
+        text(
+            """
+            SELECT balance
+            FROM user_wallets
+            WHERE user_id = :user_id
+            """
+        ),
+        {"user_id": user_id},
+    ).mappings().first()
+    if row and _money(row["balance"]) < Decimal("0"):
+        get_counters().increment("negative_wallet_detected_total")
+        raise LedgerError("wallet balance invariant violated: negative balance detected")
+
+
 def _money(value: Decimal | str | int | float | None) -> Decimal:
     return Decimal(value or 0).quantize(MONEY_QUANTUM)
+
+
+def _load_json_object(value: object) -> dict:
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        loaded = json.loads(value)
+        return loaded if isinstance(loaded, dict) else {}
+    return {}
 
 
 def _utcnow() -> datetime:
@@ -876,6 +924,184 @@ def list_stranded_operations(
     ]
 
 
+def list_admin_audit_log(
+    session: Session,
+    *,
+    wallet_id: str | None = None,
+    operation_id: str | None = None,
+    action_type: str | None = None,
+    from_timestamp: datetime | None = None,
+    to_timestamp: datetime | None = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> AuditLogResponse:
+    where_clauses = []
+    params: dict[str, object] = {"limit": limit, "offset": offset}
+    if wallet_id:
+        where_clauses.append("wallet_id = :wallet_id")
+        params["wallet_id"] = wallet_id
+    if operation_id:
+        where_clauses.append("operation_id = :operation_id")
+        params["operation_id"] = operation_id
+    if action_type:
+        where_clauses.append("action_type = :action_type")
+        params["action_type"] = action_type
+    if from_timestamp:
+        where_clauses.append("applied_at >= :from_timestamp")
+        params["from_timestamp"] = from_timestamp
+    if to_timestamp:
+        where_clauses.append("applied_at <= :to_timestamp")
+        params["to_timestamp"] = to_timestamp
+
+    where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+    rows = session.execute(
+        text(
+            f"""
+            SELECT log_id, admin_user_id, action_type, subject_key, wallet_id, operation_id, details, applied_at
+            FROM admin_audit_log
+            {where_sql}
+            ORDER BY applied_at DESC
+            LIMIT :limit
+            OFFSET :offset
+            """
+        ),
+        params,
+    ).mappings().all()
+
+    total_row = session.execute(
+        text(
+            f"""
+            SELECT COUNT(*) AS cnt
+            FROM admin_audit_log
+            {where_sql}
+            """
+        ),
+        {k: v for k, v in params.items() if k not in {"limit", "offset"}},
+    ).mappings().first()
+
+    items = [
+        AuditLogEntry(
+            log_id=int(row["log_id"]),
+            admin_user_id=row["admin_user_id"],
+            action_type=row["action_type"],
+            subject_key=row["subject_key"],
+            wallet_id=row["wallet_id"],
+            operation_id=row["operation_id"],
+            details=_load_json_object(row["details"]),
+            applied_at=row["applied_at"],
+        )
+        for row in rows
+    ]
+    return AuditLogResponse(
+        items=items,
+        total=int(total_row["cnt"]) if total_row else 0,
+        limit=limit,
+        offset=offset,
+    )
+
+
+def get_spend_report(
+    session: Session,
+    *,
+    wallet_id: str | None = None,
+    model: str | None = None,
+    from_timestamp: datetime | None = None,
+    to_timestamp: datetime | None = None,
+) -> SpendReportResponse:
+    where_clauses = ["status = 'SETTLED'"]
+    params: dict[str, object] = {}
+    if wallet_id:
+        where_clauses.append("user_id = :wallet_id")
+        params["wallet_id"] = wallet_id
+    if model:
+        where_clauses.append("model = :model")
+        params["model"] = model
+    if from_timestamp:
+        where_clauses.append("COALESCE(settled_at, created_at) >= :from_timestamp")
+        params["from_timestamp"] = from_timestamp
+    if to_timestamp:
+        where_clauses.append("COALESCE(settled_at, created_at) <= :to_timestamp")
+        params["to_timestamp"] = to_timestamp
+
+    rows = session.execute(
+        text(
+            f"""
+            SELECT user_id AS wallet_id, model, COUNT(*) AS operations, COALESCE(SUM(actual_amount), 0) AS total_cost
+            FROM escrow_ledger
+            WHERE {' AND '.join(where_clauses)}
+            GROUP BY user_id, model
+            ORDER BY user_id ASC, model ASC
+            """
+        ),
+        params,
+    ).mappings().all()
+    return SpendReportResponse(
+        generated_at=_utcnow(),
+        from_timestamp=from_timestamp,
+        to_timestamp=to_timestamp,
+        items=[
+            SpendReportItem(
+                wallet_id=row["wallet_id"],
+                model=row["model"],
+                operations=int(row["operations"]),
+                total_cost=_money(row["total_cost"]),
+                input_tokens=0,
+                output_tokens=0,
+            )
+            for row in rows
+        ],
+    )
+
+
+def get_wallet_summary(session: Session, wallet_id: str) -> WalletSummaryResponse:
+    wallet = session.execute(
+        text(
+            """
+            SELECT user_id, balance, active, lock_reason, locked_at
+            FROM user_wallets
+            WHERE user_id = :wallet_id
+            """
+        ),
+        {"wallet_id": wallet_id},
+    ).mappings().first()
+    if not wallet:
+        raise NotFoundError("wallet not found")
+
+    reserved_row = session.execute(
+        text(
+            """
+            SELECT COALESCE(SUM(reserved_amount), 0) AS total
+            FROM escrow_ledger
+            WHERE user_id = :wallet_id
+              AND status IN ('RESERVED', 'IN_FLIGHT', 'PROVIDER_TIMEOUT', 'STRANDED')
+            """
+        ),
+        {"wallet_id": wallet_id},
+    ).mappings().first()
+    event_row = session.execute(
+        text(
+            """
+            SELECT event_type, recorded_at
+            FROM ledger_events
+            WHERE user_id = :wallet_id
+            ORDER BY recorded_at DESC, event_id DESC
+            LIMIT 1
+            """
+        ),
+        {"wallet_id": wallet_id},
+    ).mappings().first()
+    return WalletSummaryResponse(
+        wallet_id=wallet_id,
+        balance=_money(wallet["balance"]),
+        reserved_total=_money(reserved_row["total"] if reserved_row else 0),
+        locked=not bool(wallet["active"]),
+        lock_reason=wallet["lock_reason"],
+        locked_at=wallet["locked_at"],
+        last_event_type=event_row["event_type"] if event_row else None,
+        last_event_at=event_row["recorded_at"] if event_row else None,
+    )
+
+
 def apply_admin_correction(
     session: Session, settings: Settings, request: AdminCorrectionRequest
 ) -> AdminCorrectionResponse:
@@ -938,6 +1164,8 @@ def apply_admin_correction(
         admin_user_id=request.admin_user_id,
         action_type="OPERATION_CORRECTION",
         subject_key=request.idempotency_key,
+        wallet_id=operation["user_id"],
+        operation_id=request.idempotency_key,
         details={
             "previous_status": previous_status,
             "corrected_amount": str(result.actual_amount),
@@ -1007,6 +1235,8 @@ def unlock_wallet(
         admin_user_id=admin_user_id,
         action_type="WALLET_UNLOCK",
         subject_key=user_id,
+        wallet_id=user_id,
+        operation_id=None,
         details={
             "previous_lock_reason": wallet["lock_reason"],
             "admin_reason": admin_reason,
@@ -1027,6 +1257,8 @@ def _append_admin_log(
     admin_user_id: str,
     action_type: str,
     subject_key: str,
+    wallet_id: str | None,
+    operation_id: str | None,
     details: dict,
 ) -> None:
     """Insert a row into admin_audit_log."""
@@ -1038,14 +1270,30 @@ def _append_admin_log(
     session.execute(
         text(
             f"""
-            INSERT INTO admin_audit_log (admin_user_id, action_type, subject_key, details)
-            VALUES (:admin_user_id, :action_type, :subject_key, {details_value})
+            INSERT INTO admin_audit_log (
+                admin_user_id,
+                action_type,
+                subject_key,
+                wallet_id,
+                operation_id,
+                details
+            )
+            VALUES (
+                :admin_user_id,
+                :action_type,
+                :subject_key,
+                :wallet_id,
+                :operation_id,
+                {details_value}
+            )
             """
         ),
         {
             "admin_user_id": admin_user_id,
             "action_type": action_type,
             "subject_key": subject_key,
+            "wallet_id": wallet_id,
+            "operation_id": operation_id,
             "details": details_json,
         },
     )

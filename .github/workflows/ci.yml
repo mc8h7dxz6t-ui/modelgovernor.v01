@@ -33,7 +33,13 @@ jobs:
         run: python -m compileall -q sidecar/app reconciler/app
 
       - name: Tier 1 — integration tests (SQLite, no infra)
-        run: pytest tests/integration/test_ledger_hardening.py tests/integration/test_phase3_reconciliation.py -q
+        run: |
+          PYTHONPATH=. pytest \
+            tests/integration/test_ledger_hardening.py \
+            tests/integration/test_phase3_reconciliation.py \
+            tests/integration/test_phase4_anomaly.py \
+            tests/integration/test_phase4_reporting.py \
+            -q
 
   # ---------------------------------------------------------------------------
   # Postgres-backed vigorous proof tests
@@ -74,7 +80,59 @@ jobs:
       - name: Tier 2 — Postgres vigorous tests
         env:
           POSTGRES_TEST_URL: ******localhost:5432/mg_test
-        run: pytest tests/integration/test_postgres_vigorous.py -q
+        run: PYTHONPATH=. pytest tests/integration/test_postgres_vigorous.py -q
+
+  # ---------------------------------------------------------------------------
+  # Load-harness gate — SQLite-based invariant safety proof
+  # ---------------------------------------------------------------------------
+  test-load:
+    name: Tier 3 — Load harness
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r sidecar/requirements.txt
+          pip install -r reconciler/requirements.txt
+          pip install pytest
+
+      - name: Tier 3 — load harness
+        run: PYTHONPATH=. pytest tests/load/test_load_harness.py -q
+
+      - name: Validate load harness report invariants
+        run: |
+          python - <<'EOF'
+          import json
+          from pathlib import Path
+
+          reports = sorted(Path("tests/load/reports").glob("load_report_*.json"))
+          if not reports:
+              raise RuntimeError("No load report artifact generated")
+          report = json.loads(reports[-1].read_text())
+          for scenario in report.get("scenarios", []):
+              violations = int(scenario.get("invariant_violations", 0))
+              if violations != 0:
+                  raise RuntimeError(
+                      f"{scenario.get('scenario')} invariant_violations={violations}"
+                  )
+          print(f"Validated report: {reports[-1]}")
+          EOF
+
+      - name: Upload load report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-harness-report
+          path: tests/load/reports/load_report_*.json
+          if-no-files-found: error
 
   # ---------------------------------------------------------------------------
   # Kubernetes manifest validation — renders all overlays with kustomize

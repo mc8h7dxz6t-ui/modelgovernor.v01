@@ -188,6 +188,10 @@ def _bootstrap_schema(engine: Engine) -> None:
                     admin_user_id TEXT      NOT NULL,
                     action_type   TEXT      NOT NULL,
                     subject_key   TEXT      NOT NULL,
+                    wallet_id     TEXT,
+                    operation_id  TEXT,
+                    event_type    TEXT,
+                    created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     details       TEXT      NOT NULL DEFAULT '{}',
                     applied_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )

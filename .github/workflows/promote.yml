@@ -1,0 +1,114 @@
+name: Promote
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Release tag (v<M>.<m>.<p>)"
+        required: true
+        type: string
+
+jobs:
+  test-tier1:
+    name: Tier 1 — SQLite fast tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: |
+          pip install -r sidecar/requirements.txt
+          pip install -r reconciler/requirements.txt
+          pip install pytest
+      - run: python -m compileall -q sidecar/app reconciler/app
+      - run: |
+          PYTHONPATH=. pytest \
+            tests/integration/test_ledger_hardening.py \
+            tests/integration/test_phase3_reconciliation.py \
+            tests/integration/test_phase4_anomaly.py \
+            tests/integration/test_phase4_reporting.py \
+            -q
+
+  test-tier2:
+    name: Tier 2 — Postgres vigorous tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: mg_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: |
+          pip install -r sidecar/requirements.txt
+          pip install -r reconciler/requirements.txt
+          pip install pytest psycopg2-binary
+      - run: PYTHONPATH=. pytest tests/integration/test_postgres_vigorous.py -q
+        env:
+          POSTGRES_TEST_URL: ******localhost:5432/mg_test
+
+  test-load:
+    name: Tier 3 — Load harness
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: |
+          pip install -r sidecar/requirements.txt
+          pip install -r reconciler/requirements.txt
+          pip install pytest
+      - run: PYTHONPATH=. pytest tests/load/test_load_harness.py -q
+
+  promote:
+    name: Promote production overlay
+    needs: [test-tier1, test-tier2, test-load]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate image tag format
+        run: |
+          if ! echo "${{ inputs.image_tag }}" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "image_tag must match v<M>.<m>.<p>"
+            exit 1
+          fi
+
+      - name: Install kustomize
+        run: |
+          curl -sSLo kustomize.tar.gz \
+            https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.5.0/kustomize_v5.5.0_linux_amd64.tar.gz
+          tar xzf kustomize.tar.gz
+          sudo mv kustomize /usr/local/bin/kustomize
+          kustomize version
+
+      - name: Install kubectl
+        run: |
+          curl -sSLo kubectl https://dl.k8s.io/release/v1.31.0/bin/linux/amd64/kubectl
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/kubectl
+          kubectl version --client
+
+      - name: Render overlays
+        run: |
+          kustomize build deploy/overlays/staging > /tmp/staging.yaml
+          kustomize build deploy/overlays/production > /tmp/production.yaml
+
+      - name: Dry-run apply production manifest
+        run: kubectl apply --dry-run=client -f /tmp/production.yaml

@@ -1,0 +1,58 @@
+{
+  "title": "ModelGovernor Phase 4",
+  "timezone": "utc",
+  "schemaVersion": 39,
+  "version": 1,
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Reserve success rate",
+      "targets": [
+        {
+          "expr": "rate(modelgovernor_invariant_events_total{event=\"reserve_success_total\"}[5m])"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+    },
+    {
+      "type": "timeseries",
+      "title": "Reserve denial rate",
+      "targets": [
+        {
+          "expr": "rate(modelgovernor_invariant_events_total{event=~\"reserve_denied_.*\"}[5m])"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+    },
+    {
+      "type": "timeseries",
+      "title": "Drift events",
+      "targets": [
+        {
+          "expr": "rate(modelgovernor_invariant_events_total{event=~\"drift_.*\"}[5m])"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+    },
+    {
+      "type": "timeseries",
+      "title": "Reconciler lag proxies",
+      "targets": [
+        {
+          "expr": "rate(modelgovernor_invariant_events_total{event=~\"reconciler_(claimed|expired|stranded)_total\"}[5m])"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+    },
+    {
+      "type": "stat",
+      "title": "Wallet lock / negative anomalies",
+      "targets": [
+        {
+          "expr": "modelgovernor_invariant_events_total{event=~\"drift_enforced_total|negative_wallet_detected_total\"}"
+        }
+      ],
+      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 16}
+    }
+  ]
+}

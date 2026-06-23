@@ -8,6 +8,8 @@ resources:
   - sidecar-deployment.yaml
   - sidecar-service.yaml
   - reconciler-cronjob.yaml
+  - sidecar-podmonitor.yaml
+  - prometheus-rules.yaml
 
 commonLabels:
   app.kubernetes.io/managed-by: kustomize

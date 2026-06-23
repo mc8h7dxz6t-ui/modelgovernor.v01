@@ -1,29 +1,12 @@
-"""Invariant counters and metrics hooks for the ledger control plane.
-
-This module provides a lightweight, thread-safe counter registry that makes
-key reliability conditions observable at runtime and in test/load report
-artifacts.  It requires no external dependencies and works both in production
-(single-process or via per-pod scraping) and in test harness contexts where
-multiple components run in the same Python process.
-
-Usage in production code
-------------------------
-    from .metrics import get_counters
-    get_counters().increment("reserve_success_total")
-
-Usage in tests / load harness
-------------------------------
-    from sidecar.app.metrics import get_counters
-    counters = get_counters()
-    counters.reset()
-    # ... run operations ...
-    report = counters.snapshot()
-"""
+"""Invariant counters and Prometheus exposition hooks for the control plane."""
 from __future__ import annotations
 
 import json
 import threading
 from typing import Dict
+
+from prometheus_client import REGISTRY
+from prometheus_client.core import CounterMetricFamily
 
 _COUNTER_NAMES: tuple[str, ...] = (
     # Reserve path
@@ -79,10 +62,32 @@ class InvariantCounters:
         return json.dumps(self.snapshot(), indent=indent, sort_keys=True)
 
 
+class InvariantCounterCollector:
+    """Expose InvariantCounters as Prometheus counters."""
+
+    def __init__(self, counters: InvariantCounters) -> None:
+        self._counters = counters
+
+    def collect(self):
+        metric = CounterMetricFamily(
+            "modelgovernor_invariant_events_total",
+            "Invariant event counters for governance control-plane reliability.",
+            labels=["event"],
+        )
+        for name, value in self._counters.snapshot().items():
+            metric.add_metric([name], float(value))
+        yield metric
+
+
 # Module-level singleton — shared across all imports in the same process.
 _global_counters = InvariantCounters()
+_collector_registered = False
 
 
 def get_counters() -> InvariantCounters:
     """Return the process-global :class:`InvariantCounters` singleton."""
+    global _collector_registered
+    if not _collector_registered:
+        REGISTRY.register(InvariantCounterCollector(_global_counters))
+        _collector_registered = True
     return _global_counters

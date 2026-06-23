@@ -1,0 +1,14 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: modelgovernor-sidecar
+  labels:
+    app: sidecar
+spec:
+  selector:
+    matchLabels:
+      app: sidecar
+  podMetricsEndpoints:
+    - path: /metrics
+      interval: 30s
+      port: http

@@ -1,0 +1,38 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: modelgovernor-sidecar-rules
+  labels:
+    app: sidecar
+spec:
+  groups:
+    - name: modelgovernor.phase4
+      rules:
+        - alert: ModelGovernorReserveDeniedBalanceSpike
+          expr: increase(modelgovernor_invariant_events_total{event="reserve_denied_balance_total"}[10m]) > 10
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Reserve denials due to insufficient balance are spiking.
+        - alert: ModelGovernorDriftEnforced
+          expr: increase(modelgovernor_invariant_events_total{event="drift_enforced_total"}[5m]) > 0
+          for: 0m
+          labels:
+            severity: critical
+          annotations:
+            summary: Drift enforcement triggered and wallet lockout may be active.
+        - alert: ModelGovernorStrandedOperationsIncreasing
+          expr: increase(modelgovernor_invariant_events_total{event="reconciler_stranded_total"}[15m]) > 5
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Stranded operations are rising and require investigation.
+        - alert: ModelGovernorNegativeWalletDetected
+          expr: increase(modelgovernor_invariant_events_total{event="negative_wallet_detected_total"}[1h]) > 0
+          for: 0m
+          labels:
+            severity: critical
+          annotations:
+            summary: Negative wallet invariant was violated.
