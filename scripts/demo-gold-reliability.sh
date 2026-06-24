@@ -54,10 +54,10 @@ DRIFT_KEY="gold-drift-$(date +%s)"
 DRIFT_PROVIDER="provider-$DRIFT_KEY"
 curl -fsS -X POST "http://localhost:8081/reserve" \
   "${HDR[@]}" \
-  -d "{\"user_id\":\"demo-user\",\"trace_id\":\"trace-drift\",\"idempotency_key\":\"$DRIFT_KEY\",\"model\":\"gpt-4o-mini\",\"estimated_cost\":\"10.000000\"}" >/dev/null
+  -d "{\"user_id\":\"demo-user\",\"trace_id\":\"trace-drift\",\"idempotency_key\":\"$DRIFT_KEY\",\"model\":\"gpt-4o-mini\",\"estimated_cost\":\"${DEMO_DRIFT_RESERVE_COST}\"}" >/dev/null
 curl -fsS -X POST "http://localhost:8081/settle" \
   "${HDR[@]}" \
-  -d "{\"idempotency_key\":\"$DRIFT_KEY\",\"outcome\":\"SETTLED\",\"actual_cost\":\"12.000000\",\"provider_request_id\":\"$DRIFT_PROVIDER\"}" >/dev/null
+  -d "{\"idempotency_key\":\"$DRIFT_KEY\",\"outcome\":\"SETTLED\",\"actual_cost\":\"${DEMO_DRIFT_ACTUAL_COST}\",\"provider_request_id\":\"$DRIFT_PROVIDER\"}" >/dev/null
 LOCK_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "http://localhost:8081/reserve" \
   "${HDR[@]}" \
   -d '{"user_id":"demo-user","trace_id":"trace-drift-post-lock","idempotency_key":"demo-post-lock","model":"gpt-4o-mini","estimated_cost":"1.000000"}')

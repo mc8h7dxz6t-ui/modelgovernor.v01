@@ -22,6 +22,9 @@ demo-gold-down:
 demo-gold-reset:
 	./scripts/demo-gold-reset.sh
 
+demo-gold-diagnose:
+	./scripts/demo-gold-diagnose.sh
+
 demo-up:
 	./scripts/demo-up.sh
 

@@ -8,6 +8,7 @@ wait_for_sidecar
 wait_for_gateway
 wait_for_reconciler
 reset_demo_gold_state
+preflight_demo_gold
 
 TOKEN="${SIDECAR_PRIMARY_TOKEN}"
 TRACE_GOLD="trace-gold-$(date +%s)"
@@ -31,9 +32,9 @@ echo "  Sales point: HA topology — gateway + policy sidecar + leader-elected r
 
 step "2/11  Governed dispatch — reserve → provider → settle (gateway OIDC-ready)"
 OP_KEY="gold-demo-$(date +%s)"
-DISPATCH=$(curl -fsS -X POST "http://localhost:8080/governed/dispatch" \
+DISPATCH=$(curl_post_expect "governed dispatch" 200 "http://localhost:8080/governed/dispatch" \
   "${GW_HDR[@]}" \
-  -d "{\"user_id\":\"demo-user\",\"trace_id\":\"$TRACE_GOLD\",\"model\":\"gpt-4o-mini\",\"estimated_cost\":\"5.000000\",\"idempotency_key\":\"$OP_KEY\",\"prompt\":\"Explain reserve-before-dispatch in one sentence.\"}")
+  -d "{\"user_id\":\"demo-user\",\"trace_id\":\"$TRACE_GOLD\",\"model\":\"gpt-4o-mini\",\"estimated_cost\":\"${DEMO_RESERVE_COST}\",\"idempotency_key\":\"$OP_KEY\",\"prompt\":\"Explain reserve-before-dispatch in one sentence.\"}")
 echo "$DISPATCH" | python3 -m json.tool 2>/dev/null || echo "$DISPATCH"
 echo ""
 OPENAI_RESP=$(curl -fsS -X POST "http://localhost:8080/v1/chat/completions" \
@@ -48,9 +49,9 @@ echo "  Sales point: OpenAI / Anthropic / Vertex routers plug in with PROVIDER_M
 step "3/11  Multi-provider routing (mock — same gateway, different models)"
 for MODEL in "anthropic/claude-3-5-haiku-latest" "vertex/gemini-1.5-flash"; do
   SUB_KEY="gold-${MODEL//[\/]/-}-$(date +%s)"
-  RESULT=$(curl -fsS -X POST "http://localhost:8080/governed/dispatch" \
+  RESULT=$(curl_post_expect "governed dispatch ($MODEL)" 200 "http://localhost:8080/governed/dispatch" \
     "${GW_HDR[@]}" \
-    -d "{\"user_id\":\"demo-user\",\"trace_id\":\"trace-multi\",\"model\":\"$MODEL\",\"estimated_cost\":\"3.000000\",\"idempotency_key\":\"$SUB_KEY\",\"prompt\":\"ping\"}")
+    -d "{\"user_id\":\"demo-user\",\"trace_id\":\"trace-multi\",\"model\":\"$MODEL\",\"estimated_cost\":\"${DEMO_RESERVE_COST}\",\"idempotency_key\":\"$SUB_KEY\",\"prompt\":\"ping\"}")
   PROVIDER=$(echo "$RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('provider_name','?'))" 2>/dev/null || echo "mock")
   COST=$(echo "$RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('actual_cost','?'))" 2>/dev/null || echo "?")
   echo "  ✓ $MODEL → provider=$PROVIDER cost=$COST"

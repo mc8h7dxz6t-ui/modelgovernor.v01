@@ -7,6 +7,12 @@ export COMPOSE_FILE="${COMPOSE_FILE:-$REPO_ROOT/docker-compose.demo.yml}"
 
 source "$REPO_ROOT/scripts/demo-lib.sh"
 
+# Stay at/below sidecar default manual_approval_cost_threshold (2.000000) so the demo
+# works even if compose env was not reapplied after a git pull.
+export DEMO_RESERVE_COST="${DEMO_RESERVE_COST:-2.000000}"
+export DEMO_DRIFT_RESERVE_COST="${DEMO_DRIFT_RESERVE_COST:-2.000000}"
+export DEMO_DRIFT_ACTUAL_COST="${DEMO_DRIFT_ACTUAL_COST:-4.500000}"
+
 compose() {
   (cd "$REPO_ROOT" && docker compose -f "$COMPOSE_FILE" "$@")
 }
@@ -154,4 +160,48 @@ ensure_redis_up() {
   done
   echo "redis did not become ready in time" >&2
   return 1
+}
+
+curl_post_expect() {
+  local label="$1"
+  local expected="${2:-200}"
+  local url="$3"
+  shift 3
+  local body_file
+  body_file="$(mktemp)"
+  local status
+  status="$(curl -sS -o "$body_file" -w "%{http_code}" -X POST "$url" "$@")"
+  if [[ "$status" != "$expected" ]]; then
+    echo "ERROR: $label failed with HTTP $status (expected $expected)" >&2
+    cat "$body_file" >&2
+    echo "" >&2
+    rm -f "$body_file"
+    return 1
+  fi
+  cat "$body_file"
+  rm -f "$body_file"
+}
+
+preflight_demo_gold() {
+  echo "Preflight: verifying demo-user wallet and sidecar policy thresholds..."
+  local wallet threshold gateway_token sidecar_tokens
+  wallet="$(curl -fsS "http://localhost:8081/internal/wallet/demo-user" \
+    -H "x-internal-token: ${SIDECAR_PRIMARY_TOKEN}")"
+  threshold="$(compose exec -T sidecar printenv MANUAL_APPROVAL_COST_THRESHOLD 2>/dev/null || echo "unset")"
+  gateway_token="$(compose exec -T gateway printenv SIDECAR_INTERNAL_TOKEN 2>/dev/null || echo "unset")"
+  sidecar_tokens="$(compose exec -T sidecar printenv SIDECAR_INTERNAL_TOKENS 2>/dev/null || echo "unset")"
+  echo "$wallet" | python3 -m json.tool 2>/dev/null || echo "$wallet"
+  echo "  sidecar MANUAL_APPROVAL_COST_THRESHOLD=${threshold:-unset}"
+  echo "  gateway SIDECAR_INTERNAL_TOKEN=${gateway_token:-unset}"
+  echo "  sidecar SIDECAR_INTERNAL_TOKENS=${sidecar_tokens:-unset}"
+  echo "  demo reserve amount=${DEMO_RESERVE_COST}"
+  local active
+  active="$(echo "$wallet" | python3 -c "import sys,json; print(json.load(sys.stdin).get('active', False))" 2>/dev/null || echo "false")"
+  if [[ "$active" != "True" && "$active" != "true" ]]; then
+    echo "ERROR: demo-user wallet is inactive/locked — run: make demo-gold-reset" >&2
+    return 1
+  fi
+  if [[ "${gateway_token%%$'\r'}" != "${SIDECAR_PRIMARY_TOKEN}" ]]; then
+    echo "WARN: gateway token may not match shell token — recreate stack: make demo-gold-down && make demo-gold-up" >&2
+  fi
 }

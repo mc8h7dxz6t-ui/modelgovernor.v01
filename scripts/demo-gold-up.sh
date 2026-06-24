@@ -10,7 +10,7 @@ echo "Compose file: $COMPOSE_FILE"
 echo "No API keys, cloud accounts, or service mesh required."
 echo ""
 
-compose up -d --build postgres redis sidecar reconciler gateway
+compose up -d --build --force-recreate postgres redis sidecar reconciler gateway
 apply_all_migrations
 reset_demo_gold_state
 wait_for_sidecar
