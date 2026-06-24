@@ -12,6 +12,7 @@ echo ""
 
 compose up -d --build postgres redis sidecar reconciler gateway
 apply_all_migrations
+reset_demo_gold_state
 wait_for_sidecar
 wait_for_gateway
 wait_for_reconciler

@@ -78,3 +78,21 @@ SQL
     compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "INSERT INTO schema_migrations (filename) VALUES ('$filename');"
   done
 }
+
+reset_demo_gold_state() {
+  echo "Resetting demo-user wallet, trace budgets, and diagnostic flags..."
+  compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" <<'SQL'
+INSERT INTO user_wallets (user_id, balance, active)
+VALUES ('demo-user', 100.000000, TRUE)
+ON CONFLICT (user_id) DO UPDATE
+SET balance = 100.000000,
+    active = TRUE,
+    lock_reason = NULL,
+    locked_at = NULL;
+DELETE FROM trace_budget_state
+WHERE trace_id IN ('trace-gold', 'trace-multi') OR trace_id LIKE 'trace-gold-%';
+SQL
+  curl -fsS -X POST "http://localhost:8081/internal/diagnostic/clear" \
+    -H "x-internal-token: ${SIDECAR_PRIMARY_TOKEN}" >/dev/null 2>&1 || true
+  redis_cli DEL mg:diagnostic_mode >/dev/null 2>&1 || true
+}

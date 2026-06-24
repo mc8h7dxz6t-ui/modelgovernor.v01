@@ -16,6 +16,9 @@ demo-gold:
 demo-gold-down:
 	./scripts/demo-gold-down.sh
 
+demo-gold-reset:
+	./scripts/demo-gold-reset.sh
+
 demo-up:
 	./scripts/demo-up.sh
 

@@ -7,8 +7,10 @@ load_env
 wait_for_sidecar
 wait_for_gateway
 wait_for_reconciler
+reset_demo_gold_state
 
 TOKEN="${SIDECAR_PRIMARY_TOKEN}"
+TRACE_GOLD="trace-gold-$(date +%s)"
 HDR=(-H "x-internal-token: $TOKEN" -H "content-type: application/json")
 GW_HDR=(-H "x-internal-token: $TOKEN" -H "content-type: application/json")
 
@@ -28,7 +30,7 @@ step "2/7  Governed dispatch — reserve → provider → settle (gateway OIDC-r
 OP_KEY="gold-demo-$(date +%s)"
 DISPATCH=$(curl -fsS -X POST "http://localhost:8080/governed/dispatch" \
   "${GW_HDR[@]}" \
-  -d "{\"user_id\":\"demo-user\",\"trace_id\":\"trace-gold\",\"model\":\"gpt-4o-mini\",\"estimated_cost\":\"5.000000\",\"idempotency_key\":\"$OP_KEY\",\"prompt\":\"Explain reserve-before-dispatch in one sentence.\"}")
+  -d "{\"user_id\":\"demo-user\",\"trace_id\":\"$TRACE_GOLD\",\"model\":\"gpt-4o-mini\",\"estimated_cost\":\"5.000000\",\"idempotency_key\":\"$OP_KEY\",\"prompt\":\"Explain reserve-before-dispatch in one sentence.\"}")
 echo "$DISPATCH" | python3 -m json.tool 2>/dev/null || echo "$DISPATCH"
 echo ""
 OPENAI_RESP=$(curl -fsS -X POST "http://localhost:8080/v1/chat/completions" \
