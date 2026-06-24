@@ -85,12 +85,12 @@ services:
       dockerfile: gateway/Dockerfile
     environment:
       SIDECAR_URL: http://sidecar:8081
-      SIDECAR_INTERNAL_TOKEN: ${SIDECAR_PRIMARY_TOKEN:-dev-sidecar-token}
+      SIDECAR_INTERNAL_TOKEN: ${SIDECAR_INTERNAL_TOKENS:-dev-sidecar-token}
       PROVIDER_MODE: mock
       MOCK_DISPATCH_COST: "1.000000"
       OIDC_ENABLED: "false"
       OPENAI_COMPAT_ENABLED: "true"
-      OPENAI_COMPAT_API_KEY: ${SIDECAR_PRIMARY_TOKEN:-dev-sidecar-token}
+      OPENAI_COMPAT_API_KEY: ${OPENAI_COMPAT_API_KEY:-${SIDECAR_INTERNAL_TOKENS:-dev-sidecar-token}}
       OPENAI_COMPAT_DEFAULT_USER_ID: demo-user
     depends_on:
       sidecar:
