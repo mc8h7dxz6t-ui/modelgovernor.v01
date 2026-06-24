@@ -20,6 +20,14 @@ make demo-gold-up
 make demo-gold
 ```
 
+**All platforms (A live + B/C/D manifest proof):**
+
+```bash
+make demo-all-platforms
+```
+
+See [docs/demo-all-platforms.md](docs/demo-all-platforms.md).
+
 That's it. The script walks through every enterprise talking point live.
 
 ## What you get

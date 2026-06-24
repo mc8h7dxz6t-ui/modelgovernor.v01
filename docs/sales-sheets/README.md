@@ -15,6 +15,7 @@ Full specification and commercial packaging for each ModelGovernor deployment pl
 
 ## Quick links
 
+- **All platforms collated demo:** [../demo-all-platforms.md](../demo-all-platforms.md) → `make demo-all-platforms`
 - Capability matrix: [../capability-matrix.md](../capability-matrix.md)
 - Plug-and-play modes: [../plug-and-play.md](../plug-and-play.md)
-- Live demo: [../../SALES-DEMO.md](../../SALES-DEMO.md) → `make demo-gold`
+- Live demo (Platform A): [../../SALES-DEMO.md](../../SALES-DEMO.md) → `make demo-gold`
