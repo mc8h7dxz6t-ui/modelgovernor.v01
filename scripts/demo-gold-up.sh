@@ -12,6 +12,7 @@ echo ""
 
 compose up -d --build --force-recreate postgres redis sidecar reconciler gateway
 apply_all_migrations
+ensure_demo_provider_models
 reset_demo_gold_state
 wait_for_sidecar
 wait_for_gateway

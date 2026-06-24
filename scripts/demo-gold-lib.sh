@@ -85,8 +85,27 @@ SQL
   done
 }
 
+ensure_demo_provider_models() {
+  compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" <<'SQL'
+INSERT INTO model_policy_registry (
+    model_name,
+    provider,
+    enabled,
+    max_input_tokens,
+    max_output_tokens,
+    max_cost_per_request,
+    stream_allowed,
+    fallback_price_per_token
+) VALUES
+    ('anthropic/claude-3-5-haiku-latest', 'anthropic', TRUE, 128000, 4096, 5.000000, TRUE, 0.000050),
+    ('vertex/gemini-1.5-flash', 'vertex', TRUE, 128000, 4096, 5.000000, TRUE, 0.000050)
+ON CONFLICT (model_name) DO NOTHING;
+SQL
+}
+
 reset_demo_gold_state() {
   echo "Resetting demo-user wallet, trace budgets, and diagnostic flags..."
+  ensure_demo_provider_models
   compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" <<'SQL'
 INSERT INTO user_wallets (user_id, balance, active)
 VALUES ('demo-user', 100.000000, TRUE)
@@ -98,7 +117,8 @@ SET balance = 100.000000,
 DELETE FROM trace_budget_state
 WHERE trace_id IN ('trace-gold', 'trace-multi', 'trace-idem', 'trace-circuit', 'trace-redis-fallback')
    OR trace_id LIKE 'trace-gold-%'
-   OR trace_id LIKE 'trace-drift%';
+   OR trace_id LIKE 'trace-drift%'
+   OR trace_id LIKE 'trace-multi-%';
 DELETE FROM budget_scope_state
 WHERE (scope_type = 'user' AND scope_key = 'demo-user')
    OR (scope_type = 'tenant' AND scope_key = 'default-tenant')
@@ -110,28 +130,40 @@ WHERE idempotency_key LIKE 'gold-idem-%'
    OR idempotency_key LIKE 'demo-drift-%'
    OR idempotency_key LIKE 'demo-post-lock%'
    OR idempotency_key LIKE 'gold-circuit-%'
-   OR idempotency_key LIKE 'gold-fallback-%';
+   OR idempotency_key LIKE 'gold-fallback-%'
+   OR idempotency_key LIKE 'gold-anthropic-%'
+   OR idempotency_key LIKE 'gold-vertex-%'
+   OR idempotency_key LIKE 'gold-demo-%';
 DELETE FROM provider_dispatch_attempts
 WHERE idempotency_key LIKE 'gold-idem-%'
    OR idempotency_key LIKE 'gold-drift-%'
    OR idempotency_key LIKE 'demo-drift-%'
    OR idempotency_key LIKE 'demo-post-lock%'
    OR idempotency_key LIKE 'gold-circuit-%'
-   OR idempotency_key LIKE 'gold-fallback-%';
+   OR idempotency_key LIKE 'gold-fallback-%'
+   OR idempotency_key LIKE 'gold-anthropic-%'
+   OR idempotency_key LIKE 'gold-vertex-%'
+   OR idempotency_key LIKE 'gold-demo-%';
 DELETE FROM execution_lineage
 WHERE idempotency_key LIKE 'gold-idem-%'
    OR idempotency_key LIKE 'gold-drift-%'
    OR idempotency_key LIKE 'demo-drift-%'
    OR idempotency_key LIKE 'demo-post-lock%'
    OR idempotency_key LIKE 'gold-circuit-%'
-   OR idempotency_key LIKE 'gold-fallback-%';
+   OR idempotency_key LIKE 'gold-fallback-%'
+   OR idempotency_key LIKE 'gold-anthropic-%'
+   OR idempotency_key LIKE 'gold-vertex-%'
+   OR idempotency_key LIKE 'gold-demo-%';
 DELETE FROM escrow_ledger
 WHERE idempotency_key LIKE 'gold-idem-%'
    OR idempotency_key LIKE 'gold-drift-%'
    OR idempotency_key LIKE 'demo-drift-%'
    OR idempotency_key LIKE 'demo-post-lock%'
    OR idempotency_key LIKE 'gold-circuit-%'
-   OR idempotency_key LIKE 'gold-fallback-%';
+   OR idempotency_key LIKE 'gold-fallback-%'
+   OR idempotency_key LIKE 'gold-anthropic-%'
+   OR idempotency_key LIKE 'gold-vertex-%'
+   OR idempotency_key LIKE 'gold-demo-%';
 SQL
   clear_provider_circuit "gpt-4o-mini"
   curl -fsS -X POST "http://localhost:8081/internal/diagnostic/clear" \

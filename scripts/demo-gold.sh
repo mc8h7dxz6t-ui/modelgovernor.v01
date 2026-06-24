@@ -48,10 +48,11 @@ echo "  Sales point: OpenAI / Anthropic / Vertex routers plug in with PROVIDER_M
 
 step "3/11  Multi-provider routing (mock — same gateway, different models)"
 for MODEL in "anthropic/claude-3-5-haiku-latest" "vertex/gemini-1.5-flash"; do
-  SUB_KEY="gold-${MODEL//[\/]/-}-$(date +%s)"
+  SUB_KEY="gold-${MODEL//\//-}-$(date +%s)-${RANDOM}"
+  TRACE_MULTI="trace-multi-${SUB_KEY}"
   RESULT=$(curl_post_expect "governed dispatch ($MODEL)" 200 "http://localhost:8080/governed/dispatch" \
     "${GW_HDR[@]}" \
-    -d "{\"user_id\":\"demo-user\",\"trace_id\":\"trace-multi\",\"model\":\"$MODEL\",\"estimated_cost\":\"${DEMO_RESERVE_COST}\",\"idempotency_key\":\"$SUB_KEY\",\"prompt\":\"ping\"}")
+    -d "{\"user_id\":\"demo-user\",\"trace_id\":\"$TRACE_MULTI\",\"model\":\"$MODEL\",\"estimated_cost\":\"${DEMO_RESERVE_COST}\",\"idempotency_key\":\"$SUB_KEY\",\"prompt\":\"ping\"}")
   PROVIDER=$(echo "$RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('provider_name','?'))" 2>/dev/null || echo "mock")
   COST=$(echo "$RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('actual_cost','?'))" 2>/dev/null || echo "?")
   echo "  ✓ $MODEL → provider=$PROVIDER cost=$COST"
