@@ -1,5 +1,5 @@
 .PHONY: demo-up demo-down demo-reset demo-smoke demo-drift-lock demo-status demo-ledger demo-events \
-	demo-gold-up demo-gold demo-gold-down demo-prereqs demo-prereqs-install proof-test load-test
+	demo-gold-up demo-gold demo-gold-reliability demo-gold-down demo-gold-reset demo-prereqs demo-prereqs-install proof-test load-test
 
 demo-prereqs:
 	./scripts/install-demo-prereqs.sh --check-only
@@ -13,8 +13,17 @@ demo-gold-up:
 demo-gold:
 	./scripts/demo-gold.sh
 
+demo-gold-reliability:
+	./scripts/demo-gold-reliability-only.sh
+
 demo-gold-down:
 	./scripts/demo-gold-down.sh
+
+demo-gold-reset:
+	./scripts/demo-gold-reset.sh
+
+demo-gold-diagnose:
+	./scripts/demo-gold-diagnose.sh
 
 demo-up:
 	./scripts/demo-up.sh

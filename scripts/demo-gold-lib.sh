@@ -7,6 +7,12 @@ export COMPOSE_FILE="${COMPOSE_FILE:-$REPO_ROOT/docker-compose.demo.yml}"
 
 source "$REPO_ROOT/scripts/demo-lib.sh"
 
+# Stay at/below sidecar default manual_approval_cost_threshold (2.000000) so the demo
+# works even if compose env was not reapplied after a git pull.
+export DEMO_RESERVE_COST="${DEMO_RESERVE_COST:-2.000000}"
+export DEMO_DRIFT_RESERVE_COST="${DEMO_DRIFT_RESERVE_COST:-2.000000}"
+export DEMO_DRIFT_ACTUAL_COST="${DEMO_DRIFT_ACTUAL_COST:-4.500000}"
+
 compose() {
   (cd "$REPO_ROOT" && docker compose -f "$COMPOSE_FILE" "$@")
 }
@@ -77,4 +83,157 @@ SQL
     cat "$migration" | compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"
     compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "INSERT INTO schema_migrations (filename) VALUES ('$filename');"
   done
+}
+
+ensure_demo_provider_models() {
+  compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" <<'SQL'
+INSERT INTO model_policy_registry (
+    model_name,
+    provider,
+    enabled,
+    max_input_tokens,
+    max_output_tokens,
+    max_cost_per_request,
+    stream_allowed,
+    fallback_price_per_token
+) VALUES
+    ('anthropic/claude-3-5-haiku-latest', 'anthropic', TRUE, 128000, 4096, 5.000000, TRUE, 0.000050),
+    ('vertex/gemini-1.5-flash', 'vertex', TRUE, 128000, 4096, 5.000000, TRUE, 0.000050)
+ON CONFLICT (model_name) DO NOTHING;
+SQL
+}
+
+reset_demo_gold_state() {
+  echo "Resetting demo-user wallet, trace budgets, and diagnostic flags..."
+  ensure_demo_provider_models
+  compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" <<'SQL'
+INSERT INTO user_wallets (user_id, balance, active)
+VALUES ('demo-user', 100.000000, TRUE)
+ON CONFLICT (user_id) DO UPDATE
+SET balance = 100.000000,
+    active = TRUE,
+    lock_reason = NULL,
+    locked_at = NULL;
+DELETE FROM trace_budget_state
+WHERE trace_id IN ('trace-gold', 'trace-multi', 'trace-idem', 'trace-circuit', 'trace-redis-fallback')
+   OR trace_id LIKE 'trace-gold-%'
+   OR trace_id LIKE 'trace-drift%'
+   OR trace_id LIKE 'trace-multi-%';
+DELETE FROM budget_scope_state
+WHERE (scope_type = 'user' AND scope_key = 'demo-user')
+   OR (scope_type = 'tenant' AND scope_key = 'default-tenant')
+   OR (scope_type = 'session' AND scope_key = 'default-session')
+   OR (scope_type = 'run' AND scope_key = 'default-agent-run');
+DELETE FROM ledger_events
+WHERE idempotency_key LIKE 'gold-idem-%'
+   OR idempotency_key LIKE 'gold-drift-%'
+   OR idempotency_key LIKE 'demo-drift-%'
+   OR idempotency_key LIKE 'demo-post-lock%'
+   OR idempotency_key LIKE 'gold-circuit-%'
+   OR idempotency_key LIKE 'gold-fallback-%'
+   OR idempotency_key LIKE 'gold-anthropic-%'
+   OR idempotency_key LIKE 'gold-vertex-%'
+   OR idempotency_key LIKE 'gold-demo-%';
+DELETE FROM provider_dispatch_attempts
+WHERE idempotency_key LIKE 'gold-idem-%'
+   OR idempotency_key LIKE 'gold-drift-%'
+   OR idempotency_key LIKE 'demo-drift-%'
+   OR idempotency_key LIKE 'demo-post-lock%'
+   OR idempotency_key LIKE 'gold-circuit-%'
+   OR idempotency_key LIKE 'gold-fallback-%'
+   OR idempotency_key LIKE 'gold-anthropic-%'
+   OR idempotency_key LIKE 'gold-vertex-%'
+   OR idempotency_key LIKE 'gold-demo-%';
+DELETE FROM execution_lineage
+WHERE idempotency_key LIKE 'gold-idem-%'
+   OR idempotency_key LIKE 'gold-drift-%'
+   OR idempotency_key LIKE 'demo-drift-%'
+   OR idempotency_key LIKE 'demo-post-lock%'
+   OR idempotency_key LIKE 'gold-circuit-%'
+   OR idempotency_key LIKE 'gold-fallback-%'
+   OR idempotency_key LIKE 'gold-anthropic-%'
+   OR idempotency_key LIKE 'gold-vertex-%'
+   OR idempotency_key LIKE 'gold-demo-%';
+DELETE FROM escrow_ledger
+WHERE idempotency_key LIKE 'gold-idem-%'
+   OR idempotency_key LIKE 'gold-drift-%'
+   OR idempotency_key LIKE 'demo-drift-%'
+   OR idempotency_key LIKE 'demo-post-lock%'
+   OR idempotency_key LIKE 'gold-circuit-%'
+   OR idempotency_key LIKE 'gold-fallback-%'
+   OR idempotency_key LIKE 'gold-anthropic-%'
+   OR idempotency_key LIKE 'gold-vertex-%'
+   OR idempotency_key LIKE 'gold-demo-%';
+SQL
+  clear_provider_circuit "gpt-4o-mini"
+  curl -fsS -X POST "http://localhost:8081/internal/diagnostic/clear" \
+    -H "x-internal-token: ${SIDECAR_PRIMARY_TOKEN}" >/dev/null 2>&1 || true
+  redis_cli DEL mg:diagnostic_mode >/dev/null 2>&1 || true
+}
+
+clear_provider_circuit() {
+  local model="${1:-gpt-4o-mini}"
+  redis_cli DEL "mg:circuit:${model}:open" "mg:circuit:${model}:failures" >/dev/null 2>&1 || true
+}
+
+open_provider_circuit() {
+  local model="${1:-gpt-4o-mini}"
+  redis_cli SET "mg:circuit:${model}:open" 1 EX 120 >/dev/null 2>&1
+}
+
+ensure_redis_up() {
+  compose start redis >/dev/null 2>&1 || true
+  local retries=15
+  for ((i=1; i<=retries; i++)); do
+    if redis_cli ping >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 1
+  done
+  echo "redis did not become ready in time" >&2
+  return 1
+}
+
+curl_post_expect() {
+  local label="$1"
+  local expected="${2:-200}"
+  local url="$3"
+  shift 3
+  local body_file
+  body_file="$(mktemp)"
+  local status
+  status="$(curl -sS -o "$body_file" -w "%{http_code}" -X POST "$url" "$@")"
+  if [[ "$status" != "$expected" ]]; then
+    echo "ERROR: $label failed with HTTP $status (expected $expected)" >&2
+    cat "$body_file" >&2
+    echo "" >&2
+    rm -f "$body_file"
+    return 1
+  fi
+  cat "$body_file"
+  rm -f "$body_file"
+}
+
+preflight_demo_gold() {
+  echo "Preflight: verifying demo-user wallet and sidecar policy thresholds..."
+  local wallet threshold gateway_token sidecar_tokens
+  wallet="$(curl -fsS "http://localhost:8081/internal/wallet/demo-user" \
+    -H "x-internal-token: ${SIDECAR_PRIMARY_TOKEN}")"
+  threshold="$(compose exec -T sidecar printenv MANUAL_APPROVAL_COST_THRESHOLD 2>/dev/null || echo "unset")"
+  gateway_token="$(compose exec -T gateway printenv SIDECAR_INTERNAL_TOKEN 2>/dev/null || echo "unset")"
+  sidecar_tokens="$(compose exec -T sidecar printenv SIDECAR_INTERNAL_TOKENS 2>/dev/null || echo "unset")"
+  echo "$wallet" | python3 -m json.tool 2>/dev/null || echo "$wallet"
+  echo "  sidecar MANUAL_APPROVAL_COST_THRESHOLD=${threshold:-unset}"
+  echo "  gateway SIDECAR_INTERNAL_TOKEN=${gateway_token:-unset}"
+  echo "  sidecar SIDECAR_INTERNAL_TOKENS=${sidecar_tokens:-unset}"
+  echo "  demo reserve amount=${DEMO_RESERVE_COST}"
+  local active
+  active="$(echo "$wallet" | python3 -c "import sys,json; print(json.load(sys.stdin).get('active', False))" 2>/dev/null || echo "false")"
+  if [[ "$active" != "True" && "$active" != "true" ]]; then
+    echo "ERROR: demo-user wallet is inactive/locked — run: make demo-gold-reset" >&2
+    return 1
+  fi
+  if [[ "${gateway_token%%$'\r'}" != "${SIDECAR_PRIMARY_TOKEN}" ]]; then
+    echo "WARN: gateway token may not match shell token — recreate stack: make demo-gold-down && make demo-gold-up" >&2
+  fi
 }
