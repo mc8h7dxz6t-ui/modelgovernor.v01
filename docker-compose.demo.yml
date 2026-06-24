@@ -40,6 +40,7 @@ services:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/modelgovernor
       REDIS_URL: redis://redis:6379/0
       SIDECAR_INTERNAL_TOKENS: ${SIDECAR_INTERNAL_TOKENS:-dev-sidecar-token}
+      MANUAL_APPROVAL_COST_THRESHOLD: "10.000000"
       GUARDRAILS_ENABLED: "true"
       CIRCUIT_BREAKER_ENABLED: "true"
       PROVIDER_MODE: mock
