@@ -2,6 +2,8 @@
 
 **Plug-and-play institutional++ walkthrough. No API keys. No cloud. ~5 minutes.**
 
+Covers governance, audit, diagnostic mode, and **live reliability drills** (idempotency, drift lockout, circuit breaker, Redis fallback).
+
 ### Prerequisites (bash)
 
 ```bash
@@ -25,6 +27,8 @@ That's it. The script walks through every enterprise talking point live.
 - Governance gateway with multi-provider routing (mock)
 - Postgres ledger with reserve/settle and audit trail
 - Hash-chain verification + diagnostic mode drill
+- **Institutional++ reliability:** idempotency replay, drift wallet lockout, provider circuit breaker, Redis guardrail fallback
+- Reconciler leader election + privileged admin audit log
 - Prometheus metrics and SLO surfaces
 - Production flip chart (OIDC, Sentinel, S3, Istio) at the end
 

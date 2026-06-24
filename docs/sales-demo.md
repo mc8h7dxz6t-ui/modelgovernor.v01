@@ -1,24 +1,34 @@
-# Sales demo — 3-minute institutional++ walkthrough
+# Sales demo — institutional++ walkthrough
 
 **Zero setup for prospects.** No API keys, cloud accounts, Istio, or IdP required.
 
 ```bash
 make demo-gold-up    # ~2 min first build
-make demo-gold         # ~3 min live walkthrough
+make demo-gold       # ~5 min live walkthrough (11 steps)
 make demo-gold-down
+```
+
+Optional: run reliability steps 7–11 only (stack must already be up):
+
+```bash
+make demo-gold-reliability
 ```
 
 ## What the buyer sees
 
 | Step | Story | Endpoint |
 |---|---|---|
-| 1 | Full HA control plane healthy | `/readyz` on gateway, sidecar, reconciler |
+| 1 | Full HA control plane + reconciler leader election | `/readyz` on gateway, sidecar, reconciler |
 | 2 | Governed dispatch (reserve → provider → settle) | `POST /governed/dispatch` |
 | 3 | Multi-provider routing (OpenAI, Anthropic, Vertex) | Same gateway, mock mode |
 | 4 | Tamper-evident ledger hash chain | `GET /internal/ledger/verify-chain` |
 | 5 | Diagnostic mode — incident without outage | Reserve 503 → operator clear |
 | 6 | SLO metrics + invariant counters | `/metrics/prometheus` |
-| 7 | Authoritative wallet + audit trail | `/internal/wallet`, `/internal/events` |
+| 7 | Idempotency replay — no double-spend | `POST /reserve` replay |
+| 8 | Provider circuit breaker — storm protection | Open circuit → reserve 409 |
+| 9 | Redis guardrail degradation — local fallback | Stop Redis → reserve still bounded |
+| 10 | Drift enforcement — wallet lockout | Over-settle → 409 on next reserve |
+| 11 | Admin audit log + ledger trail + reconciler leader | `/internal/admin/audit/recent` |
 
 ## Talk track (60 seconds)
 
@@ -28,7 +38,7 @@ make demo-gold-down
 >
 > The ledger is **hash-chained** for tamper evidence, verified hourly, and anchored to **S3 Object Lock** in production.
 >
-> Under the hood: Redis guardrails with graceful degradation, circuit breakers, leader-elected reconciler, 99.5% reserve SLO, and GitOps to Kubernetes with optional Istio mTLS."
+> Under the hood: **idempotent lifecycle**, drift lockout, Redis guardrails with graceful degradation, provider circuit breakers, leader-elected reconciler, 99.5% reserve SLO, and GitOps to Kubernetes with optional Istio mTLS."
 
 ## Flip to production (one slide)
 
@@ -45,4 +55,6 @@ See `docs/plug-and-play.md` and `docs/capability-matrix.md`.
 
 - **Port conflict:** stop local Postgres/Redis on 5432/6379 or change compose ports.
 - **Build slow:** first `demo-gold-up` builds images; subsequent runs are fast.
-- **Reset:** `make demo-gold-down && docker volume rm ...` or `docker compose -f docker-compose.demo.yml down -v`
+- **HTTP 409 on step 2:** pull latest `cursor/fix-demo-gold-409-6b52` or `main` — approval threshold and state reset fixes.
+- **Wallet locked after demo:** expected after step 10 (drift drill). Run `make demo-gold-reset` before the next walkthrough.
+- **Reset:** `make demo-gold-reset` or `make demo-gold-down` (`down -v` clears Postgres volume).

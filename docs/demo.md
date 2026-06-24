@@ -1,6 +1,6 @@
 # Local demo (Docker Compose first)
 
-> **Sales / evaluator walkthrough:** prefer the gold-standard scripted demo — `make demo-gold-up` then `make demo-gold` ([SALES-DEMO.md](../SALES-DEMO.md)).
+> **Sales / evaluator walkthrough:** prefer the gold-standard scripted demo — `make demo-gold-up` then `make demo-gold` ([SALES-DEMO.md](../SALES-DEMO.md)). The gold walkthrough includes **11 steps** covering governance plus institutional++ reliability (idempotency, drift lockout, circuit breaker, Redis fallback).
 
 This demo path is for evaluator walkthroughs, not performance claims.
 

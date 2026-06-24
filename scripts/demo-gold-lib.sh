@@ -90,14 +90,68 @@ SET balance = 100.000000,
     lock_reason = NULL,
     locked_at = NULL;
 DELETE FROM trace_budget_state
-WHERE trace_id IN ('trace-gold', 'trace-multi') OR trace_id LIKE 'trace-gold-%';
+WHERE trace_id IN ('trace-gold', 'trace-multi', 'trace-idem', 'trace-circuit', 'trace-redis-fallback')
+   OR trace_id LIKE 'trace-gold-%'
+   OR trace_id LIKE 'trace-drift%';
 DELETE FROM budget_scope_state
 WHERE (scope_type = 'user' AND scope_key = 'demo-user')
    OR (scope_type = 'tenant' AND scope_key = 'default-tenant')
    OR (scope_type = 'session' AND scope_key = 'default-session')
    OR (scope_type = 'run' AND scope_key = 'default-agent-run');
+DELETE FROM ledger_events
+WHERE idempotency_key LIKE 'gold-idem-%'
+   OR idempotency_key LIKE 'gold-drift-%'
+   OR idempotency_key LIKE 'demo-drift-%'
+   OR idempotency_key LIKE 'demo-post-lock%'
+   OR idempotency_key LIKE 'gold-circuit-%'
+   OR idempotency_key LIKE 'gold-fallback-%';
+DELETE FROM provider_dispatch_attempts
+WHERE idempotency_key LIKE 'gold-idem-%'
+   OR idempotency_key LIKE 'gold-drift-%'
+   OR idempotency_key LIKE 'demo-drift-%'
+   OR idempotency_key LIKE 'demo-post-lock%'
+   OR idempotency_key LIKE 'gold-circuit-%'
+   OR idempotency_key LIKE 'gold-fallback-%';
+DELETE FROM execution_lineage
+WHERE idempotency_key LIKE 'gold-idem-%'
+   OR idempotency_key LIKE 'gold-drift-%'
+   OR idempotency_key LIKE 'demo-drift-%'
+   OR idempotency_key LIKE 'demo-post-lock%'
+   OR idempotency_key LIKE 'gold-circuit-%'
+   OR idempotency_key LIKE 'gold-fallback-%';
+DELETE FROM escrow_ledger
+WHERE idempotency_key LIKE 'gold-idem-%'
+   OR idempotency_key LIKE 'gold-drift-%'
+   OR idempotency_key LIKE 'demo-drift-%'
+   OR idempotency_key LIKE 'demo-post-lock%'
+   OR idempotency_key LIKE 'gold-circuit-%'
+   OR idempotency_key LIKE 'gold-fallback-%';
 SQL
+  clear_provider_circuit "gpt-4o-mini"
   curl -fsS -X POST "http://localhost:8081/internal/diagnostic/clear" \
     -H "x-internal-token: ${SIDECAR_PRIMARY_TOKEN}" >/dev/null 2>&1 || true
   redis_cli DEL mg:diagnostic_mode >/dev/null 2>&1 || true
+}
+
+clear_provider_circuit() {
+  local model="${1:-gpt-4o-mini}"
+  redis_cli DEL "mg:circuit:${model}:open" "mg:circuit:${model}:failures" >/dev/null 2>&1 || true
+}
+
+open_provider_circuit() {
+  local model="${1:-gpt-4o-mini}"
+  redis_cli SET "mg:circuit:${model}:open" 1 EX 120 >/dev/null 2>&1
+}
+
+ensure_redis_up() {
+  compose start redis >/dev/null 2>&1 || true
+  local retries=15
+  for ((i=1; i<=retries; i++)); do
+    if redis_cli ping >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 1
+  done
+  echo "redis did not become ready in time" >&2
+  return 1
 }
