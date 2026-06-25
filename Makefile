@@ -56,3 +56,16 @@ proof-test:
 
 load-test:
 	LOAD_WORKERS=12 LOAD_OPS_PER_WORKER=8 python scripts/generate_invariant_report.py
+
+# Finance Governor spine (sibling to ModelGovernor)
+fg-spine-up:
+	$(MAKE) -C finance-governor fg-spine-up
+
+fg-spine-down:
+	$(MAKE) -C finance-governor fg-spine-down
+
+fg-spine-test:
+	$(MAKE) -C finance-governor fg-spine-test
+
+fg-spine-smoke:
+	$(MAKE) -C finance-governor fg-spine-smoke

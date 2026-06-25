@@ -55,8 +55,15 @@ Every irreversible action on the spine requires a **Governance Crystal**. See [c
 | Spine schema (`migrations/0001`) | ✅ Design artifact |
 | `platforms/common/crystal.py` | ✅ Protocol module |
 | `platforms/common/spine_adapter.py` | ✅ Adapter contract |
-| Spine services (gateway/sidecar/reconciler) | 📋 Phase 2 scaffold |
-| Platform demos | 📋 Phase 1 |
+| Spine services (gateway/sidecar/reconciler) | ✅ Phase 2 |
+| Integration tests (7 passing) | ✅ |
+| Platform demos (AlgoFreeze, etc.) | 📋 Phase 1 |
+
+```bash
+make -C finance-governor fg-spine-up      # Docker stack
+make -C finance-governor fg-spine-test    # pytest
+make -C finance-governor fg-spine-smoke    # curl governed commit
+```
 
 ## Environment
 
