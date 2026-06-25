@@ -1,0 +1,21 @@
+# Finance Governor — Postgres integration test database (port 5436)
+
+services:
+  fg-postgres-test:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: financegovernor_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5436:5432"
+    volumes:
+      - ./migrations/0001_fg_spine_init.sql:/docker-entrypoint-initdb.d/0001_init.sql:ro
+      - ./migrations/0002_fg_ledger_chain_anchors.sql:/docker-entrypoint-initdb.d/0002_anchors.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d financegovernor_test"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+    tmpfs:
+      - /var/lib/postgresql/data

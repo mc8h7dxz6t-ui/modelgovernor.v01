@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fg-reconciler
+  namespace: {{ include "financegovernor.namespace" . }}
+  labels:
+    app: fg-reconciler
+    {{- include "financegovernor.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.reconciler.replicas }}
+  selector:
+    matchLabels:
+      app: fg-reconciler
+  template:
+    metadata:
+      labels:
+        app: fg-reconciler
+    spec:
+      containers:
+        - name: reconciler
+          image: {{ .Values.images.reconciler.repository }}:{{ .Values.images.reconciler.tag }}
+          ports:
+            - containerPort: 8092
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "financegovernor.secretName" . }}
+                  key: database-url

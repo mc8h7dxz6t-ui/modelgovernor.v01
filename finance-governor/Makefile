@@ -1,6 +1,7 @@
 .PHONY: fg-spine-up fg-spine-down fg-spine-test fg-spine-smoke fg-spine-logs \
 	fg-stack-up fg-stack-down crystal-demo algofreeze-demo wirematch-demo \
-	subledger-demo assetledger-demo creditgovern-demo fg-certification fg-mesh-demo
+	subledger-demo assetledger-demo creditgovern-demo fg-certification fg-mesh-demo \
+	fg-postgres-test-up fg-postgres-test-down fg-chaos-up fg-chaos-test fg-l4-certification
 
 fg-spine-up:
 	docker compose up -d --build
@@ -92,6 +93,25 @@ print('MESH_BLOCK', d.decision, d.reason)"
 
 fg-certification:
 	cd .. && python3 finance-governor/scripts/generate_fg_certification.py
+
+fg-l4-certification:
+	cd .. && FG_CERTIFICATION_LEVEL=L4_GOLD python3 finance-governor/scripts/generate_fg_certification.py
+
+fg-postgres-test-up:
+	docker compose -f docker-compose.fg-test.yml up -d --wait
+
+fg-postgres-test-down:
+	docker compose -f docker-compose.fg-test.yml down
+
+fg-chaos-up:
+	docker compose -f docker-compose.fg-chaos.yml up -d --wait fg-postgres-chaos toxiproxy
+	docker compose -f docker-compose.fg-chaos.yml run --rm fg-toxiproxy-config
+
+fg-chaos-test:
+	cd .. && FG_POSTGRES_TEST_URL=postgresql+psycopg://postgres:postgres@localhost:5437/fg_chaos \
+	  FG_TOXIPROXY_API=http://localhost:8475 \
+	  PYTHONPATH=finance-governor/spine/sidecar:finance-governor \
+	  python3 -m pytest finance-governor/tests/chaos/ -q
 
 crystal-demo:
 	./scripts/crystal-demo.sh

@@ -19,6 +19,13 @@ class Settings(BaseSettings):
     redis_connect_timeout_seconds: float = 0.5
     redis_socket_timeout_seconds: float = 0.5
     otel_service_name: str = "financegovernor-sidecar"
+    ledger_anchor_s3_bucket: str | None = None
+    ledger_anchor_s3_prefix: str = "fg-decision-chain"
+    ledger_anchor_s3_region: str | None = None
+    ledger_anchor_s3_endpoint_url: str | None = None
+    ledger_anchor_s3_object_lock_enabled: bool = False
+    ledger_anchor_s3_object_lock_mode: str = "COMPLIANCE"
+    ledger_anchor_s3_retention_days: int = 365
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

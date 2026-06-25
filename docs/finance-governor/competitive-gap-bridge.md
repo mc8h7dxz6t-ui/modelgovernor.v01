@@ -106,6 +106,38 @@ Runs full test pyramid (Tier 1) across all five platforms and records gap-bridge
 
 ---
 
+## L4 Gold (implemented)
+
+| Capability | Proof |
+|------------|-------|
+| **Postgres Tier 2** | `finance-governor/tests/integration/test_spine_postgres_vigorous.py` |
+| **Toxiproxy Tier 4** | `finance-governor/tests/chaos/test_toxiproxy_fg_spine.py` |
+| **MG+FG cross-wire** | `tests/integration/test_mg_fg_crosswire.py` — AlgoFreeze before `/reserve`, `x-mg-request-id` |
+| **S3 chain anchor** | `GET /internal/decisions/verify-chain`, `POST /internal/decisions/anchor-head` |
+| **K8s HA** | `deploy/helm/financegovernor/` — 3× sidecar HPA, PDB, verify/anchor CronJobs |
+| **S3 infra** | `deploy/infra/aws/fg-ledger-anchor-bucket.yaml` |
+
+```bash
+# Tier 1 (always)
+make fg-certification
+
+# Tier 2 Postgres
+make -C finance-governor fg-postgres-test-up
+FG_POSTGRES_TEST_URL=postgresql+psycopg://postgres:postgres@localhost:5436/financegovernor_test \
+  pytest finance-governor/tests/integration/ -q
+
+# Tier 4 chaos
+make -C finance-governor fg-chaos-up && make fg-chaos-test
+
+# L4 full attestation (when Tier 2+4 infra up)
+make fg-l4-certification
+
+# K8s pilot
+helm install financegovernor deploy/helm/financegovernor -f deploy/helm/financegovernor/values-production.yaml
+```
+
+---
+
 ## ACV positioning (unchanged)
 
 | Platform | List ACV |

@@ -1,0 +1,34 @@
+{{- if .Values.ledgerChainVerify.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: fg-decision-chain-verify
+  namespace: {{ include "financegovernor.namespace" . }}
+  labels:
+    {{- include "financegovernor.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.ledgerChainVerify.schedule | quote }}
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: verify
+              image: curlimages/curl:8.5.0
+              env:
+                - name: FG_INTERNAL_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "financegovernor.secretName" . }}
+                      key: fg-internal-tokens
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -e
+                  TOKEN="${FG_INTERNAL_TOKEN%%,*}"
+                  curl -sf -H "x-internal-token: ${TOKEN}" \
+                    "http://fg-sidecar:8091/internal/decisions/verify-chain"
+                  echo "fg decision chain verification ok"
+{{- end }}

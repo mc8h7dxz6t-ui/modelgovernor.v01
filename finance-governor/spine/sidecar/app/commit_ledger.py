@@ -87,8 +87,8 @@ def _append_event(
 ) -> None:
     prev = head_hash(session) or GENESIS_HASH
     now = _utcnow()
-    row =     meta_sql = ":meta" if session.bind.dialect.name == "sqlite" else ":meta::jsonb"
-    session.execute(
+    meta_sql = ":meta" if session.bind.dialect.name == "sqlite" else ":meta::jsonb"
+    row = session.execute(
         text(
             f"""
             INSERT INTO decision_events (

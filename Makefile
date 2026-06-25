@@ -87,3 +87,24 @@ algofreeze-demo:
 
 wirematch-demo:
 	$(MAKE) -C finance-governor wirematch-demo
+
+subledger-demo:
+	$(MAKE) -C finance-governor subledger-demo
+
+assetledger-demo:
+	$(MAKE) -C finance-governor assetledger-demo
+
+creditgovern-demo:
+	$(MAKE) -C finance-governor creditgovern-demo
+
+fg-mesh-demo:
+	$(MAKE) -C finance-governor fg-mesh-demo
+
+fg-certification:
+	$(MAKE) -C finance-governor fg-certification
+
+fg-l4-certification:
+	$(MAKE) -C finance-governor fg-l4-certification
+
+fg-chaos-test:
+	$(MAKE) -C finance-governor fg-chaos-test

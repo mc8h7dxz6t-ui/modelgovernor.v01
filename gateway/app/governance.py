@@ -10,6 +10,7 @@ from typing import Any
 import httpx
 from fastapi import HTTPException
 
+from .algofreeze_guard import assert_desk_active_for_reserve
 from .config import Settings
 from .providers.router import get_provider_router
 
@@ -44,9 +45,15 @@ def execute_governed_dispatch(
     auth_subject: str,
 ) -> GovernedDispatchOutcome:
     op_key = idempotency_key or f"gw-{uuid.uuid4().hex[:16]}"
+    assert_desk_active_for_reserve(
+        settings,
+        request_id=op_key,
+        runtime_sha=settings.model_runtime_sha,
+    )
     headers = {
         "x-internal-token": settings.sidecar_internal_token,
         "content-type": "application/json",
+        "x-mg-request-id": op_key,
     }
     reserve_payload = {
         "user_id": user_id,

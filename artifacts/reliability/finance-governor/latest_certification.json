@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-25T16:37:10.525779+00:00",
+  "generated_at": "2026-06-25T16:51:15.235430+00:00",
   "certification_level": "L2_INSTITUTIONAL",
   "platforms": [
     "algofreeze",
@@ -9,46 +9,41 @@
     "credit_govern"
   ],
   "tier1_exit_code": 0,
-  "tier1_summary": "33 passed, 1 warning in 0.54s",
+  "tier1_summary": "37 passed, 4 skipped, 1 warning in 0.60s",
+  "tier2_exit_code": null,
+  "tier2_summary": null,
+  "tier4_exit_code": null,
+  "tier4_summary": null,
+  "mg_fg_crosswire_exit_code": 0,
+  "l4_capabilities": {
+    "postgres_integration": false,
+    "toxiproxy_chaos": false,
+    "mg_fg_crosswire": true,
+    "s3_chain_anchor_api": true,
+    "k8s_ha_helm": "deploy/helm/financegovernor",
+    "s3_infra_template": "deploy/infra/aws/fg-ledger-anchor-bucket.yaml"
+  },
   "competitive_gaps_bridged": {
     "algofreeze": [
       "ci_cd_deploy_sha_registry",
-      "feed_heartbeat_freeze",
-      "zero_egress_when_frozen",
-      "ems_proxy_integration_point"
+      "mg_reserve_crosswire"
     ],
     "wire_match": [
-      "semantic_beneficiary_intent",
-      "iso20022_adapter",
-      "pre_rail_send_gate",
-      "idempotency_duplicate_block"
+      "semantic_gate",
+      "iso20022",
+      "mesh_block"
     ],
     "subledger_sync": [
-      "fx_snapshot_hash_at_match",
-      "real_time_ic_pairing",
-      "orphan_sweep_strand"
+      "fx_snapshot_hash_at_match"
     ],
     "asset_ledger": [
-      "reg_table_version_pinning",
-      "runtime_depreciation_events",
-      "book_value_invariant"
+      "reg_table_version_pinning"
     ],
     "credit_govern": [
-      "reserve_before_score",
-      "model_version_policy_lock",
-      "exposure_cap_enforcement",
-      "high_risk_strand"
+      "reserve_before_score"
     ],
     "spine_mesh": [
       "no_wire_while_algo_frozen"
     ]
-  },
-  "invariant_probes": [
-    "frozen_egress_attempt_total",
-    "wire_sent_below_threshold_total",
-    "match_tolerance_breach_total",
-    "negative_book_value_total",
-    "model_version_mismatch_total",
-    "crystal_mesh_block_total"
-  ]
+  }
 }

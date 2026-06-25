@@ -1,0 +1,14 @@
+apiVersion: v2
+name: financegovernor
+description: Finance Governor institutional++ spine — sidecar, gateway, reconciler, HA data plane
+type: application
+version: 0.1.0
+appVersion: "0.2.0"
+kubeVersion: ">=1.25.0-0"
+keywords:
+  - financegovernor
+  - governance
+  - crystal-commit-protocol
+maintainers:
+  - name: financegovernor
+home: https://github.com/mc8h7dxz6t-ui/modelgovernor.v01

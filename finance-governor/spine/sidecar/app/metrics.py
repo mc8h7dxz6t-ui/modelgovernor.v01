@@ -17,6 +17,11 @@ _COUNTER_NAMES = (
     "regulatory_audit_diagnostic_entered_total",
     "reconciler_horizon_strand_total",
     "reconciler_expired_total",
+    "ledger_chain_anchor_recorded_total",
+    "ledger_chain_anchor_failed_total",
+    "ledger_chain_anchor_s3_ok_total",
+    "ledger_chain_anchor_s3_failed_total",
+    "ledger_chain_verification_failed_total",
 )
 
 
