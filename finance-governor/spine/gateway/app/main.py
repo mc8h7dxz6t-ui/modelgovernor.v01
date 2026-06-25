@@ -5,7 +5,7 @@ import httpx
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from .auth import require_governed_auth
+from .auth_oidc import GatewayAuthContext, require_governed_auth
 from .config import get_settings
 from .governance import execute_governed_commit
 
