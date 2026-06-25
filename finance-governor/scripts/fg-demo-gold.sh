@@ -72,5 +72,37 @@ curl -sf -H "x-internal-token: $TOKEN" "$SIDECAR/internal/admin/audit/recent?lim
 step 11 "Invariant metrics"
 curl -sf -H "x-internal-token: $TOKEN" "$SIDECAR/internal/metrics" | python3 -m json.tool
 
+SUBLEDGER="${SUBLEDGER_URL:-http://localhost:8095}"
+ASSETLEDGER="${ASSETLEDGER_URL:-http://localhost:8096}"
+CREDITGOVERN="${CREDITGOVERN_URL:-http://localhost:8097}"
+
+step 12 "SubledgerSync intercompany match"
+curl -sf -X POST "$SUBLEDGER/transactions" \
+  -H 'content-type: application/json' \
+  -d '{"entity_id":"UK-01","counterparty_id":"US-01","amount":"10000.00","currency":"USD","value_date":"2026-06-01"}'
+curl -sf -X POST "$SUBLEDGER/match/run" \
+  -H 'content-type: application/json' \
+  -d '{"entity_id":"US-01","counterparty_id":"UK-01","amount":"10000.00","currency":"USD","value_date":"2026-06-01"}' \
+  | python3 -m json.tool
+
+step 13 "AssetLedger depreciation"
+curl -sf -X POST "$ASSETLEDGER/assets" \
+  -H 'content-type: application/json' \
+  -d '{"asset_id":"fg-gold-rack","description":"DC rack","acquisition_cost":"120000.00"}'
+curl -sf -X POST "$ASSETLEDGER/depreciation/run" \
+  -H 'content-type: application/json' \
+  -d '{"period":"2026-06"}' | python3 -m json.tool
+
+step 14 "CreditGovern evaluate"
+curl -sf -X POST "$CREDITGOVERN/credit/evaluate" \
+  -H 'content-type: application/json' \
+  -d '{"application_id":"fg-gold-credit","exposure_amount":"50000.00","model_version_id":"credit-model-v3","desk_id":"desk-default"}' \
+  | python3 -m json.tool
+
+step 15 "Regulatory export + attribution"
+curl -sf -H "x-internal-token: $TOKEN" "$SIDECAR/internal/regulatory/export?limit=10" \
+  | python3 -c "import sys,json; d=json.load(sys.stdin); print('export ok, crystals=', len(d.get('crystals',[])))"
+curl -sf -H "x-internal-token: $TOKEN" "$SIDECAR/internal/attribution/summary" | python3 -m json.tool
+
 echo ""
-echo "fg-demo-gold complete — Finance Governor institutional++ (standalone)."
+echo "fg-demo-gold complete — Finance Governor institutional++ (all platforms)."
