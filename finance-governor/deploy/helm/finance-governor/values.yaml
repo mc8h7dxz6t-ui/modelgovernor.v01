@@ -79,6 +79,9 @@ governanceCanary:
   enabled: true
   schedule: "*/10 * * * *"
 
+prometheusRules:
+  enabled: false
+
 service:
   gateway:
     type: ClusterIP

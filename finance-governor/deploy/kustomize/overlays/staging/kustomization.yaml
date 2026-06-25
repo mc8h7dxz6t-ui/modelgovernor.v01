@@ -1,0 +1,32 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: finance-governor-staging
+
+resources:
+  - ../../helm/finance-governor
+
+commonLabels:
+  environment: staging
+
+patches:
+  - target:
+      kind: Deployment
+      name: fg-sidecar
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+  - target:
+      kind: Deployment
+      name: fg-gateway
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+
+configMapGenerator:
+  - name: fg-env-overlay
+    literals:
+      - FG_ENV=staging
+      - OTEL_SERVICE_NAME=financegovernor-sidecar-staging
