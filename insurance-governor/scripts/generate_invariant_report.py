@@ -42,6 +42,7 @@ def main() -> int:
         "insurance-governor/tests/test_headline_wedges.py",
         "insurance-governor/tests/test_loss_control_wedges.py",
         "insurance-governor/tests/test_mesh_warranty.py",
+        "insurance-governor/tests/test_production_integrations.py",
     ]
     platforms = _run(
         [sys.executable, "-m", "pytest", *platform_tests, "-q"],
@@ -78,13 +79,15 @@ def main() -> int:
             "circuit_breaker": True,
             "synthetic_canaries": True,
         },
-        "commercial": {
+            "commercial": {
             "claim_gate_depth": "policy_rules+siu+payment_rail+fnol",
             "core_integrations": ["guidewire", "snapsheet", "majesco"],
             "headline_wedges": ["zk_claim_audit", "spatial_twin", "battery_liability", "subrogation_graph"],
             "loss_control_wedges": ["indemnity_pay_gate", "model_risk_freeze", "underwriting_govern", "reserve_reconcile"],
             "warranty_mesh_rules": 6,
             "jurisdictions": ["US", "UK"],
+            "production_state": "postgres_payment_idempotency+claim_commitments",
+            "live_integrations": "bank_rail+oracle_providers+istio_mtls",
             "oracle_feed": "http_mock_and_ORACLE_FEED_URL",
             "sales_sheet": "docs/sales-sheets/insurance-governor-production.md",
             "design_partner_doc": "docs/insurance-governor/design-partner-attestation.md",

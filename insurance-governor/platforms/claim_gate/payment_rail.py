@@ -1,37 +1,13 @@
-"""Payment rail stub — idempotent payout instruction with audit trail."""
+"""Payment rail — idempotent payout with Postgres persistence and live bank dispatch."""
 from __future__ import annotations
 
-import uuid
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from decimal import Decimal
-from enum import Enum
 
+from platforms.common.integrations.bank_rail import dispatch_payment, payment_rail_mode
+from platforms.common.persistence.payment_store import get_payment_store, reset_payment_stores
+from platforms.common.persistence.payment_types import PaymentInstruction, PaymentStatus
 
-class PaymentStatus(str, Enum):
-    PENDING = "PENDING"
-    SUBMITTED = "SUBMITTED"
-    COMPLETED = "COMPLETED"
-    FAILED = "FAILED"
-    BLOCKED = "BLOCKED"
-
-
-@dataclass
-class PaymentInstruction:
-    payment_id: str
-    claim_id: str
-    idempotency_key: str
-    amount: Decimal
-    currency: str
-    payee_id: str
-    status: PaymentStatus
-    rail: str = "ach_stub"
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    reference: str | None = None
-
-
-# In-memory idempotency store for stub/demo (production → Postgres)
-_IDEMPOTENCY: dict[str, PaymentInstruction] = {}
+__all__ = ["PaymentInstruction", "PaymentStatus", "submit_payment", "reset_payment_store"]
 
 
 def submit_payment(
@@ -44,12 +20,14 @@ def submit_payment(
     gate_decision: str,
     crystal_id: str | None = None,
 ) -> PaymentInstruction:
-    if idempotency_key in _IDEMPOTENCY:
-        return _IDEMPOTENCY[idempotency_key]
+    store = get_payment_store()
+    existing = store.get(idempotency_key)
+    if existing is not None:
+        return existing
 
     if gate_decision != "APPROVED":
         instr = PaymentInstruction(
-            payment_id=f"pay_{uuid.uuid4().hex[:12]}",
+            payment_id=PaymentInstruction.new_id(),
             claim_id=claim_id,
             idempotency_key=idempotency_key,
             amount=amount,
@@ -58,12 +36,11 @@ def submit_payment(
             status=PaymentStatus.BLOCKED,
             reference=f"blocked:{gate_decision}",
         )
-        _IDEMPOTENCY[idempotency_key] = instr
-        return instr
+        return store.save(instr)
 
     if not crystal_id:
         instr = PaymentInstruction(
-            payment_id=f"pay_{uuid.uuid4().hex[:12]}",
+            payment_id=PaymentInstruction.new_id(),
             claim_id=claim_id,
             idempotency_key=idempotency_key,
             amount=amount,
@@ -72,22 +49,36 @@ def submit_payment(
             status=PaymentStatus.BLOCKED,
             reference="no_governance_crystal",
         )
-        _IDEMPOTENCY[idempotency_key] = instr
-        return instr
+        return store.save(instr)
 
     instr = PaymentInstruction(
-        payment_id=f"pay_{uuid.uuid4().hex[:12]}",
+        payment_id=PaymentInstruction.new_id(),
         claim_id=claim_id,
         idempotency_key=idempotency_key,
         amount=amount,
         currency=currency,
         payee_id=payee_id,
-        status=PaymentStatus.COMPLETED,
+        status=PaymentStatus.PENDING,
+        crystal_id=crystal_id,
         reference=f"crystal:{crystal_id}",
+        rail=payment_rail_mode() if payment_rail_mode() != "stub" else "ach_stub",
     )
-    _IDEMPOTENCY[idempotency_key] = instr
-    return instr
+
+    try:
+        dispatch = dispatch_payment(instr)
+        instr.status = dispatch.status
+        instr.rail = dispatch.rail
+        instr.external_ref = dispatch.external_ref
+        instr.reference = f"external:{dispatch.external_ref}"
+        if dispatch.status == PaymentStatus.COMPLETED:
+            instr.status = PaymentStatus.COMPLETED
+    except Exception as exc:  # noqa: BLE001 — surface rail failure without losing idempotency row
+        instr.status = PaymentStatus.FAILED
+        instr.reference = f"rail_error:{exc}"
+
+    return store.save(instr)
 
 
 def reset_payment_store() -> None:
-    _IDEMPOTENCY.clear()
+    reset_payment_stores()
+    get_payment_store().clear()

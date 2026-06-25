@@ -23,6 +23,8 @@ spec:
     metadata:
       labels:
         app: sidecar
+      annotations:
+        {{- include "insurancegovernor.istioPodAnnotations" . | nindent 8 }}
     spec:
       securityContext:
         runAsNonRoot: true

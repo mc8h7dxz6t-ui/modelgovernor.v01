@@ -22,6 +22,9 @@ spec:
       labels:
         app: {{ $plat.name | replace "_" "-" }}
         insurancegovernor.io/platform: {{ $plat.name | quote }}
+        insurancegovernor.io/component: platform
+      annotations:
+        {{- include "insurancegovernor.istioPodAnnotations" $ | nindent 8 }}
     spec:
       securityContext:
         runAsNonRoot: true
@@ -42,6 +45,7 @@ spec:
                 secretKeyRef:
                   name: {{ include "insurancegovernor.secretName" $ }}
                   key: sidecar-internal-tokens
+            {{- include "insurancegovernor.platformIntegrationEnv" (dict "root" $) | nindent 12 }}
           livenessProbe:
             httpGet:
               path: /healthz

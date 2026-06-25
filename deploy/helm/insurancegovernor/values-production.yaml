@@ -39,3 +39,12 @@ syntheticProbe:
 enterprise:
   istio:
     enabled: true
+    mtlsMode: STRICT
+
+integrations:
+  paymentRailMode: fednow
+  oracleFeedMode: live
+  oracleFeedSource: usgs-live
+  fednowApiUrl: ""
+  clearinghouseApiUrl: ""
+  oracleFeedUrl: ""

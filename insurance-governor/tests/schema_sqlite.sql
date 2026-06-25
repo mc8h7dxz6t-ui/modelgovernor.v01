@@ -204,3 +204,39 @@ CREATE TABLE admin_audit_log (
     row_hash CHAR(64),
     recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE payment_idempotency (
+    idempotency_key VARCHAR(512) PRIMARY KEY,
+    payment_id VARCHAR(255) NOT NULL,
+    claim_id VARCHAR(255) NOT NULL,
+    amount NUMERIC(24, 12) NOT NULL,
+    currency CHAR(3) NOT NULL DEFAULT 'USD',
+    payee_id VARCHAR(255) NOT NULL,
+    status VARCHAR(50) NOT NULL,
+    rail VARCHAR(64) NOT NULL DEFAULT 'ach_stub',
+    reference TEXT,
+    crystal_id VARCHAR(255),
+    external_ref VARCHAR(255),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE claim_commitments (
+    claim_id VARCHAR(255) PRIMARY KEY,
+    commitment_id VARCHAR(255) NOT NULL,
+    commitment_hash CHAR(64) NOT NULL,
+    salt VARCHAR(64) NOT NULL,
+    fact_count INT NOT NULL,
+    private_facts TEXT NOT NULL DEFAULT '{}',
+    sealed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE oracle_feed_cache (
+    feed_key VARCHAR(255) PRIMARY KEY,
+    source VARCHAR(128) NOT NULL,
+    metric_value NUMERIC(24, 12) NOT NULL,
+    threshold NUMERIC(24, 12) NOT NULL,
+    payload TEXT NOT NULL,
+    attestation_hash CHAR(64) NOT NULL,
+    fetched_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

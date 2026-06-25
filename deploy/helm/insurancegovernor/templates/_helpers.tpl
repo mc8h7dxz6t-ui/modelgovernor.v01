@@ -47,3 +47,35 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 argocd.argoproj.io/sync-wave: {{ .wave | quote }}
 {{- end }}
 {{- end }}
+
+{{- define "insurancegovernor.istioPodAnnotations" -}}
+{{- if .Values.enterprise.istio.enabled }}
+sidecar.istio.io/inject: "true"
+{{- end }}
+{{- end }}
+
+{{- define "insurancegovernor.platformIntegrationEnv" -}}
+- name: IG_PLATFORM_DATABASE_URL
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "insurancegovernor.secretName" .root }}
+      key: database-url
+- name: PAYMENT_RAIL_MODE
+  value: {{ .root.Values.integrations.paymentRailMode | quote }}
+- name: ORACLE_FEED_MODE
+  value: {{ .root.Values.integrations.oracleFeedMode | quote }}
+- name: ORACLE_FEED_SOURCE
+  value: {{ .root.Values.integrations.oracleFeedSource | quote }}
+{{- if .root.Values.integrations.fednowApiUrl }}
+- name: FEDNOW_API_URL
+  value: {{ .root.Values.integrations.fednowApiUrl | quote }}
+{{- end }}
+{{- if .root.Values.integrations.clearinghouseApiUrl }}
+- name: CLEARINGHOUSE_API_URL
+  value: {{ .root.Values.integrations.clearinghouseApiUrl | quote }}
+{{- end }}
+{{- if .root.Values.integrations.oracleFeedUrl }}
+- name: ORACLE_FEED_URL
+  value: {{ .root.Values.integrations.oracleFeedUrl | quote }}
+{{- end }}
+{{- end }}

@@ -13,6 +13,13 @@ services:
     volumes:
       - ig_postgres_data:/var/lib/postgresql/data
       - ./migrations/0001_ig_spine_init.sql:/docker-entrypoint-initdb.d/0001_init.sql:ro
+      - ./migrations/0002_claim_chain_anchors.sql:/docker-entrypoint-initdb.d/0002_anchors.sql:ro
+      - ./migrations/0003_admin_audit_log.sql:/docker-entrypoint-initdb.d/0003_audit.sql:ro
+      - ./migrations/0004_platform_policies.sql:/docker-entrypoint-initdb.d/0004_platforms.sql:ro
+      - ./migrations/0005_platform_manifest.sql:/docker-entrypoint-initdb.d/0005_manifest.sql:ro
+      - ./migrations/0006_extended_platforms.sql:/docker-entrypoint-initdb.d/0006_extended.sql:ro
+      - ./migrations/0007_uk_us_warranty_mesh.sql:/docker-entrypoint-initdb.d/0007_mesh.sql:ro
+      - ./migrations/0008_production_state.sql:/docker-entrypoint-initdb.d/0008_state.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d insurancegovernor"]
       interval: 5s
@@ -76,9 +83,16 @@ services:
       IG_SPINE_ENABLED: ${IG_SPINE_ENABLED:-true}
       IG_SIDECAR_URL: http://ig-sidecar:8101
       IG_INTERNAL_TOKEN: ${IG_INTERNAL_TOKENS:-dev-ig-spine-token-change-me}
+      IG_PLATFORM_DATABASE_URL: postgresql+psycopg://postgres:postgres@ig-postgres:5432/insurancegovernor
+      PAYMENT_RAIL_MODE: ${PAYMENT_RAIL_MODE:-stub}
+      FEDNOW_API_URL: ${FEDNOW_API_URL:-}
+      CLEARINGHOUSE_API_URL: ${CLEARINGHOUSE_API_URL:-}
+      BANK_RAIL_API_TOKEN: ${BANK_RAIL_API_TOKEN:-}
     ports:
       - "8103:8103"
     depends_on:
+      ig-postgres:
+        condition: service_healthy
       ig-sidecar:
         condition: service_started
 
@@ -105,6 +119,10 @@ services:
       IG_SIDECAR_URL: http://ig-sidecar:8101
       IG_INTERNAL_TOKEN: ${IG_INTERNAL_TOKENS:-dev-ig-spine-token-change-me}
       ORACLE_FEED_SOURCE: ${ORACLE_FEED_SOURCE:-usgs-feed}
+      ORACLE_FEED_MODE: ${ORACLE_FEED_MODE:-mock}
+      ORACLE_FEED_URL: ${ORACLE_FEED_URL:-}
+      ORACLE_FEED_API_KEY: ${ORACLE_FEED_API_KEY:-}
+      USGS_FEED_URL: ${USGS_FEED_URL:-}
     ports:
       - "8105:8105"
     depends_on:
@@ -119,6 +137,7 @@ services:
       IG_SPINE_ENABLED: ${IG_SPINE_ENABLED:-true}
       IG_SIDECAR_URL: http://ig-sidecar:8101
       IG_INTERNAL_TOKEN: ${IG_INTERNAL_TOKENS:-dev-ig-spine-token-change-me}
+      IG_PLATFORM_DATABASE_URL: postgresql+psycopg://postgres:postgres@ig-postgres:5432/insurancegovernor
     ports:
       - "8106:8106"
     depends_on:

@@ -100,9 +100,10 @@ Any platform integrates via **manifest + GovernedPlatform SDK**:
 Sales sheet: `docs/sales-sheets/insurance-governor-production.md`  
 Insurer personas: `docs/insurance-governor/insurer-persona-mapping.md`  
 UK/US standards: `docs/insurance-governor/uk-us-regulatory-framework.md`  
-Design-partner attestation: `docs/insurance-governor/design-partner-attestation.md`
+Design-partner attestation: `docs/insurance-governor/design-partner-attestation.md`  
+Production infrastructure: `docs/insurance-governor/production-infrastructure.md` (Postgres state, live rails, Istio mTLS)
 
 ## Remaining for production hardening (post-L4)
-- Redis Sentinel HA rehearsal compose for IG (PgBouncer compose exists)
 - Named carrier design-partner letter under NDA
 - Full ZK-SNARK circuit (current: SHA-256 commitments)
+- Customer Vault population for FedNow / clearinghouse credentials (adapters ready)

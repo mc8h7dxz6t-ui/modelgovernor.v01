@@ -7,13 +7,13 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from platforms.common.platform_sdk import GovernedPlatform, spine_health_payload
+from platforms.common.persistence.commitment_store import get_commitment_store
 
 from .proof_gate import AuditProofBundle, build_audit_proof, seal_claim_facts, verify_audit_proof
 
 app = FastAPI(title="zkclaimaudit", version="0.1.0")
 _GOVERNED = GovernedPlatform("zk_claim_audit")
-
-_COMMITMENTS: dict[str, Any] = {}
+_STORE = get_commitment_store()
 
 
 class SealRequest(BaseModel):
@@ -41,7 +41,7 @@ def readyz() -> dict:
 @app.post("/audit/seal")
 def seal(request: SealRequest) -> dict:
     commitment = seal_claim_facts(claim_id=request.claim_id, private_facts=request.private_facts)
-    _COMMITMENTS[request.claim_id] = commitment
+    _STORE.save(request.claim_id, commitment, request.private_facts)
     facets = {
         "claim_id": request.claim_id,
         "commitment_hash": commitment.commitment_hash,
@@ -66,7 +66,7 @@ def seal(request: SealRequest) -> dict:
 
 @app.post("/audit/prove")
 def prove(request: AuditRequest) -> dict:
-    commitment = _COMMITMENTS.get(request.claim_id)
+    commitment = _STORE.get(request.claim_id)
     if commitment is None:
         raise HTTPException(status_code=404, detail="commitment not found")
     bundle = build_audit_proof(

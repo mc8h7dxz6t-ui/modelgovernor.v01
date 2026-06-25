@@ -18,6 +18,8 @@ spec:
     metadata:
       labels:
         app: reconciler
+      annotations:
+        {{- include "insurancegovernor.istioPodAnnotations" . | nindent 8 }}
     spec:
       securityContext:
         runAsNonRoot: true

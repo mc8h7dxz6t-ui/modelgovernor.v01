@@ -1,28 +1,17 @@
 """External oracle feed adapters — HTTP/API sources for parametric triggers."""
 from __future__ import annotations
 
-import hashlib
 import json
 import os
-from dataclasses import dataclass
 from decimal import Decimal
-from typing import Any
 
 import httpx
 
+from platforms.common.integrations.oracle_providers import oracle_feed_mode, resolve_live_feed
+from platforms.common.integrations.oracle_types import OracleReading, attestation_hash
 
-@dataclass(frozen=True)
-class OracleReading:
-    source: str
-    metric_value: Decimal
-    threshold: Decimal
-    payload: str
-    attestation_hash: str
-    fetched_at: str
-
-
-def attestation_hash(*, source: str, payload: str) -> str:
-    return hashlib.sha256(f"{source}:{payload}".encode()).hexdigest()
+# Re-export for backward compatibility
+__all__ = ["OracleReading", "attestation_hash", "fetch_oracle_feed", "fetch_usgs_earthquake_mock"]
 
 
 def fetch_usgs_earthquake_mock() -> OracleReading:
@@ -40,11 +29,19 @@ def fetch_usgs_earthquake_mock() -> OracleReading:
 
 def fetch_oracle_feed(source: str | None = None) -> OracleReading:
     source = source or os.environ.get("ORACLE_FEED_SOURCE", "usgs-feed")
-    url = os.environ.get("ORACLE_FEED_URL")
+    mode = oracle_feed_mode()
 
+    if mode == "live":
+        return resolve_live_feed(source)
+
+    url = os.environ.get("ORACLE_FEED_URL")
     if url:
         with httpx.Client(timeout=10.0) as client:
-            response = client.get(url)
+            headers = {"accept": "application/json"}
+            api_key = os.environ.get("ORACLE_FEED_API_KEY")
+            if api_key:
+                headers["authorization"] = f"Bearer {api_key}"
+            response = client.get(url, headers=headers)
             response.raise_for_status()
             data = response.json()
         metric = Decimal(str(data.get("magnitude", data.get("metric_value", "0"))))
@@ -59,6 +56,6 @@ def fetch_oracle_feed(source: str | None = None) -> OracleReading:
             fetched_at=str(data.get("time", "live")),
         )
 
-    if source == "usgs-feed":
+    if source in ("usgs-feed", "usgs"):
         return fetch_usgs_earthquake_mock()
-    raise ValueError(f"unsupported oracle source: {source}")
+    raise ValueError(f"unsupported oracle source: {source} (set ORACLE_FEED_MODE=live or ORACLE_FEED_URL)")

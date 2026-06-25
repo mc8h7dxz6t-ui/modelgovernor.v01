@@ -399,3 +399,25 @@ config:
   claimAnchorS3RetentionDays: "3650"
   claimAnchorS3Region: ""
   platformRegistryEnforce: "true"
+
+# Live integrations — set in values-production.yaml for enterprise
+integrations:
+  paymentRailMode: stub          # stub | fednow | clearinghouse
+  oracleFeedMode: mock           # mock | live
+  oracleFeedSource: usgs-feed
+  fednowApiUrl: ""
+  clearinghouseApiUrl: ""
+  oracleFeedUrl: ""
+
+enterprise:
+  istio:
+    enabled: false
+    mtlsMode: STRICT
+    egress:
+      bankRails:
+        - api.fednowgateway.frb.org
+        - api.tchclearing.example.com
+      oracleFeeds:
+        - earthquake.usgs.gov
+        - api.chain.link
+        - api.weather.gov
