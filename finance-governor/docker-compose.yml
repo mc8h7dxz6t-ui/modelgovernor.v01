@@ -1,0 +1,70 @@
+# Finance Governor — spine stack (local)
+# Ports offset from ModelGovernor so both can run together.
+
+services:
+  fg-postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-financegovernor}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5433:5432"
+    volumes:
+      - fg_postgres_data:/var/lib/postgresql/data
+      - ./migrations/0001_fg_spine_init.sql:/docker-entrypoint-initdb.d/0001_init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d financegovernor"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  fg-redis:
+    image: redis:7
+    ports:
+      - "6380:6379"
+
+  # Phase 2: uncomment when spine services are implemented
+  # fg-sidecar:
+  #   build:
+  #     context: .
+  #     dockerfile: spine/sidecar/Dockerfile
+  #   environment:
+  #     DATABASE_URL: postgresql+psycopg://postgres:postgres@fg-postgres:5432/financegovernor
+  #     REDIS_URL: redis://fg-redis:6379/0
+  #     FG_INTERNAL_TOKENS: ${FG_INTERNAL_TOKENS:-dev-fg-spine-token-change-me}
+  #   ports:
+  #     - "8091:8091"
+  #   depends_on:
+  #     fg-postgres:
+  #       condition: service_healthy
+  #     fg-redis:
+  #       condition: service_started
+
+  # fg-reconciler:
+  #   build:
+  #     context: .
+  #     dockerfile: spine/reconciler/Dockerfile
+  #   environment:
+  #     DATABASE_URL: postgresql+psycopg://postgres:postgres@fg-postgres:5432/financegovernor
+  #     REDIS_URL: redis://fg-redis:6379/0
+  #   ports:
+  #     - "8092:8092"
+  #   depends_on:
+  #     fg-postgres:
+  #       condition: service_healthy
+
+  # fg-gateway:
+  #   build:
+  #     context: .
+  #     dockerfile: spine/gateway/Dockerfile
+  #   environment:
+  #     FG_SIDECAR_URL: http://fg-sidecar:8091
+  #     FG_INTERNAL_TOKENS: ${FG_INTERNAL_TOKENS:-dev-fg-spine-token-change-me}
+  #   ports:
+  #     - "8090:8090"
+  #   depends_on:
+  #     - fg-sidecar
+
+volumes:
+  fg_postgres_data:

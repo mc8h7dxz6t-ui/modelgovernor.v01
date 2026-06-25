@@ -18,6 +18,26 @@ See [SALES-DEMO.md](SALES-DEMO.md) for the talk track, capability matrix, produc
 make demo-gold-down   # teardown
 ```
 
+## Finance Governor (platform design)
+
+The **Finance Governor** ecosystem adapts this repository's institutional++ spine for regulated finance — as an **optional control plane** plus **five standalone platforms**, each solving a high-cost problem and deployable alone:
+
+| Platform | Problem |
+|----------|---------|
+| **AlgoFreeze** | Runaway algo / bad deploy (Knight Capital-class) |
+| **WireMatch** | Wrong wire / decimal error (Citigroup-class) |
+| **SubledgerSync** | Intercompany reconciliation drift |
+| **AssetLedger** | Stale asset depreciation |
+| **CreditGovern** | Ungoverned credit AI |
+
+- [Platform model — standalone or spine](docs/finance-governor/platform-model.md)
+- [Finance Governor spine](docs/finance-governor/spine.md) — own gateway/sidecar/reconciler (`finance-governor/`)
+- [Crystal Commit Protocol](docs/finance-governor/crystal-commit-protocol.md)
+- [Desirability deep dive — ROI, buyers, GTM](docs/finance-governor/desirability.md)
+- [Institutional++ gold standard — reliability & regulatory mapping](docs/finance-governor/institutional-gold-standard.md)
+- [Code-driven finance fixes (deep dive)](docs/finance-governor/code-driven-fixes.md)
+- [Platform vision](docs/finance-governor/README.md)
+
 ## What this repository demonstrates
 
 - Reserve-before-dispatch governance semantics
@@ -180,6 +200,11 @@ sidecar/
     metrics.py          # invariant counter registry
 tests/
   programs/
+    algofreeze/                      # AlgoFreeze — network freeze for live algos
+    wire_match/                      # WireMatch — semantic cross-border wire gate
+    subledger_sync/                  # SubledgerSync — intercompany reconciliation
+    asset_depreciation/              # AssetLedger — smart asset depreciation
+    finance_governor/                # CreditGovern — credit decision wedge (design)
     finance_ops_finals/              # AI Finance Ops Finals for LLMs
     cost_attribution_accountability/ # AI Cost Attribution & Agent Accountability
   integration/
