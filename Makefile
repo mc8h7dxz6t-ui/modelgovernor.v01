@@ -106,5 +106,11 @@ fg-certification:
 fg-l4-certification:
 	$(MAKE) -C finance-governor fg-l4-certification
 
+fg-forensic-audit:
+	$(MAKE) -C finance-governor fg-forensic-audit
+
+fg-load-test:
+	$(MAKE) -C finance-governor fg-load-test
+
 fg-chaos-test:
 	$(MAKE) -C finance-governor fg-chaos-test

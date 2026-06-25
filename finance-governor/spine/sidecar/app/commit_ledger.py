@@ -75,7 +75,7 @@ def _ts_param(session: Session, value: datetime) -> str | datetime:
     return value
 
 
-def _append_event(
+def append_decision_event(
     session: Session,
     *,
     operation_id: str,
@@ -299,7 +299,7 @@ def crystallize_operation(
             "exp": _ts_param(session, expires_at),
         },
     )
-    _append_event(
+    append_decision_event(
         session,
         operation_id=operation_id,
         crystal_id=crystal.crystal_id,
@@ -408,7 +408,7 @@ def commit_operation(
         text("UPDATE governance_crystals SET terminal_state = 'COMMITTED' WHERE crystal_id = :cid"),
         {"cid": crystal_id},
     )
-    _append_event(
+    append_decision_event(
         session,
         operation_id=row["operation_id"],
         crystal_id=crystal_id,

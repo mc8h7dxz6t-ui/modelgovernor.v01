@@ -250,6 +250,74 @@ jobs:
         if: always()
         run: docker compose -f docker-compose.chaos.yml down -v
 
+  test-fg-tier1:
+    name: Finance Governor — Tier 1 institutional
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install FG dependencies
+        run: |
+          pip install -r finance-governor/platforms/requirements.txt
+          pip install -r finance-governor/spine/sidecar/requirements.txt
+          pip install pytest hypothesis
+
+      - name: FG institutional forensic suite
+        run: |
+          PYTHONPATH=finance-governor/spine/sidecar:finance-governor \
+            pytest finance-governor/tests/ tests/integration/test_mg_fg_crosswire.py \
+            --ignore=finance-governor/tests/chaos -q
+
+      - name: FG forensic audit artifact
+        run: python3 finance-governor/scripts/fg_forensic_audit.py
+
+      - name: Helm lint financegovernor
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+      - run: helm lint deploy/helm/financegovernor -f deploy/helm/financegovernor/values-production.yaml
+
+  test-fg-tier2:
+    name: Finance Governor — Tier 2 Postgres
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: financegovernor_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5436:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Apply FG migrations
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -p 5436 -U postgres -d financegovernor_test -f finance-governor/migrations/0001_fg_spine_init.sql
+          psql -h localhost -p 5436 -U postgres -d financegovernor_test -f finance-governor/migrations/0002_fg_ledger_chain_anchors.sql
+
+      - name: FG Postgres integration tests
+        env:
+          FG_POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5436/financegovernor_test
+          PYTHONPATH: finance-governor/spine/sidecar:finance-governor
+        run: pytest finance-governor/tests/integration/test_spine_postgres_vigorous.py -q
+
   build-images:
     name: Container image build gate
     runs-on: ubuntu-latest

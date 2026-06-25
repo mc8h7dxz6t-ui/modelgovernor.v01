@@ -96,12 +96,12 @@ def send_wire(
         return {"status": "DUPLICATE", "wire_id": decision.wire_id, "idempotency_key": key}
 
     if decision.decision != "APPROVED":
-        if decision.match_score < min_semantic_score:
-            metrics.increment("wire_sent_below_threshold_total")
-        metrics.increment("wire_held_total")
         return {"status": "HELD", "wire_id": decision.wire_id, "reason": decision.reason}
 
     _sent_idempotency.add(key)
+    if decision.match_score < min_semantic_score:
+        metrics.increment("wire_sent_below_threshold_total")
+        return {"status": "VIOLATION", "wire_id": decision.wire_id, "reason": "SENT_BELOW_THRESHOLD"}
     _events.append(
         platform="wire_match",
         event_type="WIRE_SENT",

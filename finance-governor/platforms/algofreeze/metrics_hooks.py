@@ -49,8 +49,19 @@ def record_freeze(
     )
 
 
+def record_egress_violation(operation_id: str) -> None:
+    """Invariant violation — order routed while FROZEN (must stay 0)."""
+    get_platform_metrics().increment("frozen_egress_violation_total")
+    _events.append(
+        platform="algofreeze",
+        event_type="EGRESS_VIOLATION",
+        operation_id=operation_id,
+        payload={"severity": "P1"},
+    )
+
+
 def record_blocked_egress(operation_id: str, reason: str) -> None:
-    get_platform_metrics().increment("frozen_egress_attempt_total")
+    get_platform_metrics().increment("frozen_egress_blocked_total")
     _events.append(
         platform="algofreeze",
         event_type="EGRESS_BLOCKED",

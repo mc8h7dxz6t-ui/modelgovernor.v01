@@ -97,6 +97,13 @@ fg-certification:
 fg-l4-certification:
 	cd .. && FG_CERTIFICATION_LEVEL=L4_GOLD python3 finance-governor/scripts/generate_fg_certification.py
 
+fg-forensic-audit:
+	cd .. && python3 finance-governor/scripts/fg_forensic_audit.py
+
+fg-load-test:
+	cd .. && PYTHONPATH=finance-governor/spine/sidecar:finance-governor \
+	  python3 -m pytest finance-governor/tests/load/test_fg_load_harness.py -q
+
 fg-postgres-test-up:
 	docker compose -f docker-compose.fg-test.yml up -d --wait
 

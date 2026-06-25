@@ -6,7 +6,8 @@ from typing import Dict
 
 _PLATFORM_COUNTERS = (
     # AlgoFreeze
-    "frozen_egress_attempt_total",
+    "frozen_egress_blocked_total",
+    "frozen_egress_violation_total",
     "version_mismatch_freeze_total",
     "feed_degraded_total",
     "freeze_activation_latency_ms",

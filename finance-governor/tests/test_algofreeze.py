@@ -58,4 +58,5 @@ def test_deploy_registry_ci_approval(client):
 def test_metrics_endpoint(client):
     r = client.get("/metrics")
     assert r.status_code == 200
-    assert "frozen_egress_attempt_total" in r.text
+    assert "frozen_egress_blocked_total" in r.text
+    assert "frozen_egress_violation_total" in r.text

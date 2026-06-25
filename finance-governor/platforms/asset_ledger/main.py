@@ -37,6 +37,11 @@ def healthz() -> dict:
     return {"status": "ok", "assets": len(_registry.list_assets())}
 
 
+@app.get("/readyz")
+def readyz() -> dict:
+    return {"ready": True, "chain_valid": _engine.events.verify_chain()}
+
+
 @app.get("/metrics")
 def metrics() -> Response:
     return Response(content=get_platform_metrics().prometheus_text(), media_type="text/plain")

@@ -1,0 +1,40 @@
+{
+  "generated_at": "2026-06-25T16:56:38.164742+00:00",
+  "certification_level": "L3_INSTITUTIONAL_PLUS",
+  "audit_passed": true,
+  "suites": {
+    "institutional_forensic": {
+      "exit_code": 0,
+      "summary": "18 passed, 1 warning in 0.37s"
+    },
+    "property_decimal": {
+      "exit_code": 0,
+      "summary": "4 passed in 0.21s"
+    },
+    "spine_integration": {
+      "exit_code": 0,
+      "summary": "9 passed, 1 warning in 0.60s"
+    },
+    "platform_unit": {
+      "exit_code": 0,
+      "summary": "26 passed, 1 warning in 0.38s"
+    },
+    "mg_crosswire": {
+      "exit_code": 0,
+      "summary": "3 passed in 0.26s"
+    },
+    "load_harness": {
+      "exit_code": 0,
+      "summary": "1 passed in 0.29s"
+    }
+  },
+  "institutional_checks": {
+    "platform_baseline": true,
+    "exact_decimal_property": true,
+    "diagnostic_mode": true,
+    "hash_chain_integrity": true,
+    "zero_violation_counters": true,
+    "mg_fg_crosswire": true,
+    "load_concurrency": true
+  }
+}
