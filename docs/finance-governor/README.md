@@ -27,7 +27,9 @@ Each platform is a **clean, deployable codebase** — not a feature flag in a mo
 | [AssetLedger](../../programs/asset_depreciation/) | Stale depreciation, wrong books | ✅ |
 | [CreditGovern](../../programs/finance_governor/) | Ungoverned credit AI | ✅ |
 
-**Optional spine** (gateway + ledger sidecar + reconciler) unifies audit, cross-platform invariants, and examiner export when you run multiple platforms.
+**Optional spine** (gateway :8090 + ledger sidecar :8091 + reconciler :8092) unifies CCP, audit, Crystal Mesh, and examiner export.
+
+→ Full spine spec: [spine.md](spine.md) · Code: [`finance-governor/`](../../finance-governor/)
 
 See [platform-model.md](platform-model.md), [code-driven-fixes.md](code-driven-fixes.md), and [crystal-commit-protocol.md](crystal-commit-protocol.md).
 
@@ -47,6 +49,7 @@ Financial institutions lose millions annually to preventable failures — human 
 
 | Document | Purpose |
 |----------|---------|
+| [spine.md](spine.md) | **Finance Governor spine** — own control plane (gateway/sidecar/reconciler) |
 | [crystal-commit-protocol.md](crystal-commit-protocol.md) | **Unique IP** — Crystal Commit Protocol (CCP) |
 | [desirability.md](desirability.md) | **Why buyers want it** — ROI, personas, GTM, bundle ACV |
 | [competitive-landscape.md](competitive-landscape.md) | **Who competes** — per-platform map and tech edge honesty |

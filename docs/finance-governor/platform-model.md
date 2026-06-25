@@ -59,24 +59,32 @@ services:
 
 ## Spine integration contract
 
-Platforms that opt into the spine implement a thin **spine adapter** (~100 lines):
+Platforms opt into the **Finance Governor spine** (`finance-governor/spine/`) — a dedicated control plane parallel to ModelGovernor:
+
+| Spine service | Port | Role |
+|---------------|------|------|
+| `fg-gateway` | 8090 | OIDC, `/governed/commit`, platform orchestration |
+| `fg-sidecar` | 8091 | CCP, commit escrow, regulatory_ops, crystal_ops |
+| `fg-reconciler` | 8092 | Horizon sweep, strand, mesh audit |
+
+Full spec: [spine.md](spine.md)
+
+Platforms implement `platforms/common/spine_adapter.py`:
 
 ```python
-# platforms/common/spine_adapter.py (conceptual)
+# finance-governor/platforms/common/spine_adapter.py
 
 class SpineAdapter:
-    def reserve(self, operation: SpineOperation) -> ReserveResult: ...
-    def settle(self, operation_id: str, outcome: SettlementOutcome) -> None: ...
-    def emit_event(self, event_type: str, metadata: dict) -> None: ...
-    def strand(self, operation_id: str, reason: str) -> None: ...
+    def crystallize(self, operation_id, risk_tier, facets) -> Crystal: ...
+    def commit(self, outcome: CommitOutcome) -> None: ...
+    def strand(self, crystal_id: str, reason: str) -> None: ...
 ```
 
 | Spine call | Platform use |
 |------------|--------------|
-| `reserve` | Hold budget / exposure / notional before irreversible action |
-| `settle` | Record terminal outcome with artifact hash |
-| `strand` | Ambiguous state — manual review required |
-| `emit_event` | Non-financial audit (version check, feed drop, match score) |
+| `crystallize` | Snapshot policy/version/market context + optional exposure reserve |
+| `commit` | Crystal-bound terminal outcome |
+| `strand` | Horizon expired or ambiguous — manual review required |
 
 **Standalone fallback:** When `FG_SPINE_ENABLED=false`, adapter writes to platform-local `platform_events` table with same schema shape. No functionality loss — only unified cross-platform view.
 

@@ -1,6 +1,20 @@
-# ModelGovernor → Finance Governor Spine Port Map
+# Finance Governor Spine
 
-Concrete file-level guide for copying the institutional++ control plane.
+Concrete file-level guide for copying ModelGovernor into `finance-governor/spine/`.
+
+**Canonical spine spec:** [spine.md](spine.md)
+
+## Target layout
+
+```
+finance-governor/
+├── spine/
+│   ├── gateway/          ← modelgovernor/gateway/
+│   ├── sidecar/          ← modelgovernor/sidecar/
+│   └── reconciler/       ← modelgovernor/reconciler/
+├── platforms/common/     ← crystal.py, spine_adapter.py (done)
+└── migrations/           ← 0001_fg_spine_init.sql (done)
+```
 
 ## Copy verbatim (rename only)
 
@@ -30,9 +44,9 @@ Concrete file-level guide for copying the institutional++ control plane.
 | `sidecar/app/policy.py` | `policy.py` | instrument_policy_registry |
 | `sidecar/app/guardrails.py` | `guardrails.py` | per-desk limits |
 | `sidecar/app/money.py` | `currency.py` | ISO 4217 quantum |
-| `sidecar/app/routes_reserve.py` | `routes_reserve.py` | exposure semantics |
-| `sidecar/app/routes_settle.py` | `routes_settle.py` | + explanation_artifact_id |
-| `gateway/app/governance.py` | `governance.py` | inference rail dispatch |
+| `sidecar/app/routes_reserve.py` | `routes_crystallize.py` | CCP entry + exposure reserve |
+| `sidecar/app/routes_settle.py` | `routes_commit.py` | Crystal-bound commit |
+| `gateway/app/governance.py` | `governance.py` | crystallize → act → commit |
 | `gateway/app/pricing.py` | `exposure_estimator.py` | approval probability bounds |
 | `reconciler/app/sweeper.py` | `sweeper.py` | high-risk strand rules |
 | `migrations/0001_init.sql` | `0001_init.sql` | see domain-model.md |
