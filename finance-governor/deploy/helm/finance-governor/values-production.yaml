@@ -49,3 +49,6 @@ decisionChainAnchor:
 
 governanceCanary:
   enabled: true
+
+prometheusRules:
+  enabled: true

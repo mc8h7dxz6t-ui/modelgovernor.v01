@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from .config import Settings
 from .currency import quantize_money
 from .decision_seal import append_decision_event
+from .exposure_drift import enforce_drift_on_commit
 from .metrics import get_counters
 
 # Import shared CCP from platforms/common
@@ -275,6 +276,7 @@ def crystallize_operation(
 
 def commit_operation(
     session: Session,
+    settings: Settings,
     *,
     crystal_id: str,
     facets: dict[str, Any],
@@ -363,6 +365,17 @@ def commit_operation(
         text("UPDATE governance_crystals SET terminal_state = 'COMMITTED' WHERE crystal_id = :cid"),
         {"cid": crystal_id},
     )
+    drift_result = enforce_drift_on_commit(
+        session,
+        settings,
+        account_id=row["account_id"],
+        operation_id=row["operation_id"],
+        crystal_id=crystal_id,
+        platform=row["platform"],
+        reserved=reserved,
+        committed=committed,
+        now=now,
+    )
     append_decision_event(
         session,
         operation_id=row["operation_id"],
@@ -370,7 +383,7 @@ def commit_operation(
         account_id=row["account_id"],
         event_type="COMMITTED_FINAL",
         exposure_delta=committed,
-        metadata={"outcome": outcome},
+        metadata={"outcome": outcome, **drift_result},
     )
     session.commit()
     get_counters().increment("commit_success_total")

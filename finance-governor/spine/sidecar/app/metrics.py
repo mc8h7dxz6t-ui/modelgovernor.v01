@@ -23,6 +23,8 @@ _COUNTER_NAMES = (
     "decision_chain_anchor_recorded_total",
     "decision_chain_anchor_s3_ok_total",
     "decision_chain_anchor_s3_failed_total",
+    "drift_enforced_total",
+    "drift_tolerated_total",
 )
 
 

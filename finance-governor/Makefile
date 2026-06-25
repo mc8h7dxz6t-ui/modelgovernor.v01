@@ -1,7 +1,8 @@
 .PHONY: fg-spine-up fg-spine-down fg-spine-test fg-spine-smoke fg-spine-logs \
 	fg-stack-up fg-stack-down crystal-demo algofreeze-demo wirematch-demo \
-	fg-certification fg-demo-up fg-demo-down fg-demo-gold fg-test-postgres-up \
-	fg-test-postgres-down fg-integration-test fg-load-smoke
+	subledger-demo assetledger-demo credit-demo fg-all-platforms-demo \
+	fg-demo-gold-reliability fg-certification fg-demo-up fg-demo-down fg-demo-gold \
+	fg-test-postgres-up fg-test-postgres-down fg-integration-test fg-load-smoke
 
 fg-spine-up:
 	docker compose up -d --build
@@ -97,6 +98,46 @@ algofreeze-demo:
 	  -d '{"order_id":"demo-1","runtime_sha":"wrong-deploy-sha"}' | grep -q 403
 	curl -sf http://localhost:8094/status
 	@echo "\nalgofreeze-demo OK"
+
+subledger-demo:
+	@echo "==> SubledgerSync health"
+	curl -sf http://localhost:8095/healthz
+	@echo "\n==> ingest mirror legs"
+	curl -sf -X POST http://localhost:8095/transactions \
+	  -H 'content-type: application/json' \
+	  -d '{"entity_id":"UK-01","counterparty_id":"US-01","amount":"10000.00","currency":"USD","value_date":"2026-06-01"}'
+	curl -sf -X POST http://localhost:8095/match/run \
+	  -H 'content-type: application/json' \
+	  -d '{"entity_id":"US-01","counterparty_id":"UK-01","amount":"10000.00","currency":"USD","value_date":"2026-06-01"}'
+	@echo "\nsubledger-demo OK"
+
+assetledger-demo:
+	@echo "==> AssetLedger health"
+	curl -sf http://localhost:8096/healthz
+	@echo "\n==> register asset + depreciation run"
+	curl -sf -X POST http://localhost:8096/assets \
+	  -H 'content-type: application/json' \
+	  -d '{"asset_id":"server-rack-1","description":"DC rack","acquisition_cost":"120000.00","useful_life_months":60}'
+	curl -sf -X POST http://localhost:8096/depreciation/run \
+	  -H 'content-type: application/json' \
+	  -d '{"period":"2026-06"}'
+	@echo "\nassetledger-demo OK"
+
+credit-demo:
+	@echo "==> CreditGovern health"
+	curl -sf http://localhost:8097/healthz
+	@echo "\n==> approved model evaluate"
+	curl -sf -X POST http://localhost:8097/credit/evaluate \
+	  -H 'content-type: application/json' \
+	  -d '{"application_id":"app-demo-1","exposure_amount":"50000.00","model_version_id":"credit-model-v3","desk_id":"desk-default"}'
+	@echo "\ncredit-demo OK"
+
+fg-all-platforms-demo: wirematch-demo algofreeze-demo subledger-demo assetledger-demo credit-demo
+	@echo "fg-all-platforms-demo OK — all five platforms exercised"
+
+fg-demo-gold-reliability:
+	chmod +x scripts/*.sh
+	./scripts/fg-demo-gold-reliability.sh
 
 crystal-demo:
 	./scripts/crystal-demo.sh
