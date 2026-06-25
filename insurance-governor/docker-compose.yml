@@ -82,5 +82,33 @@ services:
       ig-sidecar:
         condition: service_started
 
+  ig-bind-authority:
+    build:
+      context: ..
+      dockerfile: insurance-governor/platforms/bind_authority/Dockerfile
+    environment:
+      IG_SPINE_ENABLED: ${IG_SPINE_ENABLED:-true}
+      IG_SIDECAR_URL: http://ig-sidecar:8101
+      IG_INTERNAL_TOKEN: ${IG_INTERNAL_TOKENS:-dev-ig-spine-token-change-me}
+    ports:
+      - "8104:8104"
+    depends_on:
+      ig-sidecar:
+        condition: service_started
+
+  ig-parametric-oracle:
+    build:
+      context: ..
+      dockerfile: insurance-governor/platforms/parametric_oracle/Dockerfile
+    environment:
+      IG_SPINE_ENABLED: ${IG_SPINE_ENABLED:-true}
+      IG_SIDECAR_URL: http://ig-sidecar:8101
+      IG_INTERNAL_TOKEN: ${IG_INTERNAL_TOKENS:-dev-ig-spine-token-change-me}
+    ports:
+      - "8105:8105"
+    depends_on:
+      ig-sidecar:
+        condition: service_started
+
 volumes:
   ig_postgres_data:

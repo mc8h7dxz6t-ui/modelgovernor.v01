@@ -11,6 +11,8 @@ REQUIRED = [
     "0001_ig_spine_init.sql",
     "0002_claim_chain_anchors.sql",
     "0003_admin_audit_log.sql",
+    "0004_platform_policies.sql",
+    "0005_platform_manifest.sql",
 ]
 
 

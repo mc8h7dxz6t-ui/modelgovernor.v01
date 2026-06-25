@@ -28,6 +28,7 @@ insurance-governor/tests/load/load/reports/
 # Runtime/demo artifacts
 artifacts/reliability/latest_invariant_report.json
 artifacts/reliability/insurance-governor/
+artifacts/reliability/insurance-governor/latest_attestation.json
 *.sqlite3
 
 # OS/editor noise

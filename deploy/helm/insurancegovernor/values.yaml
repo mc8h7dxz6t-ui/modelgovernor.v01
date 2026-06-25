@@ -22,6 +22,18 @@ images:
     repository: insurancegovernor/gateway
     tag: latest
     pullPolicy: IfNotPresent
+  claimGate:
+    repository: insurancegovernor/claim-gate
+    tag: latest
+    pullPolicy: IfNotPresent
+  bindAuthority:
+    repository: insurancegovernor/bind-authority
+    tag: latest
+    pullPolicy: IfNotPresent
+  parametricOracle:
+    repository: insurancegovernor/parametric-oracle
+    tag: latest
+    pullPolicy: IfNotPresent
   postgres:
     repository: postgres
     tag: "16"
@@ -127,6 +139,48 @@ gateway:
       cpu: 300m
       memory: 256Mi
 
+# Plug-and-play platform workloads — add entry + image to deploy any platform
+platforms:
+  claim_gate:
+    enabled: true
+    name: claim_gate
+    imageKey: claimGate
+    port: 8103
+    replicas: 2
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+  bind_authority:
+    enabled: true
+    name: bind_authority
+    imageKey: bindAuthority
+    port: 8104
+    replicas: 2
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+  parametric_oracle:
+    enabled: true
+    name: parametric_oracle
+    imageKey: parametricOracle
+    port: 8105
+    replicas: 2
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+
 reconciler:
   enabled: true
   replicas: 2
@@ -208,3 +262,4 @@ config:
   claimAnchorS3ObjectLockMode: "GOVERNANCE"
   claimAnchorS3RetentionDays: "3650"
   claimAnchorS3Region: ""
+  platformRegistryEnforce: "true"

@@ -48,6 +48,7 @@ class Settings(BaseSettings):
     claim_anchor_s3_object_lock_enabled: bool = False
     claim_anchor_s3_object_lock_mode: str = "GOVERNANCE"
     claim_anchor_s3_retention_days: int = 3650
+    platform_registry_enforce: bool = True
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

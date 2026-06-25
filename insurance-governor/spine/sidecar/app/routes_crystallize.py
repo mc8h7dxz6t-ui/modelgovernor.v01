@@ -14,6 +14,7 @@ from .diagnostic_mode import is_diagnostic_mode
 from .guardrail_errors import GuardrailError
 from .circuit_breaker import CircuitOpenError
 from .guardrails import get_guardrails
+from .platform_guard import PlatformGuardError
 from .schemas import CrystallizeRequest, CrystallizeResponse
 
 router = APIRouter(tags=["crystallize"])
@@ -33,6 +34,14 @@ def crystallize(request: CrystallizeRequest, _: None = Depends(require_internal_
             operation_id=request.operation_id,
         )
         with get_db_session() as session:
+            from .platform_guard import assert_platform_allowed
+
+            assert_platform_allowed(
+                session,
+                get_settings(),
+                platform=request.platform,
+                facets=request.facets,
+            )
             result = crystallize_operation(
                 session,
                 get_settings(),
@@ -49,6 +58,8 @@ def crystallize(request: CrystallizeRequest, _: None = Depends(require_internal_
         raise HTTPException(status_code=429, detail=str(exc)) from exc
     except CircuitOpenError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except PlatformGuardError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     except ConflictError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except InsufficientReserveError as exc:

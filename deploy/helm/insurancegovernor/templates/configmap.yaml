@@ -37,6 +37,7 @@ data:
   CLAIM_ANCHOR_S3_OBJECT_LOCK_ENABLED: {{ .Values.config.claimAnchorS3ObjectLockEnabled | quote }}
   CLAIM_ANCHOR_S3_OBJECT_LOCK_MODE: {{ .Values.config.claimAnchorS3ObjectLockMode | quote }}
   CLAIM_ANCHOR_S3_RETENTION_DAYS: {{ .Values.config.claimAnchorS3RetentionDays | quote }}
+  PLATFORM_REGISTRY_ENFORCE: {{ .Values.config.platformRegistryEnforce | quote }}
   {{- if .Values.config.claimAnchorS3Region }}
   CLAIM_ANCHOR_S3_REGION: {{ .Values.config.claimAnchorS3Region | quote }}
   {{- end }}

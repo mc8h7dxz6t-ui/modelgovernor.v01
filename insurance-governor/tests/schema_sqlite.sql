@@ -32,6 +32,7 @@ CREATE TABLE platform_registry (
     display_name VARCHAR(255) NOT NULL,
     auth_token_hash VARCHAR(64) NOT NULL,
     enabled BOOLEAN NOT NULL DEFAULT 1,
+    manifest_json TEXT NOT NULL DEFAULT '{}',
     registered_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -104,10 +105,22 @@ INSERT INTO coverage_policy_registry (
 ) VALUES (
     'claim-high-us', 'casualty', 'claim_gate', 'US', 'high',
     5000000, 300000, 0
+), (
+    'bind-standard-us', 'commercial', 'bind_authority', 'US', 'high',
+    2500000, 600000, 0
+), (
+    'parametric-cat-us', 'property', 'parametric_oracle', 'US', 'critical',
+    10000000, 60000, 0
 );
 
 INSERT INTO reserve_ledgers (account_id, ledger_type, currency, balance, active)
 VALUES ('carrier-default', 'case', 'USD', 100000000, 1);
+
+INSERT INTO platform_registry (platform_name, display_name, auth_token_hash, enabled, manifest_json)
+VALUES
+  ('claim_gate', 'ClaimGate', 'dev-claim-gate-hash', 1, '{"required_facet_keys":["claim_id"],"commit_decisions":["APPROVED"]}'),
+  ('bind_authority', 'BindAuthority', 'dev-bind-authority-hash', 1, '{"required_facet_keys":["application_id"],"commit_decisions":["BOUND"]}'),
+  ('parametric_oracle', 'ParametricOracle', 'dev-parametric-oracle-hash', 1, '{"required_facet_keys":["event_id","oracle_attestation_hash"],"commit_decisions":["TRIGGERED"]}');
 
 CREATE TABLE claim_chain_anchors (
     anchor_id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -273,7 +273,7 @@ jobs:
       - name: Install IG sidecar dependencies
         run: pip install -r insurance-governor/spine/sidecar/requirements.txt pytest httpx
       - name: Tier 1 insurance governor tests
-        run: make ig-spine-test
+        run: pip install pyyaml && make ig-spine-test
 
   ig-test-tier2:
     name: IG Tier 2 — Postgres vigorous
@@ -316,6 +316,7 @@ jobs:
             insurance-governor/tests/test_postgres_vigorous.py \
             insurance-governor/tests/test_postgres_reliability.py \
             insurance-governor/tests/test_migration_invariants.py \
+            insurance-governor/tests/test_reconciler_leader_election.py \
             -q
 
   ig-validate-migrations:
@@ -392,6 +393,8 @@ jobs:
           docker build -f insurance-governor/spine/reconciler/Dockerfile -t insurancegovernor/reconciler:ci .
           docker build -f insurance-governor/spine/gateway/Dockerfile -t insurancegovernor/gateway:ci .
           docker build -f insurance-governor/platforms/claim_gate/Dockerfile -t insurancegovernor/claim-gate:ci .
+          docker build -f insurance-governor/platforms/bind_authority/Dockerfile -t insurancegovernor/bind-authority:ci .
+          docker build -f insurance-governor/platforms/parametric_oracle/Dockerfile -t insurancegovernor/parametric-oracle:ci .
 
   ig-test-tier4-chaos:
     name: IG Tier 4 — Toxiproxy chaos (claim ops)

@@ -68,6 +68,17 @@ make ig-chaos-test        # Tier 4 (requires chaos compose up)
 helm lint deploy/helm/insurancegovernor
 ```
 
+## Plug-and-play platform model
+
+Any platform integrates via **manifest + GovernedPlatform SDK**:
+
+- `platforms/registry.yaml` — catalog
+- `platforms/<name>/manifest.yaml` — required facets, commit decisions, policy
+- `platforms/common/platform_sdk.py` — `GovernedPlatform.govern_operation()`
+- Spine `platform_registry_enforce` — rejects unregistered platforms / missing facets (422)
+- `scripts/scaffold-platform.sh` — generate new platform in minutes
+- Helm `values.platforms.*` — deploy any registered platform without new templates
+
 ## Remaining for production hardening (post-L4)
 - PgBouncer + Redis Sentinel HA rehearsal compose for IG
 - ClaimGate platform Deployment in Helm (image build gate exists)

@@ -1,0 +1,9 @@
+services:
+  parametric-oracle:
+    build:
+      context: ../..
+      dockerfile: insurance-governor/platforms/parametric_oracle/Dockerfile
+    environment:
+      IG_SPINE_ENABLED: "false"
+    ports:
+      - "8105:8105"

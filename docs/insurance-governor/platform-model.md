@@ -1,60 +1,72 @@
 # Insurance Governor — Platform Model
 
-Each platform is a **deployable unit** that functions alone or plugs into the optional spine.
+Each platform is a **deployable unit** that functions alone or plugs into the optional spine via a **standard SDK contract**.
 
-## Design principle
+## Plug-and-play contract
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│              OPTIONAL: Insurance Governor Spine                  │
-│  Gateway │ Sidecar │ Reconciler │ Hash Chain │ claim_ops        │
-└───────────────────────────────┬─────────────────────────────────┘
-                                │ SpineAdapter (IG_SPINE_ENABLED)
-        ┌───────────┬───────────┼───────────┬───────────┐
-        ▼           ▼           ▼           ▼           ▼
-   ClaimGate   ZkClaimAudit SpatialTwin BatteryLiab SubrogationGraph
-   (standalone) (standalone) (standalone) (standalone)  (standalone)
+platforms/<name>/
+├── manifest.yaml          # Registry contract (required facets, commit decisions, policy)
+├── main.py                # FastAPI service using GovernedPlatform
+├── Dockerfile
+└── docker-compose.standalone.yml
 ```
 
-## Extracting a platform
+Register in `platforms/registry.yaml` + spine migration (`platform_registry` + `coverage_policy_registry`).
 
-Each `platforms/<name>/` directory is self-contained:
-
-| Artifact | Purpose |
-|----------|---------|
-| `Dockerfile` | Single-service image |
-| `docker-compose.standalone.yml` | No spine dependencies |
-| `main.py` | FastAPI gate API |
-| `README.md` | Platform invariants + runbook |
-
-Copy `platforms/common/` alongside the platform — it has zero spine dependency.
-
-## Spine integration contract
+## SDK usage (any platform)
 
 ```python
-from platforms.common.spine_adapter import CommitOutcome, SpineAdapter
+from platforms.common.platform_sdk import GovernedPlatform, spine_health_payload
 
-adapter = SpineAdapter(platform="claim_gate", spine_enabled=os.environ.get("IG_SPINE_ENABLED") == "true")
-crystal = adapter.crystallize(operation_id, risk_tier, facets, policy_id=...)
-adapter.commit(CommitOutcome(...))
+_GOVERNED = GovernedPlatform("my_platform")  # loads manifest.yaml
+
+crystal_id = _GOVERNED.govern_operation(
+    operation_id,
+    facets,
+    decision="APPROVED",       # must be in manifest commit_decisions to commit
+    reserve_amount="1000.00",
+    account_id="carrier-default",
+    policy_id="my-policy-us",  # optional — defaults from manifest
+    outcome="paid",
+)
 ```
 
-When `IG_SPINE_ENABLED=false`:
-- Crystals stored in `LocalCrystalStore`
-- Events appended to `LocalPlatformEventLog` (SQLite)
-- **No functionality loss** — only unified cross-platform examiner view
+## Spine integration
+
+| Mode | `IG_SPINE_ENABLED` | Behavior |
+|------|-------------------|----------|
+| Standalone | `false` | LocalCrystalStore + LocalPlatformEventLog |
+| Spine-connected | `true` | HTTP crystallize/commit via sidecar |
+
+Spine enforces **platform registry** (`platform_registry_enforce=true`):
+- Platform must be registered and enabled
+- Required facet keys from `manifest_json` must be present
+- Rejects with 422 before any reserve mutation
+
+## Scaffold a new platform
+
+```bash
+insurance-governor/scripts/scaffold-platform.sh my_platform 8110
+```
+
+Then:
+1. Add entry to `platforms/registry.yaml`
+2. Add policy + registry rows in migration SQL
+3. Add Helm `values.platforms.my_platform` block (plug-and-play deploy)
+
+## Anti-patterns
+
+- Bypassing `GovernedPlatform` for commits
+- Hardcoding spine URLs without `SpineAdapter`
+- Skipping manifest `required_facet_keys` (spine will reject)
+- Platform logic inside sidecar (spine stays domain-agnostic)
 
 ## Environment variables
 
 | Variable | Standalone | Spine-connected |
 |----------|------------|-----------------|
 | `IG_SPINE_ENABLED` | `false` | `true` |
-| `IG_SIDECAR_URL` | ignored | `http://ig-sidecar:8101` |
+| `IG_SIDECAR_URL` | ignored | `http://sidecar:8101` |
 | `IG_INTERNAL_TOKEN` | ignored | shared secret |
-| `IG_PLATFORM_EVENTS_DB` | optional path | ignored |
-
-## Anti-patterns
-
-- Requiring spine for platform to function
-- Platform logic inside sidecar (spine stays domain-agnostic)
-- Shared mutable state between platforms (only spine events)
+| `PLATFORM_REGISTRY_ENFORCE` | sidecar only | `true` in production |

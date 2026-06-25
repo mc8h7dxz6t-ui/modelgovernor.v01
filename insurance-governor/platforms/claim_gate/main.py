@@ -1,15 +1,17 @@
 """ClaimGate — governed payout gate (standalone or spine-connected)."""
 from __future__ import annotations
 
-import os
 from decimal import Decimal
 
 from fastapi import FastAPI
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
+
+from platforms.common.platform_sdk import GovernedPlatform, spine_health_payload
 
 from .payout_gate import evaluate_payout, payout_facets
 
-app = FastAPI(title="claimgate", version="0.1.0")
+app = FastAPI(title="claimgate", version="0.2.0")
+_GOVERNED = GovernedPlatform("claim_gate")
 
 _POLICY_LIMIT = Decimal("5000000.00")
 _AUTO_APPROVE = Decimal("250000.00")
@@ -34,8 +36,7 @@ class PayoutResponse(BaseModel):
 
 @app.get("/healthz")
 def healthz() -> dict:
-    spine = os.environ.get("IG_SPINE_ENABLED", "false").lower() == "true"
-    return {"status": "ok", "spine_enabled": spine}
+    return spine_health_payload("claim_gate")
 
 
 @app.get("/readyz")
@@ -60,13 +61,14 @@ def evaluate(request: PayoutRequest) -> PayoutResponse:
         decision=result.decision,
         score=result.score,
     )
-    crystal_id = _govern_payout(
+    crystal_id = _GOVERNED.govern_operation(
         request.claim_id,
         facets,
-        approved=result.approved,
-        amount=amount,
+        decision=result.decision,
+        reserve_amount=str(amount),
         account_id=request.account_id,
         policy_id=request.policy_id,
+        outcome="paid",
     )
     return PayoutResponse(
         claim_id=request.claim_id,
@@ -75,42 +77,3 @@ def evaluate(request: PayoutRequest) -> PayoutResponse:
         reason=result.reason,
         crystal_id=crystal_id,
     )
-
-
-def _govern_payout(
-    claim_id: str,
-    facets: dict,
-    *,
-    approved: bool,
-    amount: Decimal,
-    account_id: str,
-    policy_id: str,
-) -> str | None:
-    try:
-        from platforms.common.spine_adapter import CommitOutcome, SpineAdapter
-
-        adapter = SpineAdapter(
-            platform="claim_gate",
-            spine_enabled=os.environ.get("IG_SPINE_ENABLED", "false").lower() == "true",
-        )
-        crystal = adapter.crystallize(
-            operation_id=claim_id,
-            risk_tier="high",
-            facets=facets,
-            account_id=account_id,
-            policy_id=policy_id,
-            reserved_reserve=str(amount) if approved else "0",
-        )
-        if approved:
-            adapter.commit(
-                CommitOutcome(
-                    operation_id=claim_id,
-                    crystal_id=crystal.crystal_id,
-                    facets=facets,
-                    outcome="paid",
-                    committed_reserve=str(amount),
-                )
-            )
-        return crystal.crystal_id
-    except Exception:
-        return None

@@ -10,6 +10,7 @@ from .db import get_db_session
 from .diagnostic_mode import clear_diagnostic_mode, diagnostic_snapshot
 from .guardrails import get_guardrails
 from .metrics import get_counters
+from .platform_guard import list_registered_platforms
 
 router = APIRouter(tags=["admin"], prefix="/internal")
 
@@ -85,6 +86,12 @@ def diagnostic_clear(ctx: AuthContext = Depends(require_claims_admin)) -> dict:
     with get_db_session() as session:
         record_admin_action(session, ctx=ctx, action="DIAGNOSTIC_CLEAR", resource="cluster")
     return {"cleared": True}
+
+
+@router.get("/platforms")
+def list_platforms(_: AuthContext = Depends(require_internal_auth)) -> list:
+    with get_db_session() as session:
+        return list_registered_platforms(session)
 
 
 @router.get("/events/recent")

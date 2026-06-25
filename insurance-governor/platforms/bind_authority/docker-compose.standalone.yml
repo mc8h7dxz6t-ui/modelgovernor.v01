@@ -1,0 +1,9 @@
+services:
+  bind-authority:
+    build:
+      context: ../..
+      dockerfile: insurance-governor/platforms/bind_authority/Dockerfile
+    environment:
+      IG_SPINE_ENABLED: "false"
+    ports:
+      - "8104:8104"

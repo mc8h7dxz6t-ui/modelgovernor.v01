@@ -1,0 +1,37 @@
+# Insurance Governor — plug-and-play platform catalog
+# Add a platform: create platforms/<name>/manifest.yaml and register here.
+
+platforms:
+  claim_gate:
+    display_name: ClaimGate
+    default_policy_id: claim-high-us
+    default_risk_tier: high
+    port: 8103
+    docker_image: insurancegovernor/claim-gate
+    required_facet_keys:
+      - claim_id
+    commit_decisions:
+      - APPROVED
+
+  bind_authority:
+    display_name: BindAuthority
+    default_policy_id: bind-standard-us
+    default_risk_tier: high
+    port: 8104
+    docker_image: insurancegovernor/bind-authority
+    required_facet_keys:
+      - application_id
+    commit_decisions:
+      - BOUND
+
+  parametric_oracle:
+    display_name: ParametricOracle
+    default_policy_id: parametric-cat-us
+    default_risk_tier: critical
+    port: 8105
+    docker_image: insurancegovernor/parametric-oracle
+    required_facet_keys:
+      - event_id
+      - oracle_attestation_hash
+    commit_decisions:
+      - TRIGGERED

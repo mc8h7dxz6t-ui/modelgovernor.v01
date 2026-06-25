@@ -16,6 +16,8 @@ MIGRATIONS = [
     ROOT / "migrations" / "0001_ig_spine_init.sql",
     ROOT / "migrations" / "0002_claim_chain_anchors.sql",
     ROOT / "migrations" / "0003_admin_audit_log.sql",
+    ROOT / "migrations" / "0004_platform_policies.sql",
+    ROOT / "migrations" / "0005_platform_manifest.sql",
 ]
 
 

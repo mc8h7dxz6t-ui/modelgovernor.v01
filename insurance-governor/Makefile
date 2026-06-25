@@ -1,4 +1,4 @@
-.PHONY: ig-spine-up ig-spine-down ig-stack-up ig-stack-down ig-spine-test ig-spine-smoke claim-gate-demo ig-demo ig-certification ig-load-test ig-chaos-test
+.PHONY: ig-spine-up ig-spine-down ig-stack-up ig-stack-down ig-spine-test ig-spine-smoke claim-gate-demo ig-demo ig-certification ig-load-test ig-chaos-test ig-ha-up ig-ha-down ig-pilot-attestation bind-authority-demo parametric-oracle-demo
 
 ig-spine-up:
 	docker compose -f docker-compose.spine.yml up -d --build
@@ -53,3 +53,22 @@ ig-chaos-test:
 	  TOXIPROXY_API=http://localhost:8475 \
 	  PYTHONPATH=insurance-governor/spine/sidecar \
 	  python3 -m pytest insurance-governor/tests/chaos/test_toxiproxy_claim_ops.py -q
+
+ig-ha-up:
+	docker compose -f docker-compose.ha.yml up -d --build --scale ig-sidecar=2 --scale ig-reconciler=2
+
+ig-ha-down:
+	docker compose -f docker-compose.ha.yml down
+
+ig-pilot-attestation:
+	chmod +x scripts/ig-pilot-attestation.sh
+	cd .. && insurance-governor/scripts/ig-pilot-attestation.sh
+
+bind-authority-demo:
+	curl -sf http://localhost:8104/healthz
+	curl -sf -X POST http://localhost:8104/bind/evaluate \
+	  -H 'content-type: application/json' \
+	  -d '{"application_id":"demo-bind-1","premium":"10000.00","limit":"500000.00"}'
+
+parametric-oracle-demo:
+	curl -sf http://localhost:8105/healthz
