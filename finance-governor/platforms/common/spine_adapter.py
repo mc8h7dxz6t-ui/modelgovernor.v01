@@ -5,7 +5,15 @@ import os
 from dataclasses import dataclass
 from typing import Any
 
-from .crystal import Crystal, seal_crystal, should_strand_on_expiry, verify_commit_fingerprint
+import httpx
+
+from .crystal import (
+    Crystal,
+    is_horizon_expired,
+    seal_crystal,
+    should_strand_on_expiry,
+    verify_commit_fingerprint,
+)
 
 
 @dataclass
@@ -14,6 +22,7 @@ class CommitOutcome:
     crystal_id: str
     facets: dict[str, Any]
     outcome: str
+    committed_exposure: str = "0"
     metadata: dict[str, Any] | None = None
 
 
@@ -22,16 +31,14 @@ class SpineAdapterError(Exception):
 
 
 class SurpriseCommitBlocked(SpineAdapterError):
-    """Commit attempted without valid crystal — Surprise Budget = 0."""
+    pass
 
 
 class HorizonStranded(SpineAdapterError):
-    """Commit horizon expired — must STRAND, not guess."""
+    pass
 
 
 class LocalCrystalStore:
-    """Standalone fallback when FG_SPINE_ENABLED=false."""
-
     def __init__(self) -> None:
         self._crystals: dict[str, Crystal] = {}
 
@@ -43,26 +50,24 @@ class LocalCrystalStore:
 
 
 class SpineAdapter:
-    """
-    Unified interface for Finance Governor spine integration.
-
-    Spine mode: HTTP calls to fg-sidecar (:8091) crystallize / commit / adjudicate.
-    Standalone mode: local crystal store with identical envelope semantics.
-    """
-
     def __init__(
         self,
         platform: str,
         base_url: str | None = None,
         *,
         spine_enabled: bool | None = None,
+        internal_token: str | None = None,
         local_store: LocalCrystalStore | None = None,
     ) -> None:
         self.platform = platform
-        self.base_url = base_url or os.environ.get("FG_SIDECAR_URL", "http://localhost:8091")
+        self.base_url = (base_url or os.environ.get("FG_SIDECAR_URL", "http://localhost:8091")).rstrip("/")
         enabled = spine_enabled if spine_enabled is not None else os.environ.get("FG_SPINE_ENABLED", "false").lower() == "true"
         self.spine_enabled = enabled
+        self._token = internal_token or os.environ.get("FG_INTERNAL_TOKEN", "dev-fg-spine-token-change-me")
         self._local = local_store or LocalCrystalStore()
+
+    def _headers(self) -> dict[str, str]:
+        return {"x-internal-token": self._token, "content-type": "application/json"}
 
     def crystallize(
         self,
@@ -70,58 +75,106 @@ class SpineAdapter:
         risk_tier: str,
         facets: dict[str, Any],
         *,
+        account_id: str = "desk-default",
+        policy_id: str | None = None,
+        reserved_exposure: str = "0",
         parent_crystal_id: str | None = None,
-        horizon_ms: int | None = None,
     ) -> Crystal:
         if self.spine_enabled:
-            return self._http_crystallize(operation_id, risk_tier, facets, parent_crystal_id, horizon_ms)
+            return self._http_crystallize(
+                operation_id, risk_tier, facets, account_id, policy_id, reserved_exposure, parent_crystal_id
+            )
         crystal = seal_crystal(
             platform=self.platform,
             operation_id=operation_id,
             risk_tier=risk_tier,
             facets=facets,
             parent_crystal_id=parent_crystal_id,
-            horizon_ms=horizon_ms,
         )
         self._local.save(crystal)
         return crystal
 
     def commit(self, outcome: CommitOutcome) -> None:
-        crystal = self._get_crystal(outcome.crystal_id)
-        if crystal.terminal_state is not None:
-            raise SurpriseCommitBlocked(f"crystal already terminal: {crystal.terminal_state}")
-        if not verify_commit_fingerprint(crystal, outcome.facets):
-            raise SurpriseCommitBlocked("commit fingerprint mismatch")
-        from .crystal import is_horizon_expired
-
-        if is_horizon_expired(crystal) and not outcome.metadata.get("late_authority"):
-            if should_strand_on_expiry(crystal.risk_tier):
-                raise HorizonStranded(f"horizon expired for {crystal.crystal_id}")
         if self.spine_enabled:
             self._http_commit(outcome)
-        # standalone: terminal state recorded in local store via caller
+            return
+        crystal = self._local.get(outcome.crystal_id)
+        if crystal is None:
+            raise SurpriseCommitBlocked(f"unknown crystal: {outcome.crystal_id}")
+        if not verify_commit_fingerprint(crystal, outcome.facets):
+            raise SurpriseCommitBlocked("fingerprint mismatch")
+        if is_horizon_expired(crystal) and not (outcome.metadata or {}).get("late_authority"):
+            if should_strand_on_expiry(crystal.risk_tier):
+                raise HorizonStranded("horizon expired")
 
-    def strand(self, crystal_id: str, reason: str) -> None:
-        if self.spine_enabled:
-            self._http_strand(crystal_id, reason)
+    def _http_crystallize(
+        self,
+        operation_id: str,
+        risk_tier: str,
+        facets: dict,
+        account_id: str,
+        policy_id: str | None,
+        reserved_exposure: str,
+        parent_crystal_id: str | None,
+    ) -> Crystal:
+        from datetime import datetime
 
-    def _get_crystal(self, crystal_id: str) -> Crystal:
-        crystal = self._local.get(crystal_id)
-        if crystal is not None:
-            return crystal
-        if self.spine_enabled:
-            return self._http_get_crystal(crystal_id)
-        raise SurpriseCommitBlocked(f"unknown crystal: {crystal_id}")
-
-    # HTTP stubs — wired when spine sidecar is implemented
-    def _http_crystallize(self, operation_id: str, risk_tier: str, facets: dict, parent: str | None, horizon_ms: int | None) -> Crystal:
-        raise NotImplementedError("spine sidecar not yet deployed — use FG_SPINE_ENABLED=false for standalone")
+        with httpx.Client(timeout=30.0) as client:
+            r = client.post(
+                f"{self.base_url}/crystallize",
+                headers=self._headers(),
+                json={
+                    "platform": self.platform,
+                    "operation_id": operation_id,
+                    "account_id": account_id,
+                    "risk_tier": risk_tier,
+                    "facets": facets,
+                    "policy_id": policy_id,
+                    "reserved_exposure": reserved_exposure,
+                    "parent_crystal_id": parent_crystal_id,
+                },
+            )
+            r.raise_for_status()
+            data = r.json()
+        local = seal_crystal(
+            platform=self.platform,
+            operation_id=operation_id,
+            risk_tier=risk_tier,
+            facets=facets,
+            parent_crystal_id=parent_crystal_id,
+        )
+        horizon = data["horizon_expires_at"]
+        if isinstance(horizon, str):
+            horizon = datetime.fromisoformat(horizon.replace("Z", "+00:00"))
+        return Crystal(
+            crystal_id=data["crystal_id"],
+            platform=self.platform,
+            operation_id=operation_id,
+            risk_tier=risk_tier,
+            facets=facets,
+            request_fingerprint=local.request_fingerprint,
+            crystal_hash=local.crystal_hash,
+            prev_crystal_hash=local.prev_crystal_hash,
+            parent_crystal_id=parent_crystal_id,
+            horizon_expires_at=horizon,
+        )
 
     def _http_commit(self, outcome: CommitOutcome) -> None:
-        raise NotImplementedError("spine sidecar not yet deployed")
-
-    def _http_strand(self, crystal_id: str, reason: str) -> None:
-        raise NotImplementedError("spine sidecar not yet deployed")
-
-    def _http_get_crystal(self, crystal_id: str) -> Crystal:
-        raise NotImplementedError("spine sidecar not yet deployed")
+        with httpx.Client(timeout=30.0) as client:
+            r = client.post(
+                f"{self.base_url}/commit",
+                headers=self._headers(),
+                json={
+                    "crystal_id": outcome.crystal_id,
+                    "facets": outcome.facets,
+                    "committed_exposure": outcome.committed_exposure,
+                    "outcome": outcome.outcome,
+                    "late_authority": bool((outcome.metadata or {}).get("late_authority")),
+                },
+            )
+            if r.status_code == 409:
+                detail = r.json().get("detail", "")
+                if "horizon" in str(detail).lower():
+                    raise HorizonStranded(detail)
+                raise SurpriseCommitBlocked(detail)
+            r.raise_for_status()

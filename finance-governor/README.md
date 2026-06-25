@@ -55,8 +55,19 @@ Every irreversible action on the spine requires a **Governance Crystal**. See [c
 | Spine schema (`migrations/0001`) | ✅ Design artifact |
 | `platforms/common/crystal.py` | ✅ Protocol module |
 | `platforms/common/spine_adapter.py` | ✅ Adapter contract |
-| Spine services (gateway/sidecar/reconciler) | 📋 Phase 2 scaffold |
-| Platform demos | 📋 Phase 1 |
+| Spine services (gateway/sidecar/reconciler) | ✅ Phase 2 |
+| Integration tests (14 passing) | ✅ |
+| AlgoFreeze (Phase 1) | ✅ |
+| WireMatch (Phase 1b) | ✅ |
+| `make crystal-demo` walkthrough | ✅ |
+
+```bash
+make fg-stack-up          # spine + WireMatch + AlgoFreeze (from repo root)
+make fg-spine-test        # pytest (14 tests)
+make crystal-demo         # 3-minute CCP walkthrough (stack must be up)
+make algofreeze-demo      # Knight-class freeze smoke
+make wirematch-demo       # Citigroup-class amount anomaly smoke
+```
 
 ## Environment
 

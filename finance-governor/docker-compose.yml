@@ -1,5 +1,5 @@
-# Finance Governor — spine stack (local)
-# Ports offset from ModelGovernor so both can run together.
+# Finance Governor — spine stack (Phase 2)
+# Build context: repository root (parent of finance-governor/)
 
 services:
   fg-postgres:
@@ -24,47 +24,77 @@ services:
     ports:
       - "6380:6379"
 
-  # Phase 2: uncomment when spine services are implemented
-  # fg-sidecar:
-  #   build:
-  #     context: .
-  #     dockerfile: spine/sidecar/Dockerfile
-  #   environment:
-  #     DATABASE_URL: postgresql+psycopg://postgres:postgres@fg-postgres:5432/financegovernor
-  #     REDIS_URL: redis://fg-redis:6379/0
-  #     FG_INTERNAL_TOKENS: ${FG_INTERNAL_TOKENS:-dev-fg-spine-token-change-me}
-  #   ports:
-  #     - "8091:8091"
-  #   depends_on:
-  #     fg-postgres:
-  #       condition: service_healthy
-  #     fg-redis:
-  #       condition: service_started
+  fg-sidecar:
+    build:
+      context: ..
+      dockerfile: finance-governor/spine/sidecar/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@fg-postgres:5432/financegovernor
+      REDIS_URL: redis://fg-redis:6379/0
+      FG_INTERNAL_TOKENS: ${FG_INTERNAL_TOKENS:-dev-fg-spine-token-change-me}
+    ports:
+      - "8091:8091"
+    depends_on:
+      fg-postgres:
+        condition: service_healthy
+      fg-redis:
+        condition: service_started
 
-  # fg-reconciler:
-  #   build:
-  #     context: .
-  #     dockerfile: spine/reconciler/Dockerfile
-  #   environment:
-  #     DATABASE_URL: postgresql+psycopg://postgres:postgres@fg-postgres:5432/financegovernor
-  #     REDIS_URL: redis://fg-redis:6379/0
-  #   ports:
-  #     - "8092:8092"
-  #   depends_on:
-  #     fg-postgres:
-  #       condition: service_healthy
+  fg-reconciler:
+    build:
+      context: ..
+      dockerfile: finance-governor/spine/reconciler/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@fg-postgres:5432/financegovernor
+      REDIS_URL: redis://fg-redis:6379/0
+      RECONCILER_HEALTH_PORT: 8092
+    ports:
+      - "8092:8092"
+    depends_on:
+      fg-postgres:
+        condition: service_healthy
+      fg-sidecar:
+        condition: service_started
 
-  # fg-gateway:
-  #   build:
-  #     context: .
-  #     dockerfile: spine/gateway/Dockerfile
-  #   environment:
-  #     FG_SIDECAR_URL: http://fg-sidecar:8091
-  #     FG_INTERNAL_TOKENS: ${FG_INTERNAL_TOKENS:-dev-fg-spine-token-change-me}
-  #   ports:
-  #     - "8090:8090"
-  #   depends_on:
-  #     - fg-sidecar
+  fg-gateway:
+    build:
+      context: ..
+      dockerfile: finance-governor/spine/gateway/Dockerfile
+    environment:
+      FG_SIDECAR_URL: http://fg-sidecar:8091
+      FG_INTERNAL_TOKEN: ${FG_INTERNAL_TOKENS:-dev-fg-spine-token-change-me}
+    ports:
+      - "8090:8090"
+    depends_on:
+      - fg-sidecar
+
+  fg-wirematch:
+    build:
+      context: ..
+      dockerfile: finance-governor/platforms/wire_match/Dockerfile
+    environment:
+      FG_SPINE_ENABLED: ${FG_SPINE_ENABLED:-true}
+      FG_SIDECAR_URL: http://fg-sidecar:8091
+      FG_INTERNAL_TOKEN: ${FG_INTERNAL_TOKENS:-dev-fg-spine-token-change-me}
+    ports:
+      - "8093:8093"
+    depends_on:
+      fg-sidecar:
+        condition: service_started
+
+  fg-algofreeze:
+    build:
+      context: ..
+      dockerfile: finance-governor/platforms/algofreeze/Dockerfile
+    environment:
+      FG_SPINE_ENABLED: ${FG_SPINE_ENABLED:-true}
+      FG_SIDECAR_URL: http://fg-sidecar:8091
+      FG_INTERNAL_TOKEN: ${FG_INTERNAL_TOKENS:-dev-fg-spine-token-change-me}
+    ports:
+      - "8094:8094"
+    depends_on:
+      fg-sidecar:
+        condition: service_started
 
 volumes:
   fg_postgres_data:
