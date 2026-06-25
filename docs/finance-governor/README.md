@@ -2,7 +2,18 @@
 
 **Finance Governor** adapts the ModelGovernor institutional++ control-plane spine for financial services — plus **specialized platforms** that each solve a costly finance problem and can run **alone or plugged into the spine**.
 
-ModelGovernor governs **LLM spend** (tokens, models, provider dispatch). Finance Governor governs **financial decisions and operations** — credit AI, algo freeze, wire matching, intercompany reconciliation, asset depreciation — with the same reliability primitives: Postgres as sole source of truth, append-only audit, reconciler repair, hash-chained evidence, and diagnostic mode under invariant violation.
+### Unique IP: Crystal Commit Protocol (CCP)
+
+Finance Governor's differentiated primitive — **no commit without a Crystal**:
+
+- **Governance Crystal** — immutable, hash-chained snapshot of policy/version/market context at gate time
+- **Commit Horizon** — risk-tiered TTL; ambiguity **strands**, never guesses
+- **Crystal Mesh** — cross-platform invariants when spine-connected
+- **Forensic Reconstruction** — rebuild decision context without re-running models
+
+→ [crystal-commit-protocol.md](crystal-commit-protocol.md)
+
+ModelGovernor governs **LLM spend**. Finance Governor governs **financial operations** with CCP as unifying commit semantics across all platforms.
 
 ## Platform model
 
@@ -18,7 +29,7 @@ Each platform is a **clean, deployable codebase** — not a feature flag in a mo
 
 **Optional spine** (gateway + ledger sidecar + reconciler) unifies audit, cross-platform invariants, and examiner export when you run multiple platforms.
 
-See [platform-model.md](platform-model.md) and [code-driven-fixes.md](code-driven-fixes.md).
+See [platform-model.md](platform-model.md), [code-driven-fixes.md](code-driven-fixes.md), and [crystal-commit-protocol.md](crystal-commit-protocol.md).
 
 ## Why this exists
 
@@ -36,6 +47,7 @@ Financial institutions lose millions annually to preventable failures — human 
 
 | Document | Purpose |
 |----------|---------|
+| [crystal-commit-protocol.md](crystal-commit-protocol.md) | **Unique IP** — Crystal Commit Protocol (CCP) |
 | [desirability.md](desirability.md) | **Why buyers want it** — ROI, personas, GTM, bundle ACV |
 | [competitive-landscape.md](competitive-landscape.md) | **Who competes** — per-platform map and tech edge honesty |
 | [institutional-gold-standard.md](institutional-gold-standard.md) | **Industry++ reliability** — SLOs, invariants, testing, regulatory mapping |

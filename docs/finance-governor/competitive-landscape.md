@@ -119,6 +119,22 @@ Finance Governor is a **pre-execution control plane** for regulated finance — 
 
 ## The clear tech edge (what is actually differentiated)
 
+### 0. Crystal Commit Protocol — the unique blend (CCP)
+
+CCP is Finance Governor's **proprietary cross-platform primitive** — not marketing, a protocol:
+
+| Primitive | What it does | Why it's unique |
+|-----------|--------------|-----------------|
+| **Governance Crystal** | Hash-chained snapshot at gate/freeze/reserve | Examiner reconstructs T0 world-state without re-execution |
+| **Commit Horizon** | Risk-tiered TTL → STRAND on ambiguity | Prevents Knight/Citigroup "committed when unknown" class |
+| **Crystal-Bound Commit** | No irreversible action without `crystal_id` | Surprise Budget = 0 |
+| **Adaptive Crystal Sizing** | Statistical exposure inside crystal | ModelGovernor capital-efficiency IP → finance |
+| **Crystal Mesh** | Parent/child crystals across platforms | No wire while desk FROZEN — spine-only |
+
+→ [crystal-commit-protocol.md](crystal-commit-protocol.md)
+
+**Elevator pitch:** *No financial surprise is allowed to commit without a Crystal.*
+
 ### 1. Pre-execution control (primary moat)
 
 ```
@@ -230,7 +246,8 @@ Finance Governor competes with: different buyers (CRO/CFO/Treasurer), different 
 
 ### Lead with (defensible)
 
-1. **"We stop it before it happens"** — freeze, gate, reserve
+1. **"No commit without a Crystal"** — CCP elevator pitch
+2. **"We stop it before it happens"** — freeze, gate, reserve
 2. **"Knight Capital was a control plane failure"** — version + feed + egress block
 3. **"Citigroup was a pre-send validation failure"** — semantic + Decimal gate
 4. **"Proven institutional++ spine"** — 57+ tests, chaos harness, hash chain (ModelGovernor)
@@ -250,8 +267,8 @@ Finance Governor competes with: different buyers (CRO/CFO/Treasurer), different 
 |----------|--------|
 | **Who is competition?** | Point solutions per wedge (BlackLine, ValidMind, EMS vendors, payment hubs) + inertia/spreadsheets |
 | **Is there a clear tech edge?** | **Yes**, on pre-execution control + proven ledger/reconciler spine + modular deploy |
-| **Is it unique globally?** | The **combination** is rare; individual features exist elsewhere |
-| **What must ship to prove it?** | AlgoFreeze or WireMatch standalone demo + invariant tests — narrative becomes evidence |
+| **Is it unique globally?** | **CCP + spine combination** is rare; individual features exist elsewhere |
+| **What must ship to prove it?** | `make crystal-demo` — crystallize → strand → reconstruct in 3 minutes |
 
 **Strongest near-term wedge for proving tech edge:** **AlgoFreeze** (no direct productized equivalent at version+feed+egress layer) or **WireMatch** (visceral demo, clear before/after).
 

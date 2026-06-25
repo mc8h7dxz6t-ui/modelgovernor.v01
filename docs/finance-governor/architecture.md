@@ -202,6 +202,8 @@ GET /internal/regulatory/export
 
 | # | Invariant | Enforcement |
 |---|-----------|-------------|
+| 0 | **No commit without Crystal (CCP)** | `surprise_commit_blocked_total` = 0 |
+| 0b | **Horizon expiry → STRAND (critical/high)** | `crystal_horizon_strand_total` |
 | 1 | No negative exposure balances | DB CHECK + `regulatory_ops` probe |
 | 2 | No exposure cap overrun | Atomic UPDATE on `exposure_budget_state` |
 | 3 | No duplicate settlements | Unique index + event probe |

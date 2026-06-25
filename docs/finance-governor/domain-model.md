@@ -129,6 +129,32 @@ CREATE TABLE decision_events (
 );
 ```
 
+---
+
+## Governance Crystal (CCP — cross-platform)
+
+See [crystal-commit-protocol.md](crystal-commit-protocol.md). Every platform crystallizes context before irreversible action.
+
+```sql
+CREATE TABLE governance_crystals (
+    crystal_id VARCHAR(255) PRIMARY KEY,
+    platform VARCHAR(50) NOT NULL,
+    operation_id VARCHAR(255) NOT NULL,
+    risk_tier VARCHAR(20) NOT NULL,
+    facets JSONB NOT NULL,
+    crystal_hash VARCHAR(64) NOT NULL,
+    prev_crystal_hash VARCHAR(64),
+    parent_crystal_id VARCHAR(255),
+    horizon_expires_at TIMESTAMPTZ NOT NULL,
+    terminal_state VARCHAR(50),
+    crystallized_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+Standalone platforms use `platform_crystals` with identical envelope.
+
+---
+
 ### exposure_budget_state
 
 ```sql

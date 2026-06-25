@@ -104,7 +104,22 @@ Inherited from ModelGovernor `docs/institutional-reliability.md` and `docs/quali
 
 Each standalone platform must meet **Platform Baseline**; spine-connected adds **Spine Extensions**.
 
-### Platform Baseline (all five)
+### Surprise Budget = 0 (CCP invariant)
+
+Financial safety invariants have **no error budget**. CCP adds:
+
+| Signal | Meaning |
+|--------|---------|
+| `surprise_commit_blocked_total` | Commit attempted without valid crystal |
+| `crystal_horizon_strand_total` | Ambiguity stranded, not guessed |
+| `crystal_fingerprint_mismatch_total` | Facet drift blocked at commit |
+| `crystal_mesh_block_total` | Cross-platform parent crystal blocked child |
+
+Any increase → **P1 page** (same class as ModelGovernor `finance_ops` violations).
+
+---
+
+## Platform Baseline (all five)
 
 | Control | Requirement | Verification |
 |---------|-------------|--------------|

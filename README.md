@@ -31,6 +31,7 @@ The **Finance Governor** ecosystem adapts this repository's institutional++ spin
 | **CreditGovern** | Ungoverned credit AI |
 
 - [Platform model — standalone or spine](docs/finance-governor/platform-model.md)
+- [Crystal Commit Protocol — unique IP](docs/finance-governor/crystal-commit-protocol.md)
 - [Desirability deep dive — ROI, buyers, GTM](docs/finance-governor/desirability.md)
 - [Institutional++ gold standard — reliability & regulatory mapping](docs/finance-governor/institutional-gold-standard.md)
 - [Code-driven finance fixes (deep dive)](docs/finance-governor/code-driven-fixes.md)
