@@ -3,7 +3,8 @@
 	demo-all-platforms demo-all-platforms-live demo-all-platforms-manifests demo-all-platforms-proof \
 	demo-prereqs demo-prereqs-install proof-test load-test \
 	fg-spine-up fg-stack-up fg-spine-down fg-stack-down fg-spine-test fg-spine-smoke \
-	crystal-demo algofreeze-demo wirematch-demo
+	crystal-demo algofreeze-demo wirematch-demo \
+	ig-spine-up ig-stack-up ig-spine-down ig-stack-down ig-spine-test ig-spine-smoke claim-gate-demo ig-demo
 
 demo-prereqs:
 	./scripts/install-demo-prereqs.sh --check-only
@@ -86,3 +87,28 @@ algofreeze-demo:
 
 wirematch-demo:
 	$(MAKE) -C finance-governor wirematch-demo
+
+# Insurance Governor spine (sibling to ModelGovernor / Finance Governor)
+ig-spine-up:
+	$(MAKE) -C insurance-governor ig-spine-up
+
+ig-stack-up:
+	$(MAKE) -C insurance-governor ig-stack-up
+
+ig-spine-down:
+	$(MAKE) -C insurance-governor ig-spine-down
+
+ig-stack-down:
+	$(MAKE) -C insurance-governor ig-stack-down
+
+ig-spine-test:
+	$(MAKE) -C insurance-governor ig-spine-test
+
+ig-spine-smoke:
+	$(MAKE) -C insurance-governor ig-spine-smoke
+
+claim-gate-demo:
+	$(MAKE) -C insurance-governor claim-gate-demo
+
+ig-demo:
+	$(MAKE) -C insurance-governor ig-demo

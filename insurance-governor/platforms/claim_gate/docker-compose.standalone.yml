@@ -1,0 +1,12 @@
+# ClaimGate standalone — no spine required
+# Usage: docker compose -f docker-compose.standalone.yml up --build
+
+services:
+  claim-gate:
+    build:
+      context: ../..
+      dockerfile: insurance-governor/platforms/claim_gate/Dockerfile
+    environment:
+      IG_SPINE_ENABLED: "false"
+    ports:
+      - "8103:8103"
