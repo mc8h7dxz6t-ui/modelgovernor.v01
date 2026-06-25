@@ -1,6 +1,15 @@
 # Finance Governor — Inaugural Program
 
-**AI Credit Decision Governance** — the first Finance Governor program, structurally analogous to ModelGovernor's `finance_ops_finals` and `cost_attribution_accountability` programs.
+**CreditGovern** — governed credit inference. One of five standalone platforms; runs alone or on the shared spine.
+
+See also: [AlgoFreeze](../algofreeze/), [WireMatch](../wire_match/), [SubledgerSync](../subledger_sync/), [AssetLedger](../asset_depreciation/).
+
+## Deployment modes
+
+| Mode | Dependencies |
+|------|--------------|
+| **Standalone** | Credit gate + mock rail + local `platform_events` |
+| **Spine-connected** | + Finance Governor sidecar for unified audit + regulatory export |
 
 ## Scope
 

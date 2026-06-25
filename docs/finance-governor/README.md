@@ -1,31 +1,50 @@
 # Finance Governor — Platform Vision
 
-**Finance Governor** adapts the ModelGovernor institutional++ control-plane spine for financial services: a ledger-backed, reserve-before-action governance layer for AI systems operating in regulated finance contexts.
+**Finance Governor** adapts the ModelGovernor institutional++ control-plane spine for financial services — plus **specialized platforms** that each solve a costly finance problem and can run **alone or plugged into the spine**.
 
-ModelGovernor governs **LLM spend** (tokens, models, provider dispatch). Finance Governor governs **financial AI decisions** (credit, fraud, pricing, compliance screening, portfolio signals) with the same reliability primitives: Postgres as sole source of truth, append-only audit, reconciler repair, hash-chained evidence, and diagnostic mode under invariant violation.
+ModelGovernor governs **LLM spend** (tokens, models, provider dispatch). Finance Governor governs **financial decisions and operations** — credit AI, algo freeze, wire matching, intercompany reconciliation, asset depreciation — with the same reliability primitives: Postgres as sole source of truth, append-only audit, reconciler repair, hash-chained evidence, and diagnostic mode under invariant violation.
+
+## Platform model
+
+Each platform is a **clean, deployable codebase** — not a feature flag in a monolith:
+
+| Platform | Problem prevented | Standalone? |
+|----------|-------------------|-------------|
+| [AlgoFreeze](../../programs/algofreeze/) | Runaway algo / bad deploy ($440M-class) | ✅ |
+| [WireMatch](../../programs/wire_match/) | Wrong wire / decimal error ($900M-class) | ✅ |
+| [SubledgerSync](../../programs/subledger_sync/) | Intercompany drift at audit | ✅ |
+| [AssetLedger](../../programs/asset_depreciation/) | Stale depreciation, wrong books | ✅ |
+| [CreditGovern](../../programs/finance_governor/) | Ungoverned credit AI | ✅ |
+
+**Optional spine** (gateway + ledger sidecar + reconciler) unifies audit, cross-platform invariants, and examiner export when you run multiple platforms.
+
+See [platform-model.md](platform-model.md) and [code-driven-fixes.md](code-driven-fixes.md).
 
 ## Why this exists
 
-Financial institutions deploy AI at scale but lack infrastructure that treats AI decisions with the same rigor as payments or trading:
+Financial institutions lose millions annually to preventable failures — human data-entry errors, unoptimized algo execution, version-control gaps, wire mismatches, and reconciliation lag. Incumbent tools are post-hoc dashboards or monolithic ERP modules, not pre-execution control planes.
 
 | Gap | Incumbent tooling | Finance Governor edge |
 |-----|-------------------|----------------------|
-| Pre-decision enforcement | Post-hoc model monitoring dashboards | Reserve-before-dispatch: block high-risk inference before capital or customer impact |
-| Audit trail | Scattered MLflow / vendor logs | Hash-chained, append-only decision ledger with external anchoring |
-| Accountability | Model cards, informal ownership | Multi-dimensional attribution (desk, book, model version, approver) |
-| Ambiguous outcomes | Manual exception queues | Reconciler with `STRANDED` semantics for timeout/dispute states |
-| Regulatory evidence | Ad-hoc exports for examiners | Structured compliance artifacts mapped to EU AI Act / FCA / SR 11-7 |
+| Pre-decision enforcement | Post-hoc monitoring | Reserve/freeze/gate **before** irreversible action |
+| Audit trail | Scattered logs / spreadsheets | Append-only events + optional hash chain |
+| Version integrity | Informal deploy process | Approved-version registry with auto-freeze |
+| Ambiguous outcomes | Manual exception queues | Reconciler with `STRANDED` semantics |
+| Deploy flexibility | All-or-nothing suites | Each platform functions alone or on spine |
 
 ## Document map
 
 | Document | Purpose |
 |----------|---------|
+| [platform-model.md](platform-model.md) | Standalone vs spine-connected deployment |
+| [code-driven-fixes.md](code-driven-fixes.md) | Four deep-dive problems + code fixes |
 | [market-gaps.md](market-gaps.md) | Underserved finance domains and wedge products |
 | [governance-framework.md](governance-framework.md) | AI governance pillars → financial services mapping |
-| [architecture.md](architecture.md) | Spine adaptation: gateway / ledger / reconciler for finance |
+| [architecture.md](architecture.md) | Spine + platform architecture |
 | [domain-model.md](domain-model.md) | Tables, state machines, invariants |
 | [roadmap.md](roadmap.md) | Phased build plan and success criteria |
 | [capability-matrix.md](capability-matrix.md) | Institutional++ checklist for RFPs |
+| [spine-port-map.md](spine-port-map.md) | ModelGovernor → Finance Governor file ports |
 
 ## Relationship to ModelGovernor
 
@@ -44,23 +63,28 @@ finance_ops invariants        →  regulatory_ops invariants
 reconciler sweeper            →  exception reconciler (timeouts, disputes)
 ```
 
-The three-service split is preserved:
+The spine (optional) preserves the three-service split:
 
-1. **Gateway** — OIDC auth, protocol normalization, orchestrate reserve → inference → settle
-2. **Ledger sidecar** — all decision-state mutations in Postgres transactions
-3. **Reconciler** — sweeps expired holds, strands ambiguous outcomes, runs regulatory invariant audit
+1. **Gateway** — OIDC auth, protocol normalization, orchestrate reserve → action → settle
+2. **Ledger sidecar** — all state mutations in Postgres transactions
+3. **Reconciler** — sweeps expired holds, strands ambiguous outcomes, runs invariant audit
 
-## First wedge: AI Credit Decision Governance
+## Build priority
 
-See `programs/finance_governor/` for the inaugural program: governed credit inference with exposure caps, bias monitoring hooks, explainability capture, and examiner-ready audit exports.
+1. **AlgoFreeze** — highest $/minute risk; Knight Capital narrative
+2. **WireMatch** — universal treasury pain; NLP + type-safety
+3. **SubledgerSync** — group CFO / multi-entity
+4. **AssetLedger** — steady regulatory value
+5. **CreditGovern** — AI credit wedge (regulatory-heavy)
 
 ## Quick start (when scaffold lands)
 
 ```bash
-# Phase 0 — design review (current)
-cat docs/finance-governor/architecture.md
+# Standalone — one platform, no spine
+make algofreeze-demo
+make wirematch-demo
 
-# Phase 1 — local demo (planned)
-make fg-demo-up
-make fg-demo-gold
+# Spine + all platforms
+make fg-spine-up
+make fg-all-platforms-demo
 ```

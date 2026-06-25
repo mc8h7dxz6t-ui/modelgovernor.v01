@@ -1,8 +1,52 @@
 # Finance Governor Architecture
 
-Adapts the ModelGovernor three-service control plane for governed financial AI decisions.
+Two layers: an **optional spine** (shared control plane) and **standalone platforms** (each deployable alone).
 
-## System context
+See [platform-model.md](platform-model.md) for deployment modes.
+
+## Layered architecture
+
+```mermaid
+flowchart TB
+    subgraph spine [Optional Spine]
+        GW[Gateway :8080]
+        SC[Ledger Sidecar :8081]
+        REC[Reconciler :8082]
+    end
+
+    subgraph platforms [Standalone Platforms]
+        AF[AlgoFreeze]
+        WM[WireMatch]
+        SS[SubledgerSync]
+        AL[AssetLedger]
+        CG[CreditGovern]
+    end
+
+    subgraph infra [Shared Infrastructure]
+        PG[(Postgres)]
+        RD[(Redis)]
+    end
+
+    AF -.->|optional| SC
+    WM -.->|optional| SC
+    SS -.->|optional| SC
+    AL -.->|optional| SC
+    CG -.->|optional| SC
+
+    GW --> SC
+    SC --> PG
+    REC --> PG
+    AF --> PG
+    WM --> PG
+    SS --> PG
+    AL --> PG
+```
+
+**Standalone:** Each platform box runs with its own Postgres schema + services. Dotted lines to spine are disabled.
+
+**Spine-connected:** Platforms call `spine_adapter.reserve/settle/emit_event` for unified audit and cross-platform invariants.
+
+## System context (spine-connected)
 
 ```mermaid
 flowchart LR
@@ -254,32 +298,26 @@ See `docs/adaptive-reservation.md` in ModelGovernor — replace "tokens" with "n
 
 ```
 finance-governor/
-├── gateway/
-├── sidecar/
-│   └── app/
-│       ├── decision_ledger.py
-│       ├── regulatory_ops.py
-│       ├── decision_seal.py
-│       └── ...
-├── reconciler/
-├── migrations/
-├── deploy/
-├── programs/
-│   └── credit_decision_governance/
-├── tests/
-│   ├── integration/
-│   ├── programs/
-│   ├── load/
-│   └── chaos/
-├── scripts/
-│   └── demo-gold.sh
-└── docs/
+├── spine/                    # Optional — gateway, sidecar, reconciler
+│   ├── gateway/
+│   ├── sidecar/
+│   └── reconciler/
+├── platforms/                # Each deployable standalone
+│   ├── common/               # spine_adapter, events, money
+│   ├── algofreeze/
+│   ├── wire_match/
+│   ├── subledger_sync/
+│   ├── asset_depreciation/
+│   └── credit_govern/
+├── programs/                 # Test + demo per platform
+└── docs/finance-governor/
 ```
 
-Phase 0 (current): design docs in `docs/finance-governor/` + program spec in `programs/finance_governor/`.
+Each `platforms/<name>/` includes:
+- `docker-compose.standalone.yml` — no spine required
+- `docker-compose.spine.yml` — overlay connecting to spine
+- `migrations/`, `tests/`, `README.md`
 
-Phase 1: scaffold services with mock inference rail.
+Phase 0 (current): design docs + program specs in `programs/`.
 
-Phase 2: credit decision gold path + invariant test suite.
-
-Phase 3: production overlays + regulatory export APIs.
+Phase 1: scaffold **AlgoFreeze** standalone first (highest $/minute risk), then spine.

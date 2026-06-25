@@ -1,6 +1,6 @@
 # Finance Governor Roadmap
 
-Phased build plan copying ModelGovernor's proven delivery sequence.
+Phased build: **standalone platforms first**, optional spine for unified audit.
 
 ## Phase 0 — Design and alignment (current)
 
@@ -8,53 +8,94 @@ Phased build plan copying ModelGovernor's proven delivery sequence.
 - [x] Market gap analysis (`market-gaps.md`)
 - [x] Governance framework mapping (`governance-framework.md`)
 - [x] Architecture specification (`architecture.md`)
-- [x] Domain model (`domain-model.md`)
-- [x] Inaugural program spec (`programs/finance_governor/`)
-- [ ] Stakeholder sign-off on credit wedge
+- [x] Platform model — standalone vs spine (`platform-model.md`)
+- [x] Code-driven fixes deep dive (`code-driven-fixes.md`)
+- [x] Five platform program specs (`programs/`)
+- [ ] Stakeholder sign-off on AlgoFreeze as first build
 
 **Success criteria:**
-- Engineering agrees table mapping and state machine
-- Compliance agrees high-risk never silent-expire rule
-- Demo narrative validated with one design partner
+- Each platform has standalone deploy spec
+- Spine integration contract agreed (`spine_adapter`)
+- Demo narrative per platform validated
 
 ---
 
-## Phase 1 — Portable baseline (scaffold)
+## Phase 1 — First standalone platform: AlgoFreeze
 
-**Goal:** Docker Compose stack with mock inference rail; credit reserve → settle gold path.
+**Goal:** Deployable heartbeat proxy preventing order egress on version mismatch or feed gap. No spine required.
+
+### Deliverables
+
+| Item | Details |
+|------|---------|
+| `platforms/algofreeze/` | Proxy + version_guard + feed_heartbeat + freeze_controller |
+| `docker-compose.standalone.yml` | Proxy + Redis + Postgres |
+| `platform_events` table | Local append-only audit |
+| `make algofreeze-demo` | Version mismatch → FREEZE → no egress |
+| Tests | `tests/programs/algofreeze/` |
+
+### Success criteria
+
+```bash
+make algofreeze-demo
+pytest tests/programs/algofreeze/
+```
+
+- Freeze on version mismatch in < 100ms
+- Zero orders egress when FROZEN
+- Runs without any spine service
+
+---
+
+## Phase 1b — Second standalone: WireMatch
+
+**Goal:** Semantic wire gate with Decimal type-safety. No spine required.
+
+### Deliverables
+
+| Item | Details |
+|------|---------|
+| `platforms/wire_match/` | Gate + semantic_matcher + execution_gate |
+| `make wirematch-demo` | Beneficiary mismatch → HELD |
+| Tests | Amount anomaly, type-safety, standalone mode |
+
+---
+
+## Phase 2 — Spine scaffold + platform adapters
+
+**Goal:** Optional spine; platforms opt in via `FG_SPINE_ENABLED`.
 
 ### Deliverables
 
 | Item | ModelGovernor reference |
 |------|------------------------|
-| Monorepo `finance-governor/` | Copy `sidecar/`, `gateway/`, `reconciler/` skeleton |
-| SQL migrations `0001`–`0003` | Adapt from `migrations/0001_init.sql` |
-| Mock credit inference rail | Analog to mock LLM provider |
-| `POST /reserve`, `POST /settle` | Port route handlers |
-| Reconciler sweeper | Port `sweeper.py` with high-risk strand logic |
-| `regulatory_ops.py` | Port `finance_ops.py` probes |
-| Docker Compose | `docker-compose.yml` |
-| README + `make fg-demo-up` | Analog to `make demo-up` |
+| `spine/sidecar/` | Port `sidecar/` skeleton |
+| `platforms/common/spine_adapter.py` | reserve/settle/emit with local fallback |
+| AlgoFreeze + WireMatch spine mode | Cross-platform demo |
+| `regulatory_ops.py` | Port `finance_ops.py` |
+| `make fg-spine-up` | Spine + 2 platforms |
 
 ### Success criteria
 
-```bash
-make fg-demo-up
-make fg-demo-smoke     # reserve + settle end-to-end
-make fg-demo-ledger    # inspect decision_escrow_ledger
-pytest tests/integration/test_credit_lifecycle.py
-```
-
-- Local boot with single Compose command
-- Instrument policy enforced from DB
-- Expired low-risk reservations reclaimed
-- Append-only `decision_events` trail
-
-**Non-goals:** Real ML model, FX, admin UI, regulatory PDF export
+- Platforms work identically with `FG_SPINE_ENABLED=false`
+- Spine mode adds hash chain + cross-platform invariants
+- AlgoFreeze freeze visible in spine event stream
 
 ---
 
-## Phase 2 — Institutional hardening
+## Phase 3 — Remaining platforms (standalone each)
+
+| Platform | Deliverable |
+|----------|-------------|
+| SubledgerSync | FX-hash match pipeline + `make subledger-demo` |
+| AssetLedger | Cron depreciation + `make assetledger-demo` |
+| CreditGovern | Reserve-before-score + mock rail |
+
+Each ships standalone before spine integration.
+
+---
+
+## Phase 4 — Institutional hardening
 
 **Goal:** Production-grade reliability matching ModelGovernor capability matrix.
 

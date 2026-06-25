@@ -20,13 +20,19 @@ make demo-gold-down   # teardown
 
 ## Finance Governor (platform design)
 
-The **Finance Governor** platform adapts this repository's institutional++ spine for regulated financial services AI — credit decisions, fraud screening, and trading guardrails with examiner-grade audit chains.
+The **Finance Governor** ecosystem adapts this repository's institutional++ spine for regulated finance — as an **optional control plane** plus **five standalone platforms**, each solving a high-cost problem and deployable alone:
 
+| Platform | Problem |
+|----------|---------|
+| **AlgoFreeze** | Runaway algo / bad deploy (Knight Capital-class) |
+| **WireMatch** | Wrong wire / decimal error (Citigroup-class) |
+| **SubledgerSync** | Intercompany reconciliation drift |
+| **AssetLedger** | Stale asset depreciation |
+| **CreditGovern** | Ungoverned credit AI |
+
+- [Platform model — standalone or spine](docs/finance-governor/platform-model.md)
+- [Code-driven finance fixes (deep dive)](docs/finance-governor/code-driven-fixes.md)
 - [Platform vision](docs/finance-governor/README.md)
-- [Market gaps & wedge strategy](docs/finance-governor/market-gaps.md)
-- [AI governance → financial services mapping](docs/finance-governor/governance-framework.md)
-- [Architecture & spine port map](docs/finance-governor/architecture.md)
-- [Inaugural program: credit decision governance](programs/finance_governor/README.md)
 
 ## What this repository demonstrates
 
@@ -190,7 +196,11 @@ sidecar/
     metrics.py          # invariant counter registry
 tests/
   programs/
-    finance_governor/                # Finance Governor — credit decision wedge (design)
+    algofreeze/                      # AlgoFreeze — network freeze for live algos
+    wire_match/                      # WireMatch — semantic cross-border wire gate
+    subledger_sync/                  # SubledgerSync — intercompany reconciliation
+    asset_depreciation/              # AssetLedger — smart asset depreciation
+    finance_governor/                # CreditGovern — credit decision wedge (design)
     finance_ops_finals/              # AI Finance Ops Finals for LLMs
     cost_attribution_accountability/ # AI Cost Attribution & Agent Accountability
   integration/
