@@ -18,6 +18,16 @@ See [SALES-DEMO.md](SALES-DEMO.md) for the talk track, capability matrix, produc
 make demo-gold-down   # teardown
 ```
 
+## Finance Governor (platform design)
+
+The **Finance Governor** platform adapts this repository's institutional++ spine for regulated financial services AI — credit decisions, fraud screening, and trading guardrails with examiner-grade audit chains.
+
+- [Platform vision](docs/finance-governor/README.md)
+- [Market gaps & wedge strategy](docs/finance-governor/market-gaps.md)
+- [AI governance → financial services mapping](docs/finance-governor/governance-framework.md)
+- [Architecture & spine port map](docs/finance-governor/architecture.md)
+- [Inaugural program: credit decision governance](programs/finance_governor/README.md)
+
 ## What this repository demonstrates
 
 - Reserve-before-dispatch governance semantics
@@ -180,6 +190,7 @@ sidecar/
     metrics.py          # invariant counter registry
 tests/
   programs/
+    finance_governor/                # Finance Governor — credit decision wedge (design)
     finance_ops_finals/              # AI Finance Ops Finals for LLMs
     cost_attribution_accountability/ # AI Cost Attribution & Agent Accountability
   integration/
