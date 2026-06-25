@@ -22,6 +22,14 @@ def test_l4_certification_doc_exists():
     ).is_file()
 
 
+def test_platform_sdk_doc_exists():
+    assert (ROOT / "docs/platform-sdk.md").is_file()
+
+
+def test_plug_and_play_doc_exists():
+    assert (ROOT / "docs/plug-and-play.md").is_file()
+
+
 def test_chaos_test_exists():
     assert (ROOT / "tests/chaos/test_toxiproxy_fg_spine.py").is_file()
 

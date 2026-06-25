@@ -32,7 +32,12 @@ CREATE TABLE platform_registry (
     display_name VARCHAR(255) NOT NULL,
     auth_token_hash VARCHAR(64) NOT NULL,
     enabled BOOLEAN NOT NULL DEFAULT 1,
-    registered_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    registered_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    base_url VARCHAR(512),
+    default_policy_id VARCHAR(255),
+    default_risk_tier VARCHAR(20) NOT NULL DEFAULT 'high',
+    facet_schema TEXT NOT NULL DEFAULT '{}',
+    invariant_counters TEXT NOT NULL DEFAULT '[]'
 );
 
 CREATE TABLE governance_crystals (
@@ -113,6 +118,24 @@ INSERT INTO instrument_policy_registry (
     'credit-high-us', 'credit', 'credit_govern', 'US', 'high',
     250000, 300000, 0
 );
+
+INSERT INTO instrument_policy_registry (
+    policy_id, instrument_type, platform, jurisdiction, risk_classification,
+    max_exposure_per_commit, commit_horizon_ms, allow_auto_expire
+) VALUES (
+    'algo-critical-us', 'algo', 'algofreeze', 'US', 'critical',
+    1000000000, 5000, 0
+);
+
+INSERT INTO platform_registry (
+    platform_name, display_name, auth_token_hash, enabled,
+    base_url, default_policy_id, default_risk_tier, facet_schema, invariant_counters
+) VALUES
+    ('wire_match', 'WireMatch', 'builtin', 1, 'http://localhost:8093', 'wire-critical-us', 'critical', '{"required":["amount"]}', '[]'),
+    ('algofreeze', 'AlgoFreeze', 'builtin', 1, 'http://localhost:8094', 'algo-critical-us', 'critical', '{"required":["runtime_sha"]}', '[]'),
+    ('subledger_sync', 'SubledgerSync', 'builtin', 1, 'http://localhost:8095', NULL, 'high', '{"required":["entity_id","amount","currency"]}', '[]'),
+    ('asset_ledger', 'AssetLedger', 'builtin', 1, 'http://localhost:8096', NULL, 'high', '{"required":["asset_id"]}', '[]'),
+    ('credit_govern', 'CreditGovern', 'builtin', 1, 'http://localhost:8097', 'credit-high-us', 'high', '{"required":["application_id","exposure_amount","model_version_id"]}', '[]');
 
 INSERT INTO account_ledgers (account_id, ledger_type, currency, balance, active)
 VALUES ('desk-default', 'exposure', 'USD', 100000000, 1);

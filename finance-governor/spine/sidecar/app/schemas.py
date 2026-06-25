@@ -37,6 +37,18 @@ class CommitResponse(BaseModel):
     status: str
 
 
+class AdjudicateRequest(BaseModel):
+    crystal_id: str
+    action: str = "strand"
+    reason: str = "manual_strand"
+
+
+class AdjudicateResponse(BaseModel):
+    operation_id: str
+    crystal_id: str
+    status: str
+
+
 class HealthResponse(BaseModel):
     status: str
     details: dict[str, Any] | None = None
