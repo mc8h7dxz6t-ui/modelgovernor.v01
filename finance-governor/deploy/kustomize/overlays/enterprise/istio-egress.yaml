@@ -1,0 +1,52 @@
+# Istio egress allowlist — Finance Governor enterprise overlay
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: fg-external-oidc
+  namespace: finance-governor
+spec:
+  hosts:
+    - idp.example.com
+  location: MESH_EXTERNAL
+  ports:
+    - number: 443
+      name: https
+      protocol: HTTPS
+  resolution: DNS
+---
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: fg-s3-anchor-egress
+  namespace: finance-governor
+spec:
+  hosts:
+    - s3.amazonaws.com
+    - "*.s3.amazonaws.com"
+  location: MESH_EXTERNAL
+  ports:
+    - number: 443
+      name: https
+      protocol: HTTPS
+  resolution: DNS
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: fg-sidecar-egress-allowlist
+  namespace: finance-governor
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: sidecar
+  action: ALLOW
+  rules:
+    - to:
+        - operation:
+            hosts:
+              - fg-postgres.finance-governor.svc.cluster.local
+              - fg-pgbouncer.finance-governor.svc.cluster.local
+              - fg-redis-master.finance-governor.svc.cluster.local
+              - s3.amazonaws.com
+              - "*.s3.amazonaws.com"
+              - idp.example.com

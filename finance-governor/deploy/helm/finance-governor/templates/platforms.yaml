@@ -1,0 +1,259 @@
+{{- if and .Values.platforms.enabled .Values.platforms.wirematch.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fg-wirematch
+  namespace: {{ include "fg.namespace" . }}
+  labels:
+    {{- include "fg.labels" . | nindent 4 }}
+    app.kubernetes.io/component: wirematch
+spec:
+  replicas: {{ .Values.platforms.wirematch.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: wirematch
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: wirematch
+        {{- include "fg.labels" . | nindent 8 }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "{{ .Values.platforms.wirematch.port }}"
+    spec:
+      {{- include "fg.podAntiAffinity" . | nindent 6 }}
+      containers:
+        - name: wirematch
+          image: {{ .Values.image.wirematch }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.platforms.wirematch.port }}
+          env:
+            {{- include "fg.platformEnv" . | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: {{ .Values.platforms.wirematch.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.platforms.wirematch.port }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fg-wirematch
+  namespace: {{ include "fg.namespace" . }}
+  labels:
+    {{- include "fg.labels" . | nindent 4 }}
+    app.kubernetes.io/component: wirematch
+spec:
+  selector:
+    app.kubernetes.io/component: wirematch
+  ports:
+    - port: {{ .Values.platforms.wirematch.port }}
+      targetPort: {{ .Values.platforms.wirematch.port }}
+{{- end }}
+{{- if and .Values.platforms.enabled .Values.platforms.algofreeze.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fg-algofreeze
+  namespace: {{ include "fg.namespace" . }}
+  labels:
+    {{- include "fg.labels" . | nindent 4 }}
+    app.kubernetes.io/component: algofreeze
+spec:
+  replicas: {{ .Values.platforms.algofreeze.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: algofreeze
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: algofreeze
+        {{- include "fg.labels" . | nindent 8 }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "{{ .Values.platforms.algofreeze.port }}"
+    spec:
+      {{- include "fg.podAntiAffinity" . | nindent 6 }}
+      containers:
+        - name: algofreeze
+          image: {{ .Values.image.algofreeze }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.platforms.algofreeze.port }}
+          env:
+            {{- include "fg.platformEnv" . | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: {{ .Values.platforms.algofreeze.port }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.platforms.algofreeze.port }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fg-algofreeze
+  namespace: {{ include "fg.namespace" . }}
+spec:
+  selector:
+    app.kubernetes.io/component: algofreeze
+  ports:
+    - port: {{ .Values.platforms.algofreeze.port }}
+      targetPort: {{ .Values.platforms.algofreeze.port }}
+{{- end }}
+{{- if and .Values.platforms.enabled .Values.platforms.subledger.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fg-subledger
+  namespace: {{ include "fg.namespace" . }}
+  labels:
+    {{- include "fg.labels" . | nindent 4 }}
+    app.kubernetes.io/component: subledger
+spec:
+  replicas: {{ .Values.platforms.subledger.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: subledger
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: subledger
+        {{- include "fg.labels" . | nindent 8 }}
+    spec:
+      {{- include "fg.podAntiAffinity" . | nindent 6 }}
+      containers:
+        - name: subledger
+          image: {{ .Values.image.subledger }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.platforms.subledger.port }}
+          env:
+            {{- include "fg.platformEnv" . | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: {{ .Values.platforms.subledger.port }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.platforms.subledger.port }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fg-subledger
+  namespace: {{ include "fg.namespace" . }}
+spec:
+  selector:
+    app.kubernetes.io/component: subledger
+  ports:
+    - port: {{ .Values.platforms.subledger.port }}
+      targetPort: {{ .Values.platforms.subledger.port }}
+{{- end }}
+{{- if and .Values.platforms.enabled .Values.platforms.assetledger.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fg-assetledger
+  namespace: {{ include "fg.namespace" . }}
+spec:
+  replicas: {{ .Values.platforms.assetledger.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: assetledger
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: assetledger
+        {{- include "fg.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: assetledger
+          image: {{ .Values.image.assetledger }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.platforms.assetledger.port }}
+          env:
+            {{- include "fg.platformEnv" . | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: {{ .Values.platforms.assetledger.port }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.platforms.assetledger.port }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fg-assetledger
+  namespace: {{ include "fg.namespace" . }}
+spec:
+  selector:
+    app.kubernetes.io/component: assetledger
+  ports:
+    - port: {{ .Values.platforms.assetledger.port }}
+      targetPort: {{ .Values.platforms.assetledger.port }}
+{{- end }}
+{{- if and .Values.platforms.enabled .Values.platforms.creditgovern.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fg-creditgovern
+  namespace: {{ include "fg.namespace" . }}
+spec:
+  replicas: {{ .Values.platforms.creditgovern.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: creditgovern
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: creditgovern
+        {{- include "fg.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: creditgovern
+          image: {{ .Values.image.creditgovern }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.platforms.creditgovern.port }}
+          env:
+            {{- include "fg.platformEnv" . | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: {{ .Values.platforms.creditgovern.port }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.platforms.creditgovern.port }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fg-creditgovern
+  namespace: {{ include "fg.namespace" . }}
+spec:
+  selector:
+    app.kubernetes.io/component: creditgovern
+  ports:
+    - port: {{ .Values.platforms.creditgovern.port }}
+      targetPort: {{ .Values.platforms.creditgovern.port }}
+{{- end }}

@@ -1,8 +1,9 @@
 .PHONY: fg-spine-up fg-spine-down fg-spine-test fg-spine-smoke fg-spine-logs \
 	fg-stack-up fg-stack-down crystal-demo algofreeze-demo wirematch-demo \
 	subledger-demo assetledger-demo credit-demo fg-all-platforms-demo \
-	fg-demo-gold-reliability fg-certification fg-demo-up fg-demo-down fg-demo-gold \
-	fg-test-postgres-up fg-test-postgres-down fg-integration-test fg-chaos-test fg-load-smoke
+	fg-demo-gold-reliability fg-certification fg-certification-l4 fg-demo-up fg-demo-down fg-demo-gold \
+	fg-test-postgres-up fg-test-postgres-down fg-integration-test fg-chaos-test fg-load-smoke \
+	fg-helm-enterprise fg-kustomize-install fg-kustomize-enterprise
 
 fg-spine-up:
 	docker compose up -d --build
@@ -88,6 +89,31 @@ fg-helm-template:
 	  --set s3Anchor.bucket=fg-anchor-demo \
 	  --set postgres.password=postgres
 
+fg-helm-enterprise:
+	helm template fg ./deploy/helm/finance-governor \
+	  -f ./deploy/helm/finance-governor/values-production.yaml \
+	  -f ./deploy/helm/finance-governor/values-enterprise.yaml \
+	  --set secrets.create=true \
+	  --set oidc.issuerUrl=https://idp.example.com/realms/fg \
+	  --set oidc.audience=finance-governor \
+	  --set s3Anchor.bucket=fg-anchor-l4 \
+	  --set postgres.password=postgres
+
+KUSTOMIZE_VERSION ?= v5.5.0
+KUSTOMIZE_BIN ?= $(CURDIR)/.bin/kustomize
+
+fg-kustomize-install:
+	@mkdir -p .bin
+	@if [ ! -x "$(KUSTOMIZE_BIN)" ]; then \
+	  echo "Installing kustomize $(KUSTOMIZE_VERSION) to $(KUSTOMIZE_BIN)"; \
+	  curl -sSLo /tmp/kustomize.tar.gz \
+	    "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F$(KUSTOMIZE_VERSION)/kustomize_$(KUSTOMIZE_VERSION)_linux_amd64.tar.gz"; \
+	  tar xzf /tmp/kustomize.tar.gz -C .bin; \
+	fi
+
+fg-kustomize-enterprise: fg-kustomize-install
+	$(KUSTOMIZE_BIN) build ./deploy/kustomize/overlays/enterprise
+
 fg-helm-install:
 	chmod +x scripts/*.sh
 	./scripts/fg-helm-install.sh
@@ -169,3 +195,14 @@ fg-certification:
 	  | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get('valid') is True, d" \
 	  2>/dev/null; then echo "chain verify OK"; else echo "chain verify skipped (spine not running)"; fi
 	@echo "fg-certification complete (institutional++)"
+
+fg-certification-l4:
+	@echo "==> L4 Gold certification gate"
+	@$(MAKE) fg-certification
+	@echo "==> L4 Helm enterprise render"
+	@$(MAKE) fg-helm-enterprise > /dev/null
+	@echo "==> L4 Helm enterprise tests"
+	python3 -m pytest tests/test_l4_helm_enterprise.py tests/test_l4_certification.py -q
+	@echo "==> L4 Kustomize enterprise"
+	@$(MAKE) fg-kustomize-enterprise > /dev/null
+	@echo "fg-certification-l4 complete (L4 Gold)"

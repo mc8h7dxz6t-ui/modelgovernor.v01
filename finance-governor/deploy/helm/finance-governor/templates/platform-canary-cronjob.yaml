@@ -1,0 +1,41 @@
+{{- if .Values.platformCanary.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: fg-platform-canary
+  namespace: {{ include "fg.namespace" . }}
+  labels:
+    {{- include "fg.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.platformCanary.schedule | quote }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: canary
+              image: curlimages/curl:8.5.0
+              env:
+                - name: FG_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "fg.secretName" . }}
+                      key: fg-internal-tokens
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  curl -sf -H "x-internal-token: $FG_TOKEN" http://fg-sidecar:8091/readyz
+                  curl -sf -H "x-internal-token: $FG_TOKEN" http://fg-sidecar:8091/internal/decisions/verify-chain \
+                    | grep -q '"valid":true'
+                  {{- if .Values.platforms.enabled }}
+                  curl -sf http://fg-wirematch:8093/readyz
+                  curl -sf http://fg-algofreeze:8094/readyz
+                  curl -sf http://fg-subledger:8095/readyz
+                  curl -sf http://fg-assetledger:8096/readyz
+                  curl -sf http://fg-creditgovern:8097/readyz
+                  {{- end }}
+                  echo "fg-platform-canary OK"
+{{- end }}

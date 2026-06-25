@@ -22,12 +22,14 @@ spec:
         prometheus.io/port: "8091"
     spec:
       serviceAccountName: {{ .Values.serviceAccount.name }}
+      {{- include "fg.podAntiAffinity" . | nindent 6 }}
       containers:
         - name: sidecar
           image: {{ .Values.image.sidecar }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
-            - containerPort: 8091
+            - name: http
+              containerPort: 8091
           envFrom:
             - configMapRef:
                 name: {{ include "fg.configMapName" . }}
@@ -40,9 +42,9 @@ spec:
                   name: {{ include "fg.secretName" . }}
                   key: postgres-password
             - name: DATABASE_URL
-              value: postgresql+psycopg://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@fg-postgres:5432/{{ .Values.postgres.database }}
+              value: postgresql+psycopg://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@{{ include "fg.databaseHost" . }}:{{ include "fg.databasePort" . }}/{{ .Values.postgres.database }}
             - name: REDIS_URL
-              value: redis://fg-redis:6379/0
+              value: {{ include "fg.redisUrl" . | quote }}
             - name: FG_INTERNAL_TOKENS
               valueFrom:
                 secretKeyRef:
