@@ -22,6 +22,14 @@ enterprise:
   podAntiAffinity: true
   networkPolicy: true
 
+istio:
+  enabled: true
+  holdApplicationUntilProxyStarts: true
+
+postgres:
+  external:
+    enabled: false
+
 pgbouncer:
   enabled: true
   replicas: 3
@@ -57,6 +65,11 @@ platforms:
     enabled: true
     replicas: 2
     port: 8097
+    rail:
+      mode: live
+      url: http://fg-credit-rail:8098
+      timeout: "10"
+      circuitThreshold: "5"
 
 hpa:
   enabled: true

@@ -26,7 +26,8 @@ spec:
               password = os.environ["PGPASSWORD"]
               db = os.environ["PGDATABASE"]
               host = os.environ["PGHOST"]
-              dsn = f"postgresql://{user}:{password}@{host}:5432/{db}"
+              port = os.environ.get("PGPORT", "5432")
+              dsn = f"postgresql://{user}:{password}@{host}:{port}/{db}"
               files = sorted(glob.glob("/migrations/*.sql"))
               with psycopg.connect(dsn, autocommit=True) as conn:
                   with conn.cursor() as cur:
@@ -46,7 +47,9 @@ spec:
               PY
           env:
             - name: PGHOST
-              value: fg-postgres
+              value: {{ include "fg.postgresBackendHost" . | quote }}
+            - name: PGPORT
+              value: {{ include "fg.postgresBackendPort" . | quote }}
             - name: PGDATABASE
               value: {{ .Values.postgres.database | quote }}
             - name: PGUSER

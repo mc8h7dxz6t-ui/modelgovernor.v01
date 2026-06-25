@@ -24,6 +24,7 @@ spec:
         prometheus.io/scrape: "true"
         prometheus.io/path: "/metrics"
         prometheus.io/port: "{{ .port }}"
+        {{- include "fg.istioPodAnnotations" $ | nindent 8 }}
     spec:
       {{- include "fg.podAntiAffinity" $ | nindent 6 }}
       containers:

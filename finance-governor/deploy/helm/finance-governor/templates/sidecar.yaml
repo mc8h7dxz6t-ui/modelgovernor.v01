@@ -20,6 +20,7 @@ spec:
         prometheus.io/scrape: "true"
         prometheus.io/path: "/metrics/prometheus"
         prometheus.io/port: "8091"
+        {{- include "fg.istioPodAnnotations" . | nindent 8 }}
     spec:
       serviceAccountName: {{ .Values.serviceAccount.name }}
       {{- include "fg.podAntiAffinity" . | nindent 6 }}

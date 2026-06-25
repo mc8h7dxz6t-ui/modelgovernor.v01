@@ -64,6 +64,11 @@ Every irreversible action on the spine requires a **Governance Crystal**. See [c
 | `make fg-certification` (4-tier) | ✅ |
 | `make fg-certification-l4` (L4 Gold) | ✅ |
 | Platform SDK plug-and-play (`platform_sdk`, registry, facet schemas) | ✅ |
+| Live inference rails (HTTP + circuit breaker) | ✅ |
+| FG-ECP external vendor certification | ✅ |
+| AWS RDS overlay (`values-rds.yaml`) | ✅ |
+| Istio sidecar injection (all workloads) | ✅ |
+| `make fg-certification-external` (L5) | ✅ |
 | `make fg-platform-conformance` | ✅ |
 | Helm L4 enterprise (PgBouncer, Sentinel, HPA, platforms) | ✅ |
 | ArgoCD GitOps + Istio enterprise overlay | ✅ |

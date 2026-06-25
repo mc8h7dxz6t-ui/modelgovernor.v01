@@ -13,7 +13,7 @@ from platforms.common.platform_observability import mount_platform_observability
 from platforms.common.platform_store import append_platform_event, get_credit_store, reset_all_stores
 
 from .credit_schema import CreditRequest
-from .mock_rail import score_application
+from .inference_rail import RailCircuitOpenError, get_inference_rail, reset_inference_rail
 
 logger = logging.getLogger(__name__)
 
@@ -141,7 +141,20 @@ def evaluate(req: CreditRequest) -> EvaluateResponse:
 
 def _score_with_rail(req: CreditRequest, exposure: Decimal):
     _COUNTERS.increment("rail_attempt_total")
-    return score_application(exposure=exposure, model_version_id=req.model_version_id)
+    rail = get_inference_rail()
+    try:
+        return rail.score(
+            application_id=req.application_id,
+            exposure=exposure,
+            model_version_id=req.model_version_id,
+            features={
+                "desk_id": req.desk_id,
+                "feature_snapshot_hash": req.feature_snapshot_hash,
+            },
+        )
+    except RailCircuitOpenError as exc:
+        _COUNTERS.increment("rail_circuit_open_total")
+        raise HTTPException(status_code=503, detail="RAIL_CIRCUIT_OPEN") from exc
 
 
 def _record_rail_attempt(application_id: str, status: str, external_ref: str | None) -> None:
@@ -169,3 +182,4 @@ def _record_rail_attempt(application_id: str, status: str, external_ref: str | N
 
 def reset_state() -> None:
     reset_all_stores()
+    reset_inference_rail()

@@ -156,6 +156,24 @@ jobs:
           pip install pytest
       - run: make fg-platform-conformance
 
+  fg-certification-external:
+    name: FG-ECP external attestation (L5)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: finance-governor
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: |
+          pip install -r platforms/requirements.txt
+          pip install -r spine/sidecar/requirements.txt
+          pip install pytest uvicorn
+      - run: make fg-certification-external
+
   fg-kustomize-enterprise:
     name: FG L4 Kustomize enterprise gate
     runs-on: ubuntu-latest

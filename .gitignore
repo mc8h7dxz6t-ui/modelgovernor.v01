@@ -28,6 +28,7 @@ tests/load/reports/
 artifacts/reliability/latest_invariant_report.json
 *.sqlite3
 finance-governor/.bin/
+finance-governor/artifacts/certification/
 
 # OS/editor noise
 .DS_Store

@@ -10,7 +10,7 @@ metadata:
 data:
   pgbouncer.ini: |
     [databases]
-    {{ .Values.postgres.database }} = host=fg-postgres port=5432 dbname={{ .Values.postgres.database }}
+    {{ .Values.postgres.database }} = host={{ include "fg.postgresBackendHost" . }} port={{ include "fg.postgresBackendPort" . }} dbname={{ .Values.postgres.database }}
 
     [pgbouncer]
     listen_addr = 0.0.0.0
@@ -45,6 +45,8 @@ spec:
       labels:
         app.kubernetes.io/component: pgbouncer
         {{- include "fg.labels" . | nindent 8 }}
+      annotations:
+        {{- include "fg.istioPodAnnotations" . | nindent 8 }}
     spec:
       {{- include "fg.podAntiAffinity" . | nindent 6 }}
       containers:

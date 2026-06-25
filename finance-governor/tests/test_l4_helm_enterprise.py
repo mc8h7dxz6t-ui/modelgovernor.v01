@@ -88,3 +88,37 @@ def test_l4_platform_canary_cronjob(enterprise_docs):
 def test_l4_no_simple_redis_when_sentinel(enterprise_docs):
     names = [d["metadata"]["name"] for d in enterprise_docs if d.get("metadata")]
     assert "fg-redis" not in names
+
+
+def test_l5_istio_injection_on_workloads(enterprise_docs):
+    deployments = [d for d in enterprise_docs if d.get("kind") == "Deployment"]
+    injected = [
+        d
+        for d in deployments
+        if d.get("spec", {}).get("template", {}).get("metadata", {}).get("annotations", {}).get("sidecar.istio.io/inject") == "true"
+    ]
+    assert len(injected) >= 5
+
+
+def test_l5_rds_overlay_no_in_cluster_postgres():
+    cmd = [
+        "helm",
+        "template",
+        "fg",
+        str(CHART),
+        "-f",
+        str(CHART / "values-production.yaml"),
+        "-f",
+        str(CHART / "values-enterprise.yaml"),
+        "-f",
+        str(CHART / "values-rds.yaml"),
+        "--set",
+        "postgres.password=postgres",
+        "--set",
+        "secrets.create=true",
+        "--set",
+        "postgres.external.host=fg-prod.cluster.example.rds.amazonaws.com",
+    ]
+    out = subprocess.check_output(cmd, text=True)
+    assert "fg-postgres" not in out
+    assert "fg-prod.cluster.example.rds.amazonaws.com" in out

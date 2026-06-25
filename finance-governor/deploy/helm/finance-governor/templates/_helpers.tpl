@@ -18,11 +18,19 @@ fg-config
 {{- end }}
 
 {{- define "fg.databaseHost" -}}
-{{- if .Values.pgbouncer.enabled }}fg-pgbouncer{{- else }}fg-postgres{{- end }}
+{{- if .Values.pgbouncer.enabled }}fg-pgbouncer{{- else if .Values.postgres.external.enabled }}{{ .Values.postgres.external.host }}{{- else }}fg-postgres{{- end }}
 {{- end }}
 
 {{- define "fg.databasePort" -}}
-{{- if .Values.pgbouncer.enabled }}6432{{- else }}5432{{- end }}
+{{- if .Values.pgbouncer.enabled }}6432{{- else if .Values.postgres.external.enabled }}{{ .Values.postgres.external.port }}{{- else }}5432{{- end }}
+{{- end }}
+
+{{- define "fg.postgresBackendHost" -}}
+{{- if .Values.postgres.external.enabled }}{{ .Values.postgres.external.host }}{{- else }}fg-postgres{{- end }}
+{{- end }}
+
+{{- define "fg.postgresBackendPort" -}}
+{{- if .Values.postgres.external.enabled }}{{ .Values.postgres.external.port }}{{- else }}5432{{- end }}
 {{- end }}
 
 {{- define "fg.databaseUrl" -}}
@@ -70,4 +78,24 @@ podAntiAffinity:
       key: postgres-password
 - name: DATABASE_URL
   value: postgresql+psycopg://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@{{ include "fg.databaseHost" . }}:{{ include "fg.databasePort" . }}/{{ .Values.postgres.database }}
+{{- end }}
+
+{{- define "fg.istioPodAnnotations" -}}
+{{- if .Values.istio.enabled }}
+sidecar.istio.io/inject: "true"
+{{- if .Values.istio.holdApplicationUntilProxyStarts }}
+proxy.istio.io/config: '{ "holdApplicationUntilProxyStarts": true }'
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- define "fg.creditGovernRailEnv" -}}
+- name: FG_CREDIT_RAIL_MODE
+  value: {{ .Values.platforms.creditgovern.rail.mode | default "auto" | quote }}
+- name: FG_CREDIT_RAIL_URL
+  value: {{ .Values.platforms.creditgovern.rail.url | default "" | quote }}
+- name: FG_CREDIT_RAIL_TIMEOUT
+  value: {{ .Values.platforms.creditgovern.rail.timeout | default "10" | quote }}
+- name: FG_CREDIT_RAIL_CIRCUIT_THRESHOLD
+  value: {{ .Values.platforms.creditgovern.rail.circuitThreshold | default "5" | quote }}
 {{- end }}

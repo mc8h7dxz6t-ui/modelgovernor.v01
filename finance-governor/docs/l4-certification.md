@@ -58,6 +58,7 @@ make fg-demo-gold-reliability
 
 ## Related
 
+- [external-certification.md](external-certification.md) — FG-ECP vendor attestation (L5)
 - [institutional-gold-standard.md](../../docs/finance-governor/institutional-gold-standard.md)
 - [operations-runbook.md](../../docs/finance-governor/operations-runbook.md)
 - [PRODUCTION.md](../deploy/PRODUCTION.md)

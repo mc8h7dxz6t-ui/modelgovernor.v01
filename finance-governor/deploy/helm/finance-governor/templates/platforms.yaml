@@ -21,6 +21,7 @@ spec:
         prometheus.io/scrape: "true"
         prometheus.io/path: "/metrics"
         prometheus.io/port: "{{ .Values.platforms.wirematch.port }}"
+        {{- include "fg.istioPodAnnotations" . | nindent 8 }}
     spec:
       {{- include "fg.podAntiAffinity" . | nindent 6 }}
       containers:
@@ -81,6 +82,7 @@ spec:
         prometheus.io/scrape: "true"
         prometheus.io/path: "/metrics"
         prometheus.io/port: "{{ .Values.platforms.algofreeze.port }}"
+        {{- include "fg.istioPodAnnotations" . | nindent 8 }}
     spec:
       {{- include "fg.podAntiAffinity" . | nindent 6 }}
       containers:
@@ -132,6 +134,8 @@ spec:
       labels:
         app.kubernetes.io/component: subledger
         {{- include "fg.labels" . | nindent 8 }}
+      annotations:
+        {{- include "fg.istioPodAnnotations" . | nindent 8 }}
     spec:
       {{- include "fg.podAntiAffinity" . | nindent 6 }}
       containers:
@@ -180,6 +184,8 @@ spec:
       labels:
         app.kubernetes.io/component: assetledger
         {{- include "fg.labels" . | nindent 8 }}
+      annotations:
+        {{- include "fg.istioPodAnnotations" . | nindent 8 }}
     spec:
       containers:
         - name: assetledger
@@ -227,6 +233,8 @@ spec:
       labels:
         app.kubernetes.io/component: creditgovern
         {{- include "fg.labels" . | nindent 8 }}
+      annotations:
+        {{- include "fg.istioPodAnnotations" . | nindent 8 }}
     spec:
       containers:
         - name: creditgovern
@@ -236,6 +244,7 @@ spec:
             - containerPort: {{ .Values.platforms.creditgovern.port }}
           env:
             {{- include "fg.platformEnv" . | nindent 12 }}
+            {{- include "fg.creditGovernRailEnv" . | nindent 12 }}
           readinessProbe:
             httpGet:
               path: /readyz

@@ -1,51 +1,64 @@
 # Finance Governor — Capability Matrix (institutional++)
 
-Use in RFPs, model risk questionnaires, and regulatory diligence. Status reflects **target** at Phase 3 unless noted.
+Use in RFPs, model risk questionnaires, and regulatory diligence. Status reflects **implemented** state as of FG-ECP v1 (industry-leading track).
 
-**Deep dives:** [desirability](desirability.md) · [institutional gold standard](institutional-gold-standard.md)
+**Deep dives:** [desirability](desirability.md) · [institutional gold standard](institutional-gold-standard.md) · [external certification](../../finance-governor/docs/external-certification.md)
 
 ## Certification levels
 
-| Level | Requirements |
-|-------|--------------|
-| **L1 Platform Ready** | Standalone demo + Tier 1–2 tests |
-| **L2 Institutional** | + diagnostic mode, invariants, metrics |
-| **L3 Institutional++** | + hash chain, SLO alerts, load tests |
-| **L4 Gold** | + chaos harness, K8s HA, S3 anchor, OIDC |
+| Level | Requirements | Verify |
+|-------|--------------|--------|
+| **L1 Platform Ready** | Standalone demo + Tier 1–2 tests | `make fg-spine-test` |
+| **L2 Institutional** | + diagnostic mode, invariants, metrics | `make fg-certification` tier 1–2 |
+| **L3 Institutional++** | + hash chain, SLO alerts, Postgres, chaos | `make fg-certification` + `fg-platform-conformance` |
+| **L4 Gold** | + K8s HA, PgBouncer, Sentinel, GitOps | `make fg-certification-l4` |
+| **L5 Industry Leading** | + live rails, RDS, Istio all workloads, FG-ECP attestation | `make fg-certification-external` |
 
-| Capability | Status | Phase 1 Demo | Phase 3 Production |
-|------------|--------|--------------|-------------------|
-| Reserve-before-inference governance | 🎯 | `make fg-demo-gold` | Gateway + sidecar |
-| Credit decision API | 🎯 | Mock rail | Live inference rails |
-| ISO 4217 exposure ledger (`NUMERIC(24,12)`) | 🎯 | Auto | Postgres |
-| Append-only decision events + idempotent lifecycle | 🎯 | Step 7 demo | Postgres |
-| Per-desk atomic exposure caps | 🎯 | Auto | Sidecar |
-| Exposure drift enforcement + account lockout | 🎯 | Demo step | Sidecar |
-| Leader-elected reconciler (expiry/stranded) | 🎯 | Step 1 + 11 | 2+ replicas |
-| High-risk never silent-expire | 🎯 | Policy test | Reconciler + policy |
-| Redis guardrails + local fallback | 🎯 | Auto | Sidecar |
-| Inference rail circuit breaker | 🎯 | Demo step | Sidecar |
-| Diagnostic mode (no poison pill) | 📋 Phase 2 | — | Redis cluster flag |
-| Hash-chained decision events | 📋 Phase 2 | Verify API | Migration |
-| Hourly chain verification CronJob | 📋 Phase 3 | — | K8s CronJob |
-| S3 Object Lock external anchor | 📋 Phase 3 | Documented | CloudFormation + ESO |
-| Privileged admin audit log | 📋 Phase 2 | Demo step | Migration |
-| Gateway OIDC termination | 📋 Phase 2 | Documented | Config flag |
-| Sidecar OIDC + RBAC | 📋 Phase 2 | Documented | Config flag |
-| Model ownership registry | 📋 Phase 2 | Internal API | Postgres |
-| Bias cohort monitoring hooks | 📋 Phase 2 | Metrics only | Prometheus |
-| Explainability artifact binding | 🎯 | Settlement metadata | Sidecar |
-| Regulatory export API | 📋 Phase 3 | — | `/internal/regulatory/export` |
-| ExternalSecrets | 📋 Phase 3 | — | Production overlay |
-| Redis Sentinel HA | 📋 Phase 3 | — | Production overlay |
-| PgBouncer connection pooling | 📋 Phase 3 | HA compose | K8s + Helm |
-| Istio egress allowlist + STRICT mTLS | 📋 Phase 3 | — | Enterprise overlay |
-| Prometheus SLOs + burn-rate alerts | 📋 Phase 2 | `/metrics/prometheus` | PrometheusRule |
-| Governance canary CronJobs | 📋 Phase 3 | — | K8s |
-| GitOps (ArgoCD + Helm) | 📋 Phase 3 | Manifests | `deploy/argocd` |
-| 4-tier CI (unit → Postgres → load → chaos) | 📋 Phase 2–3 | `ci.yml` | GitHub Actions |
+Legend: ✅ Implemented · 🔌 Deploy-time config · 📄 Documented operator step
 
-Legend: 🎯 Phase 1 target | 📋 Planned phase
+---
+
+## Capability matrix (current)
+
+| Capability | Status | Demo / test | Production |
+|------------|--------|-------------|------------|
+| Reserve-before-inference (crystallize + exposure) | ✅ | `make fg-demo-gold` | Gateway + sidecar |
+| Credit decision API | ✅ | Mock + live HTTP rail | `FG_CREDIT_RAIL_MODE=live` |
+| Live inference rails (HTTP provider + circuit breaker) | ✅ | `test_inference_rail.py` | `inference_rail.py` + `values-enterprise` |
+| ISO 4217 exposure ledger (`NUMERIC(24,12)`) | ✅ | Auto | Postgres |
+| Append-only decision events + idempotent lifecycle | ✅ | Step 7 demo | Postgres |
+| Per-desk atomic exposure caps | ✅ | Auto | Sidecar |
+| Exposure drift enforcement + account lockout | ✅ | `test_exposure_drift.py` | Sidecar |
+| Leader-elected reconciler (expiry/stranded) | ✅ | Demo step 11 | 2+ replicas |
+| High-risk never silent-expire | ✅ | Policy + reconciler tests | Reconciler + policy |
+| Redis guardrails + local fallback | ✅ | Auto | Sidecar |
+| Inference rail circuit breaker | ✅ | `rail_circuit_open_total` | CreditGovern + sidecar attempts |
+| Diagnostic mode (no poison pill) | ✅ | `test_diagnostic_mode.py` | Redis / API flag |
+| Hash-chained decision events | ✅ | `verify-chain` API | Migration + sidecar |
+| Hourly chain verification CronJob | ✅ | Helm template | `decisionChainVerify` CronJob |
+| S3 Object Lock external anchor | ✅ | `decisionChainAnchor` CronJob | 🔌 `s3Anchor.bucket` + IAM |
+| Privileged admin audit log | ✅ | Demo + `/internal/admin/audit` | Postgres |
+| Gateway OIDC termination | ✅ | `test_auth_oidc.py` | `oidc.enabled: true` |
+| Sidecar OIDC + RBAC | ✅ | `require_financial_admin` | Config + middleware |
+| Instrument / model policy registry | ✅ | Seeded policies | `instrument_policy_registry` |
+| Platform registry (plug-and-play) | ✅ | `test_platform_registry.py` | Migration `0004` |
+| Facet schema validation | ✅ | `test_facet_schemas.py` | Crystallize gate |
+| Bias cohort monitoring hooks | ✅ | Prometheus counters | `fg_platform_invariant_events_total` |
+| Explainability artifact binding | ✅ | CreditGovern metadata | Commit facets + rail outcome |
+| Regulatory export API | ✅ | `test_regulatory_export.py` | `/internal/regulatory/export` |
+| ExternalSecrets | ✅ | Helm template | 🔌 `externalSecrets.enabled` |
+| Redis Sentinel HA | ✅ | L4 enterprise render | `values-enterprise.yaml` |
+| PgBouncer connection pooling | ✅ | L4 enterprise render | `templates/pgbouncer.yaml` |
+| Managed Postgres (AWS RDS) | ✅ | `values-rds.yaml` | 🔌 `postgres.external.enabled` |
+| Istio egress allowlist + STRICT mTLS | ✅ | `kustomize/overlays/enterprise` | Enterprise overlay |
+| Istio sidecar injection (all workloads) | ✅ | L5 Helm annotations | `istio.enabled: true` |
+| Prometheus SLOs + burn-rate alerts | ✅ | `/metrics/prometheus` | `PrometheusRule` |
+| Governance + platform canary CronJobs | ✅ | Helm templates | K8s CronJob |
+| GitOps (ArgoCD + Helm) | ✅ | `deploy/argocd/` | Application manifest |
+| 4-tier CI (unit → Postgres → load → chaos) | ✅ | `.github/workflows/fg-ci.yml` | GitHub Actions |
+| Platform SDK plug-and-play | ✅ | `make fg-platform-conformance` | `platform_sdk.py` |
+| External vendor certification (FG-ECP) | ✅ | `make fg-certification-external` | Attestation JSON + SHA256 |
+| 100+ automated tests | ✅ | `pytest tests/` | CI |
 
 ---
 
@@ -56,23 +69,10 @@ Legend: 🎯 Phase 1 target | 📋 Planned phase
 | **Regulatory Compliance** | Instrument policy registry, jurisdiction gates, regulatory export, EU AI Act risk tier |
 | **Risk Management** | Exposure caps, drift lockout, bias hooks, stranded semantics, circuit breaker |
 | **Accountability** | Multi-dimensional attribution, approval gates, ownership registry, SoD roles |
-| **Monitoring** | Invariant counters, SLOs, synthetic probes, OTel spans |
+| **Monitoring** | Invariant counters, SLOs, synthetic probes, PodMonitor |
 | **Transparency** | Hash chain, verify API, explanation binding, external anchor, lineage |
 
 ---
-
-## Pre-revenue valuation framing
-
-Finance Governor inherits ModelGovernor's **proven institutional++ engineering** and applies it to **larger TAM** (all of regulated finance vs LLM spend only).
-
-| Asset | Pre-revenue worth driver |
-|-------|--------------------------|
-| ModelGovernor spine (ported) | $900K–$1.6M replacement cost (proven) |
-| Five platform specs + domain schema | $400K–$800K |
-| Demo-ready standalone paths (when built) | $300K–$600K each at maturity |
-| **Finance Governor bundle (design + spine IP)** | **$5M–$10M** fair value at full scaffold |
-
-See [desirability.md](desirability.md) for buyer ROI and bundle ACV targets.
 
 ## Competitive positioning
 
@@ -83,7 +83,7 @@ See [desirability.md](desirability.md) for buyer ROI and bundle ACV targets.
 | **Feature stores** | Pre-inference exposure control, not just serving |
 | **Cloud AI guardrails** | Finance-specific policy, examiner-grade audit chain |
 | **GRC suites** | Sub-second reserve-before-decision at inference boundary |
-| **Homegrown wrappers** | 4-tier test pyramid + chaos harness + HA reconciler |
+| **Homegrown wrappers** | 100+ tests, chaos harness, FG-ECP vendor attestation |
 
 ---
 
@@ -92,27 +92,30 @@ See [desirability.md](desirability.md) for buyer ROI and bundle ACV targets.
 | Examiner question | Proof artifact |
 |-------------------|----------------|
 | How do you prevent unapproved models in production? | `instrument_policy_registry` + version mismatch guardrail |
-| Show me the audit trail for application X | `GET /internal/decision/{key}` + `decision_events` |
-| How do you handle inference timeouts? | `STRANDED` semantics + reconciler events |
+| Show me the audit trail for application X | `GET /internal/crystals/{id}/reconstruct` + `decision_events` |
+| How do you handle inference timeouts? | `STRANDED` semantics + reconciler + rail circuit breaker |
 | Prove the log wasn't tampered with | `GET /internal/decisions/verify-chain` + S3 anchor |
 | Who approved overrides above threshold? | `guardrail_incidents` + `admin_audit_log` |
 | How do you monitor bias? | Cohort counters + `BIAS_ALERT` events |
+| Third-party platform certified? | FG-ECP attestation report (`report_sha256`) |
 
 ---
 
-## Proof commands (target)
+## Proof commands
 
 ```bash
-make fg-demo-gold              # live ~5-min walkthrough
-make fg-demo-gold-reliability  # invariants + reconciler drill
-pytest tests/integration/      # fast suite
-pytest tests/chaos/            # Toxiproxy regulatory ops
+cd finance-governor
+make fg-demo-gold                  # institutional++ walkthrough
+make fg-certification-l4           # L4 Gold internal gate
+make fg-platform-conformance       # plug-and-play SDK
+make fg-certification-external     # L5 vendor attestation (FG-ECP)
+pytest tests/ -q --ignore=tests/integration
 ```
 
 ---
 
 ## Pre-revenue valuation framing
 
-Finance Governor inherits ModelGovernor's institutional++ engineering proof (ledger, reconciler, hash chain, 4-tier CI) applied to a **larger TAM** (regulated finance vs LLM spend control). Wedge clarity (credit decision governance) de-risks go-to-market vs generic "AI for finance."
+Finance Governor inherits ModelGovernor's **proven institutional++ engineering** and applies it to **larger TAM** (all of regulated finance vs LLM spend only).
 
-Comparable positioning: RegTech infrastructure layer — sold to CRO / Model Risk / CTO with compliance as champion.
+See [desirability.md](desirability.md) for buyer ROI and bundle ACV targets.

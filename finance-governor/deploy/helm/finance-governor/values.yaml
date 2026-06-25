@@ -23,6 +23,18 @@ postgres:
   user: postgres
   password: postgres
   storage: 20Gi
+  external:
+    enabled: false
+    host: ""
+    port: 5432
+    sslMode: require
+    rds:
+      enabled: false
+      iamAuth: false
+
+istio:
+  enabled: false
+  holdApplicationUntilProxyStarts: true
 
 redis:
   enabled: true
@@ -124,6 +136,11 @@ platforms:
     enabled: true
     replicas: 1
     port: 8097
+    rail:
+      mode: auto
+      url: ""
+      timeout: "10"
+      circuitThreshold: "5"
 
 hpa:
   enabled: false

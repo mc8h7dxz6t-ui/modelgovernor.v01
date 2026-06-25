@@ -199,6 +199,10 @@ fg-certification:
 fg-platform-conformance:
 	python3 -m pytest tests/test_facet_schemas.py tests/test_platform_sdk.py tests/test_platform_registry.py -q
 
+fg-certification-external:
+	chmod +x scripts/fg_certification_report.py
+	FG_ECP_QUICK=1 python3 scripts/fg_certification_report.py --quick $(or $(LEVEL),L5) $(or $(PLATFORM),finance_governor)
+
 fg-certification-l4:
 	@echo "==> L4 Gold certification gate"
 	@$(MAKE) fg-certification
