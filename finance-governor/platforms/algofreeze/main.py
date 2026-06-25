@@ -1,6 +1,9 @@
 """AlgoFreeze proxy API."""
 from __future__ import annotations
 
+import logging
+import os
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
@@ -8,12 +11,16 @@ from .feed_heartbeat import FeedHeartbeat
 from .freeze_controller import FreezeController, FreezeState, VersionRegistry
 from .order_gate import OrderGate
 
+logger = logging.getLogger(__name__)
+
 app = FastAPI(title="algofreeze", version="0.1.0")
 
 _registry = VersionRegistry(approved_sha="approved-sha-v1")
 _controller = FreezeController()
 _gate = OrderGate(_controller)
 _feed = FeedHeartbeat(max_gap_seconds=2.0)
+DESK_ID = "desk-default"
+FREEZE_POLICY_VERSION = "algofreeze-v1"
 
 
 class OrderRequest(BaseModel):
@@ -57,38 +64,55 @@ def feed_packet() -> dict:
     return {"ok": True}
 
 
+def _base_facets(runtime_sha: str) -> dict:
+    return {
+        "desk_id": DESK_ID,
+        "deploy_sha": runtime_sha,
+        "approved_sha": _registry.approved_sha,
+        "freeze_policy_version": FREEZE_POLICY_VERSION,
+        "feed_health_vector": {"degraded": _feed.is_degraded()},
+    }
+
+
 @app.post("/orders")
 def submit_order(body: OrderRequest) -> dict:
     if not _registry.check(body.runtime_sha):
         _controller.freeze(reason="VERSION_MISMATCH")
-        facets = {
-            "freeze_state": "FROZEN",
-            "deploy_sha": body.runtime_sha,
-            "approved_sha": _registry.approved_sha,
-        }
-        _maybe_crystallize_freeze(body.order_id, facets)
+        facets = {**_base_facets(body.runtime_sha), "freeze_state": "FROZEN"}
+        _maybe_crystallize(body.order_id, facets)
         raise HTTPException(status_code=403, detail="VERSION_MISMATCH: desk frozen")
 
     if _feed.is_degraded():
-        _controller.freeze(reason="FEED_DEGRADED")
-        facets = {"freeze_state": "FROZEN", "feed_degraded": True}
-        _maybe_crystallize_freeze(body.order_id, facets)
+        _controller.degrade(reason="FEED_DEGRADED")
+        facets = {**_base_facets(body.runtime_sha), "freeze_state": "DEGRADED"}
+        _maybe_crystallize(body.order_id, facets)
         raise HTTPException(status_code=403, detail="FEED_DEGRADED: desk frozen")
 
     if not _gate.allow_order():
         raise HTTPException(status_code=403, detail=f"FROZEN: {_controller.reason}")
 
+    facets = {**_base_facets(body.runtime_sha), "freeze_state": "ACTIVE", "notional": body.notional}
+    _maybe_crystallize(body.order_id, facets, commit=True)
     return {"status": "ROUTED", "order_id": body.order_id}
 
 
-def _maybe_crystallize_freeze(operation_id: str, facets: dict) -> None:
+def _maybe_crystallize(operation_id: str, facets: dict, *, commit: bool = False) -> None:
+    if os.environ.get("FG_SPINE_ENABLED", "false").lower() != "true":
+        return
     try:
-        import os
-        from platforms.common.spine_adapter import SpineAdapter
+        from platforms.common.spine_adapter import CommitOutcome, SpineAdapter
 
-        if os.environ.get("FG_SPINE_ENABLED", "false").lower() != "true":
-            return
         adapter = SpineAdapter(platform="algofreeze", spine_enabled=True)
-        adapter.crystallize(operation_id=operation_id, risk_tier="critical", facets=facets)
-    except Exception:
-        pass
+        crystal = adapter.crystallize(operation_id=operation_id, risk_tier="critical", facets=facets)
+        if commit:
+            adapter.commit(
+                CommitOutcome(
+                    operation_id=operation_id,
+                    crystal_id=crystal.crystal_id,
+                    facets=facets,
+                    outcome="routed",
+                    committed_exposure=facets.get("notional", "0"),
+                )
+            )
+    except Exception as exc:
+        logger.warning("spine crystallize failed operation=%s: %s", operation_id, exc)

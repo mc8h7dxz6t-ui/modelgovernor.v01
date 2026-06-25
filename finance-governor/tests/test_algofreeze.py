@@ -32,6 +32,17 @@ def test_version_mismatch_freezes_and_blocks(client):
     assert client.get("/status").json()["freeze_state"] == "FROZEN"
 
 
+def test_feed_degraded_blocks_order(client):
+    from time import monotonic
+
+    from platforms.algofreeze import main as af_main
+
+    af_main._feed._last_packet_at = monotonic() - 10
+    r = client.post("/orders", json={"order_id": "feed-1", "runtime_sha": "approved-sha-v1"})
+    assert r.status_code == 403
+    assert "FEED_DEGRADED" in r.json()["detail"]
+
+
 def test_no_egress_when_frozen(client):
     client.post("/orders", json={"order_id": "o4", "runtime_sha": "bad"})
     status = client.get("/status").json()

@@ -1,13 +1,22 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from .auth import require_internal_auth
 from .db import get_db_session
-from .decision_seal import head_hash
+from .decision_seal import head_hash, verify_decision_chain
 from .diagnostic_mode import diagnostic_snapshot
 from .metrics import get_counters
 from sqlalchemy import text
 
 router = APIRouter(tags=["admin"], prefix="/internal")
+
+
+@router.get("/decisions/verify-chain")
+def verify_chain(_: None = Depends(require_internal_auth)) -> dict:
+    with get_db_session() as session:
+        result = verify_decision_chain(session)
+        if not result.valid:
+            get_counters().increment("ledger_chain_verification_failed_total")
+        return result.to_dict()
 
 
 @router.get("/crystals/{crystal_id}")
@@ -18,7 +27,7 @@ def get_crystal(crystal_id: str, _: None = Depends(require_internal_auth)) -> di
             {"c": crystal_id},
         ).mappings().first()
         if not row:
-            return {"error": "not found"}
+            raise HTTPException(status_code=404, detail="crystal not found")
         return dict(row)
 
 
@@ -30,7 +39,7 @@ def reconstruct_crystal(crystal_id: str, _: None = Depends(require_internal_auth
             {"c": crystal_id},
         ).mappings().first()
         if not crystal:
-            return {"error": "not found"}
+            raise HTTPException(status_code=404, detail="crystal not found")
         events = session.execute(
             text(
                 "SELECT event_type, metadata, recorded_at FROM decision_events WHERE crystal_id = :c ORDER BY event_id"
