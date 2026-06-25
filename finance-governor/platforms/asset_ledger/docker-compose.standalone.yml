@@ -1,0 +1,17 @@
+services:
+  assetledger:
+    build:
+      context: .
+      dockerfile: finance-governor/platforms/asset_ledger/Dockerfile
+    environment:
+      FG_SPINE_ENABLED: "false"
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/assets
+    ports:
+      - "8096:8096"
+    depends_on:
+      - postgres
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: assets
+      POSTGRES_PASSWORD: postgres

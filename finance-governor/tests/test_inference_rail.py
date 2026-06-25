@@ -75,3 +75,15 @@ def test_circuit_opens_in_live_mode():
             model_version_id="credit-model-v3",
         )
     assert client.circuit_open
+
+
+def test_sagemaker_response_parse():
+    from platforms.credit_govern.inference_rail import _parse_rail_response
+
+    outcome = _parse_rail_response(
+        {"predictions": [{"decision": "approve", "score": 0.77, "explanation_id": "sm-1"}]},
+        provider="sagemaker",
+        latency_ms=10,
+    )
+    assert outcome.decision == "APPROVE"
+    assert outcome.score == 0.77

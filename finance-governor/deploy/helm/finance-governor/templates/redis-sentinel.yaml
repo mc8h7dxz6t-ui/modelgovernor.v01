@@ -34,6 +34,8 @@ spec:
       labels:
         app.kubernetes.io/component: redis-master
         {{- include "fg.labels" . | nindent 8 }}
+      annotations:
+        {{- include "fg.istioPodAnnotations" . | nindent 8 }}
     spec:
       containers:
         - name: redis
@@ -80,6 +82,8 @@ spec:
       labels:
         app.kubernetes.io/component: redis-replica
         {{- include "fg.labels" . | nindent 8 }}
+      annotations:
+        {{- include "fg.istioPodAnnotations" . | nindent 8 }}
     spec:
       initContainers:
         - name: wait-for-master
@@ -110,6 +114,8 @@ spec:
       labels:
         app.kubernetes.io/component: redis-sentinel
         {{- include "fg.labels" . | nindent 8 }}
+      annotations:
+        {{- include "fg.istioPodAnnotations" . | nindent 8 }}
     spec:
       containers:
         - name: sentinel

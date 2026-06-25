@@ -15,6 +15,7 @@ services:
       - ./migrations/0001_fg_spine_init.sql:/docker-entrypoint-initdb.d/0001_init.sql:ro
       - ./migrations/0002_fg_hardening.sql:/docker-entrypoint-initdb.d/0002_hardening.sql:ro
       - ./migrations/0003_platform_persistence.sql:/docker-entrypoint-initdb.d/0003_platform.sql:ro
+      - ./migrations/0004_platform_sdk.sql:/docker-entrypoint-initdb.d/0004_platform_sdk.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d financegovernor"]
       interval: 5s
@@ -130,6 +131,14 @@ services:
       fg-sidecar:
         condition: service_started
 
+  fg-credit-rail:
+    build:
+      context: ..
+      dockerfile: finance-governor/platforms/credit_govern/Dockerfile
+    command: ["uvicorn", "platforms.credit_govern.rail_server:app", "--host", "0.0.0.0", "--port", "8098"]
+    ports:
+      - "8098:8098"
+
   fg-creditgovern:
     build:
       context: ..
@@ -139,10 +148,14 @@ services:
       FG_SIDECAR_URL: http://fg-sidecar:8091
       FG_INTERNAL_TOKEN: ${FG_INTERNAL_TOKENS:-dev-fg-spine-token-change-me}
       DATABASE_URL: postgresql+psycopg://postgres:postgres@fg-postgres:5432/financegovernor
+      FG_CREDIT_RAIL_MODE: ${FG_CREDIT_RAIL_MODE:-live}
+      FG_CREDIT_RAIL_URL: http://fg-credit-rail:8098
     ports:
       - "8097:8097"
     depends_on:
       fg-sidecar:
+        condition: service_started
+      fg-credit-rail:
         condition: service_started
 
 volumes:

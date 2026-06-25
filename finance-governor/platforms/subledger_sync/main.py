@@ -2,14 +2,15 @@
 from __future__ import annotations
 
 import logging
-import os
 from decimal import Decimal
 
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-from platforms.common.platform_observability import mount_platform_observability
+from platforms.common.platform_configs import SUBLEDGER_CONFIG
+from platforms.common.platform_sdk import create_platform_app, increment_invariant
 from platforms.common.platform_store import get_subledger_store, reset_all_stores
+from platforms.common.spine_helpers import crystallize_and_commit
 
 from .fx_snapshot import capture_fx_rate
 from .match_engine import find_mirror
@@ -17,12 +18,11 @@ from .txn_hasher import TxnRecord, txn_hash
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="subledger-sync", version="0.2.0")
+CONFIG = SUBLEDGER_CONFIG
 _store = get_subledger_store()
 
-mount_platform_observability(
-    app,
-    platform="subledger_sync",
+app = create_platform_app(
+    CONFIG,
     ready_check=lambda: _store.ready(),
     extra_health=lambda: {"pending": _store.count_pending(), "matched": _store.count_matched()},
 )
@@ -95,15 +95,30 @@ def run_match(txn: TxnRequest) -> MatchResponse:
     try:
         fx = capture_fx_rate(base=txn.currency, quote="USD", rate=Decimal("1.0"))
     except Exception:
-        from platforms.common.platform_metrics import get_platform_counters
-
-        get_platform_counters("subledger_sync").increment("fx_snapshot_failed_total")
+        increment_invariant(CONFIG.name, "fx_snapshot_failed_total")
         raise
     pending = _pending_as_records()
     result = find_mirror(record, pending, fx)
     if result.matched:
         _store.mark_matched(txn_hash=result.txn_hash, mirror_hash=result.mirror_hash or "", fx_hash=result.fx_hash or "")
-        crystal_id = _crystallize_match(record, result)
+        increment_invariant(CONFIG.name, "ic_matched_total")
+        op_id = f"ic-{result.txn_hash[:16]}"
+        facets = {
+            "txn_hash": result.txn_hash,
+            "mirror_hash": result.mirror_hash,
+            "fx_hash": result.fx_hash,
+            "entity_id": record.entity_id,
+            "counterparty_id": record.counterparty_id,
+            "amount": txn.amount,
+            "currency": txn.currency,
+        }
+        crystal_id = crystallize_and_commit(
+            CONFIG,
+            op_id,
+            facets,
+            committed_exposure="0",
+            outcome="matched",
+        )
         return MatchResponse(
             status="MATCHED",
             txn_hash=result.txn_hash,
@@ -123,33 +138,10 @@ def discrepancies(limit: int = 20) -> list:
 
 @app.get("/internal/orphans")
 def orphans() -> dict:
-    from platforms.common.platform_metrics import get_platform_counters
-
     count = _store.count_orphans()
     if count:
-        get_platform_counters("subledger_sync").increment("ic_orphan_detected_total", count)
+        increment_invariant(CONFIG.name, "ic_orphan_detected_total", count)
     return {"orphan_pending": count}
-
-
-def _crystallize_match(record: TxnRecord, result) -> str | None:
-    if os.environ.get("FG_SPINE_ENABLED", "false").lower() != "true":
-        return None
-    try:
-        from platforms.common.spine_adapter import SpineAdapter
-
-        op_id = f"ic-{result.txn_hash[:16]}"
-        facets = {
-            "txn_hash": result.txn_hash,
-            "mirror_hash": result.mirror_hash,
-            "fx_hash": result.fx_hash,
-            "entity_id": record.entity_id,
-        }
-        adapter = SpineAdapter(platform="subledger_sync", spine_enabled=True)
-        crystal = adapter.crystallize(operation_id=op_id, risk_tier="standard", facets=facets)
-        return crystal.crystal_id
-    except Exception as exc:
-        logger.warning("spine crystallize failed: %s", exc)
-        return None
 
 
 def reset_state() -> None:

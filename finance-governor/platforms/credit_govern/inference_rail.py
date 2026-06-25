@@ -26,6 +26,7 @@ class RailProviderError(RuntimeError):
 @dataclass
 class RailConfig:
     mode: str = "mock"
+    provider: str = "http"
     url: str = ""
     timeout_s: float = 10.0
     circuit_threshold: int = 5
@@ -36,6 +37,7 @@ class RailConfig:
     def from_env(cls) -> RailConfig:
         return cls(
             mode=os.environ.get("FG_CREDIT_RAIL_MODE", "mock").lower(),
+            provider=os.environ.get("FG_CREDIT_RAIL_PROVIDER", "http").lower(),
             url=os.environ.get("FG_CREDIT_RAIL_URL", "").rstrip("/"),
             timeout_s=float(os.environ.get("FG_CREDIT_RAIL_TIMEOUT", "10")),
             circuit_threshold=int(os.environ.get("FG_CREDIT_RAIL_CIRCUIT_THRESHOLD", "5")),
@@ -122,24 +124,74 @@ class InferenceRailClient:
         headers = {"content-type": "application/json"}
         if self.config.api_key:
             headers[self.config.api_key_header] = self.config.api_key
-        payload = {
-            "application_id": application_id,
-            "exposure_amount": str(exposure),
-            "model_version_id": model_version_id,
-            "features": features,
-        }
         started = time.perf_counter()
+        provider = self.config.provider
+        if provider == "sagemaker":
+            payload = {
+                "instances": [
+                    {
+                        "application_id": application_id,
+                        "exposure_amount": str(exposure),
+                        "model_version_id": model_version_id,
+                        **features,
+                    }
+                ]
+            }
+            path = "/invocations"
+        elif provider == "vertex":
+            payload = {
+                "instances": [
+                    {
+                        "application_id": application_id,
+                        "exposure_amount": str(exposure),
+                        "model_version_id": model_version_id,
+                        **features,
+                    }
+                ]
+            }
+            path = ""
+        else:
+            payload = {
+                "application_id": application_id,
+                "exposure_amount": str(exposure),
+                "model_version_id": model_version_id,
+                "features": features,
+            }
+            path = "/v1/score"
+        url = f"{self.config.url}{path}"
         with httpx.Client(timeout=self.config.timeout_s) as client:
-            response = client.post(f"{self.config.url}/v1/score", headers=headers, json=payload)
+            response = client.post(url, headers=headers, json=payload)
             response.raise_for_status()
             data = response.json()
         latency_ms = int((time.perf_counter() - started) * 1000)
+        return _parse_rail_response(data, provider=provider, latency_ms=latency_ms)
+
+
+def _parse_rail_response(data: dict[str, Any], *, provider: str, latency_ms: int) -> RailOutcome:
+    if provider == "sagemaker":
+        pred = (data.get("predictions") or [{}])[0]
         return RailOutcome(
-            decision=str(data.get("decision", "REFER")).upper(),
-            score=float(data.get("score", 0.0)),
-            explanation_id=str(data.get("explanation_id", "exp-live-rail")),
+            decision=str(pred.get("decision", "REFER")).upper(),
+            score=float(pred.get("score", 0.0)),
+            explanation_id=str(pred.get("explanation_id", "exp-sagemaker-rail")),
             latency_ms=latency_ms,
         )
+    if provider == "vertex":
+        pred = (data.get("predictions") or data.get("prediction") or [{}])[0]
+        if isinstance(pred, list):
+            pred = pred[0] if pred else {}
+        return RailOutcome(
+            decision=str(pred.get("decision", "REFER")).upper(),
+            score=float(pred.get("score", 0.0)),
+            explanation_id=str(pred.get("explanation_id", "exp-vertex-rail")),
+            latency_ms=latency_ms,
+        )
+    return RailOutcome(
+        decision=str(data.get("decision", "REFER")).upper(),
+        score=float(data.get("score", 0.0)),
+        explanation_id=str(data.get("explanation_id", "exp-live-rail")),
+        latency_ms=latency_ms,
+    )
 
 
 _default_client: InferenceRailClient | None = None

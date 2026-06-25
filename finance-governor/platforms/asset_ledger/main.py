@@ -2,14 +2,15 @@
 from __future__ import annotations
 
 import logging
-import os
 from decimal import Decimal
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-from platforms.common.platform_observability import mount_platform_observability
+from platforms.common.platform_configs import ASSET_LEDGER_CONFIG
+from platforms.common.platform_sdk import create_platform_app
 from platforms.common.platform_store import get_asset_store, reset_all_stores
+from platforms.common.spine_helpers import crystallize_and_commit
 
 from .asset_registry import Asset
 from .depreciation_engine import compute_monthly_charge
@@ -17,12 +18,11 @@ from .reg_table_sync import get_table
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="asset-ledger", version="0.2.0")
+CONFIG = ASSET_LEDGER_CONFIG
 _store = get_asset_store()
 
-mount_platform_observability(
-    app,
-    platform="asset_ledger",
+app = create_platform_app(
+    CONFIG,
     ready_check=lambda: _store.ready(),
     extra_health=lambda: {"assets": len(_store.list_assets())},
 )
@@ -96,7 +96,6 @@ def run_depreciation(body: DepreciationRun) -> dict:
         charge = compute_monthly_charge(asset, tbl)
         if charge <= 0:
             continue
-        crystal_id = None
         charge_row = _store.apply_charge(
             asset_id=asset.asset_id,
             period=body.period,
@@ -106,7 +105,20 @@ def run_depreciation(body: DepreciationRun) -> dict:
         )
         if not charge_row:
             continue
-        crystal_id = _crystallize_depreciation(asset.asset_id, body.period, charge_row, tbl.version)
+        op_id = f"dep-{asset.asset_id}-{body.period}"
+        facets = {
+            "asset_id": asset.asset_id,
+            "period": body.period,
+            "charge": charge_row["charge"],
+            "reg_table_version": tbl.version,
+        }
+        crystal_id = crystallize_and_commit(
+            CONFIG,
+            op_id,
+            facets,
+            committed_exposure=charge_row["charge"],
+            outcome="depreciated",
+        )
         charge_row["crystal_id"] = crystal_id
         results.append(charge_row)
     return {"period": body.period, "charges": results, "reg_table_version": table.version}
@@ -115,31 +127,6 @@ def run_depreciation(body: DepreciationRun) -> dict:
 @app.get("/events")
 def list_events(limit: int = 20) -> list:
     return _store.list_events(limit)
-
-
-def _crystallize_depreciation(asset_id: str, period: str, row: dict, table_version: str) -> str | None:
-    if os.environ.get("FG_SPINE_ENABLED", "false").lower() != "true":
-        return None
-    try:
-        from platforms.common.spine_adapter import CommitOutcome, SpineAdapter
-
-        op_id = f"dep-{asset_id}-{period}"
-        facets = {"asset_id": asset_id, "period": period, "charge": row["charge"], "reg_table_version": table_version}
-        adapter = SpineAdapter(platform="asset_ledger", spine_enabled=True)
-        crystal = adapter.crystallize(operation_id=op_id, risk_tier="standard", facets=facets)
-        adapter.commit(
-            CommitOutcome(
-                operation_id=op_id,
-                crystal_id=crystal.crystal_id,
-                facets=facets,
-                outcome="depreciated",
-                committed_exposure=row["charge"],
-            )
-        )
-        return crystal.crystal_id
-    except Exception as exc:
-        logger.warning("spine crystallize failed: %s", exc)
-        return None
 
 
 def reset_state() -> None:

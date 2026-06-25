@@ -25,7 +25,7 @@ Finance Governor is a **pre-execution control plane** for regulated finance — 
 
 **White space:** Version-consistent, feed-aware **proxy freeze** with append-only audit — between CI/CD and EMS, not replacing either.
 
-**Tech edge (target):** Sub-100ms freeze; `FROZEN` = zero egress (hard invariant); same reconciler/strand patterns as ModelGovernor.
+**Tech edge (shipped):** Sub-100ms freeze; `FROZEN` = zero egress; reconciler/strand patterns; Platform SDK + registry.
 
 ---
 
@@ -42,7 +42,7 @@ Finance Governor is a **pre-execution control plane** for regulated finance — 
 
 **White space:** **Pre-rail** semantic + Decimal gate — lightweight, beside core banking, Citigroup-class error prevention narrative.
 
-**Tech edge (target):** `Decimal`-only wire path (no float); semantic score + amount anomaly in one gate; spine `reserve` → `settle` on funds.
+**Tech edge (shipped):** `Decimal`-only wire path; semantic gate; spine crystallize → commit; facet schema validation.
 
 **Honest weakness:** Incumbents own rail connectivity; WireMatch is **gate layer**, not a bank. Must integrate, not replace.
 

@@ -2,7 +2,9 @@
 
 Phased build: **standalone platforms first**, optional spine for unified audit.
 
-## Phase 0 — Design and alignment (current)
+## Phase 0 — Design and alignment ✅ complete
+
+**Status:** Superseded by L5 Industry Leading delivery (see `finance-governor/docs/l4-certification.md`, `external-certification.md`).
 
 **Deliverables:**
 - [x] Market gap analysis (`market-gaps.md`)

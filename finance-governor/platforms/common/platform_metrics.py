@@ -21,6 +21,7 @@ _PLATFORM_COUNTER_NAMES = (
     "rail_attempt_total",
     "attribution_identity_mismatch_total",
     "model_version_blocked_total",
+    "bias_cohort_alert_total",
 )
 
 _collector_registered: set[str] = set()

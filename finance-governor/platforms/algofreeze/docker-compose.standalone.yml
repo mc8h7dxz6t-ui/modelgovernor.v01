@@ -1,0 +1,9 @@
+services:
+  algofreeze:
+    build:
+      context: .
+      dockerfile: finance-governor/platforms/algofreeze/Dockerfile
+    environment:
+      FG_SPINE_ENABLED: "false"
+    ports:
+      - "8094:8094"

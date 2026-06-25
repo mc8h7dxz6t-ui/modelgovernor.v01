@@ -3,7 +3,8 @@
 	subledger-demo assetledger-demo credit-demo fg-all-platforms-demo \
 	fg-demo-gold-reliability fg-certification fg-certification-l4 fg-demo-up fg-demo-down fg-demo-gold \
 	fg-test-postgres-up fg-test-postgres-down fg-integration-test fg-chaos-test fg-load-smoke \
-	fg-helm-enterprise fg-kustomize-install fg-kustomize-enterprise fg-platform-conformance
+	fg-helm-enterprise fg-kustomize-install fg-kustomize-enterprise fg-platform-conformance \
+	fg-certification-external fg-certification-external-full fg-docker-build
 
 fg-spine-up:
 	docker compose up -d --build
@@ -202,6 +203,21 @@ fg-platform-conformance:
 fg-certification-external:
 	chmod +x scripts/fg_certification_report.py
 	FG_ECP_QUICK=1 python3 scripts/fg_certification_report.py --quick $(or $(LEVEL),L5) $(or $(PLATFORM),finance_governor)
+
+fg-certification-external-full:
+	chmod +x scripts/fg_certification_report.py
+	python3 scripts/fg_certification_report.py $(or $(LEVEL),L5) $(or $(PLATFORM),finance_governor)
+
+fg-docker-build:
+	docker build -f spine/sidecar/Dockerfile -t finance-governor-sidecar:local ..
+	docker build -f spine/gateway/Dockerfile -t finance-governor-gateway:local ..
+	docker build -f spine/reconciler/Dockerfile -t finance-governor-reconciler:local ..
+	docker build -f platforms/wire_match/Dockerfile -t finance-governor-wirematch:local ..
+	docker build -f platforms/algofreeze/Dockerfile -t finance-governor-algofreeze:local ..
+	docker build -f platforms/subledger_sync/Dockerfile -t finance-governor-subledger:local ..
+	docker build -f platforms/asset_ledger/Dockerfile -t finance-governor-assetledger:local ..
+	docker build -f platforms/credit_govern/Dockerfile -t finance-governor-creditgovern:local ..
+	@echo "fg-docker-build OK"
 
 fg-certification-l4:
 	@echo "==> L4 Gold certification gate"

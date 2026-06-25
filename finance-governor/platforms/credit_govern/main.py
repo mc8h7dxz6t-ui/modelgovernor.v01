@@ -8,22 +8,22 @@ from decimal import Decimal
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-from platforms.common.platform_metrics import get_platform_counters
-from platforms.common.platform_observability import mount_platform_observability
+from platforms.common.bias_monitoring import record_credit_cohort
+from platforms.common.platform_configs import CREDIT_GOVERN_CONFIG
+from platforms.common.platform_sdk import create_platform_app, increment_invariant, spine_enabled
 from platforms.common.platform_store import append_platform_event, get_credit_store, reset_all_stores
+from platforms.common.spine_helpers import adapter_for
 
 from .credit_schema import CreditRequest
 from .inference_rail import RailCircuitOpenError, get_inference_rail, reset_inference_rail
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="credit-govern", version="0.2.0")
+CONFIG = CREDIT_GOVERN_CONFIG
 _store = get_credit_store()
-_COUNTERS = get_platform_counters("credit_govern")
-
 _APPROVED_MODELS = {"credit-model-v3", "credit-model-v4"}
 
-mount_platform_observability(app, platform="credit_govern", ready_check=lambda: _store.ready())
+app = create_platform_app(CONFIG, ready_check=lambda: _store.ready())
 
 
 class EvaluateResponse(BaseModel):
@@ -40,7 +40,7 @@ def evaluate(req: CreditRequest) -> EvaluateResponse:
     exposure = Decimal(req.exposure_amount)
 
     if req.model_version_id not in _APPROVED_MODELS:
-        _COUNTERS.increment("model_version_blocked_total")
+        increment_invariant(CONFIG.name, "model_version_blocked_total")
         append_platform_event(
             "credit_govern",
             "MODEL_VERSION_BLOCKED",
@@ -55,58 +55,69 @@ def evaluate(req: CreditRequest) -> EvaluateResponse:
             reason="MODEL_VERSION_MISMATCH",
         )
 
-    spine_on = os.environ.get("FG_SPINE_ENABLED", "false").lower() == "true"
-    adapter = None
+    facets = {
+        "application_id": req.application_id,
+        "exposure_amount": req.exposure_amount,
+        "model_version_id": req.model_version_id,
+        "desk_id": req.desk_id,
+    }
     crystal_id: str | None = None
-
-    if spine_on:
+    if spine_enabled():
         try:
-            from platforms.common.spine_adapter import SpineAdapter
-
-            adapter = SpineAdapter(platform="credit_govern", spine_enabled=True)
-            crystal = adapter.crystallize(
+            crystal = adapter_for(CONFIG).crystallize(
                 operation_id=req.application_id,
-                risk_tier="high",
-                facets={
-                    "application_id": req.application_id,
-                    "exposure_amount": req.exposure_amount,
-                    "model_version_id": req.model_version_id,
-                    "desk_id": req.desk_id,
-                },
+                risk_tier=CONFIG.default_risk_tier,
+                facets=facets,
                 account_id=req.desk_id,
-                policy_id="credit-high-us",
+                policy_id=CONFIG.default_policy_id,
                 reserved_exposure=str(exposure),
             )
             crystal_id = crystal.crystal_id
             _record_rail_attempt(req.application_id, "RESERVED", crystal_id)
         except Exception as exc:
             logger.warning("exposure reserve failed: %s", exc)
-            _COUNTERS.increment("rail_circuit_open_total")
+            increment_invariant(CONFIG.name, "rail_circuit_open_total")
             raise HTTPException(status_code=409, detail="INSUFFICIENT_EXPOSURE") from exc
 
-    outcome = _score_with_rail(req, exposure)
-    facets = {
-        "application_id": req.application_id,
-        "exposure_amount": req.exposure_amount,
-        "model_version_id": req.model_version_id,
-        "desk_id": req.desk_id,
+    try:
+        outcome = _score_with_rail(req, exposure)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        if crystal_id:
+            try:
+                adapter_for(CONFIG).strand(crystal_id, reason=str(exc))
+            except Exception:
+                pass
+        raise
+
+    record_credit_cohort(
+        platform=CONFIG.name,
+        desk_id=req.desk_id,
+        model_version_id=req.model_version_id,
+        application_id=req.application_id,
+        score=outcome.score,
+        decision=outcome.decision,
+        exposure=exposure,
+    )
+
+    commit_facets = {
+        **facets,
         "feature_snapshot_hash": req.feature_snapshot_hash,
         "score": outcome.score,
         "explanation_id": outcome.explanation_id,
     }
 
-    if adapter and crystal_id:
+    if crystal_id and os.environ.get("FG_SPINE_ENABLED", "false").lower() == "true":
         try:
             from platforms.common.spine_adapter import CommitOutcome
 
             committed = str(exposure) if outcome.decision == "APPROVE" else "0"
-            if facets.get("desk_id") != req.desk_id:
-                _COUNTERS.increment("attribution_identity_mismatch_total")
-            adapter.commit(
+            adapter_for(CONFIG).commit(
                 CommitOutcome(
                     operation_id=req.application_id,
                     crystal_id=crystal_id,
-                    facets=facets,
+                    facets=commit_facets,
                     outcome=outcome.decision.lower(),
                     committed_exposure=committed,
                     metadata={"explanation_id": outcome.explanation_id},
@@ -140,7 +151,7 @@ def evaluate(req: CreditRequest) -> EvaluateResponse:
 
 
 def _score_with_rail(req: CreditRequest, exposure: Decimal):
-    _COUNTERS.increment("rail_attempt_total")
+    increment_invariant(CONFIG.name, "rail_attempt_total")
     rail = get_inference_rail()
     try:
         return rail.score(
@@ -153,7 +164,7 @@ def _score_with_rail(req: CreditRequest, exposure: Decimal):
             },
         )
     except RailCircuitOpenError as exc:
-        _COUNTERS.increment("rail_circuit_open_total")
+        increment_invariant(CONFIG.name, "rail_circuit_open_total")
         raise HTTPException(status_code=503, detail="RAIL_CIRCUIT_OPEN") from exc
 
 
