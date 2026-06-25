@@ -14,6 +14,7 @@ services:
       - fg_postgres_data:/var/lib/postgresql/data
       - ./migrations/0001_fg_spine_init.sql:/docker-entrypoint-initdb.d/0001_init.sql:ro
       - ./migrations/0002_fg_hardening.sql:/docker-entrypoint-initdb.d/0002_hardening.sql:ro
+      - ./migrations/0003_platform_persistence.sql:/docker-entrypoint-initdb.d/0003_platform.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d financegovernor"]
       interval: 5s
@@ -77,6 +78,7 @@ services:
       FG_SPINE_ENABLED: ${FG_SPINE_ENABLED:-true}
       FG_SIDECAR_URL: http://fg-sidecar:8091
       FG_INTERNAL_TOKEN: ${FG_INTERNAL_TOKENS:-dev-fg-spine-token-change-me}
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@fg-postgres:5432/financegovernor
     ports:
       - "8093:8093"
     depends_on:
@@ -91,6 +93,7 @@ services:
       FG_SPINE_ENABLED: ${FG_SPINE_ENABLED:-true}
       FG_SIDECAR_URL: http://fg-sidecar:8091
       FG_INTERNAL_TOKEN: ${FG_INTERNAL_TOKENS:-dev-fg-spine-token-change-me}
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@fg-postgres:5432/financegovernor
     ports:
       - "8094:8094"
     depends_on:
@@ -105,6 +108,7 @@ services:
       FG_SPINE_ENABLED: ${FG_SPINE_ENABLED:-true}
       FG_SIDECAR_URL: http://fg-sidecar:8091
       FG_INTERNAL_TOKEN: ${FG_INTERNAL_TOKENS:-dev-fg-spine-token-change-me}
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@fg-postgres:5432/financegovernor
     ports:
       - "8095:8095"
     depends_on:
@@ -119,6 +123,7 @@ services:
       FG_SPINE_ENABLED: ${FG_SPINE_ENABLED:-true}
       FG_SIDECAR_URL: http://fg-sidecar:8091
       FG_INTERNAL_TOKEN: ${FG_INTERNAL_TOKENS:-dev-fg-spine-token-change-me}
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@fg-postgres:5432/financegovernor
     ports:
       - "8096:8096"
     depends_on:
@@ -133,6 +138,7 @@ services:
       FG_SPINE_ENABLED: ${FG_SPINE_ENABLED:-true}
       FG_SIDECAR_URL: http://fg-sidecar:8091
       FG_INTERNAL_TOKEN: ${FG_INTERNAL_TOKENS:-dev-fg-spine-token-change-me}
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@fg-postgres:5432/financegovernor
     ports:
       - "8097:8097"
     depends_on:

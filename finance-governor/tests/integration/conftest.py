@@ -13,8 +13,11 @@ SIDECAR = ROOT / "spine" / "sidecar"
 MIGRATIONS = ROOT / "migrations"
 
 POSTGRES_URL = os.environ.get(
-    "FG_TEST_DATABASE_URL",
-    "postgresql+psycopg://postgres:postgres@localhost:5434/fg_test",
+    "FG_POSTGRES_TEST_URL",
+    os.environ.get(
+        "FG_TEST_DATABASE_URL",
+        "postgresql+psycopg://postgres:postgres@localhost:5434/fg_test",
+    ),
 )
 
 

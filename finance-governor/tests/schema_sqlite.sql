@@ -160,3 +160,60 @@ CREATE TABLE platform_action_attempts (
     external_ref VARCHAR(255),
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE platform_events (
+    event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    platform VARCHAR(50) NOT NULL,
+    event_type VARCHAR(50) NOT NULL,
+    operation_id VARCHAR(255) NOT NULL,
+    metadata TEXT NOT NULL DEFAULT '{}',
+    recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE subledger_transactions (
+    txn_hash VARCHAR(64) PRIMARY KEY,
+    entity_id VARCHAR(255) NOT NULL,
+    counterparty_id VARCHAR(255) NOT NULL,
+    amount NUMERIC(24, 12) NOT NULL,
+    currency CHAR(3) NOT NULL DEFAULT 'USD',
+    value_date VARCHAR(20) NOT NULL,
+    reference TEXT NOT NULL DEFAULT '',
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    fx_hash VARCHAR(64),
+    mirror_hash VARCHAR(64),
+    recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE asset_ledger_assets (
+    asset_id VARCHAR(255) PRIMARY KEY,
+    description TEXT NOT NULL,
+    acquisition_cost NUMERIC(24, 12) NOT NULL,
+    book_value NUMERIC(24, 12) NOT NULL,
+    accumulated_depreciation NUMERIC(24, 12) NOT NULL DEFAULT 0,
+    method VARCHAR(50) NOT NULL DEFAULT 'straight_line',
+    jurisdiction VARCHAR(10) NOT NULL DEFAULT 'US',
+    useful_life_months INT NOT NULL DEFAULT 60,
+    recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE asset_depreciation_charges (
+    asset_id VARCHAR(255) NOT NULL,
+    period VARCHAR(20) NOT NULL,
+    charge NUMERIC(24, 12) NOT NULL,
+    reg_table_version VARCHAR(50),
+    crystal_id VARCHAR(255),
+    recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (asset_id, period)
+);
+
+CREATE TABLE credit_evaluations (
+    application_id VARCHAR(255) PRIMARY KEY,
+    decision VARCHAR(20) NOT NULL,
+    exposure_amount NUMERIC(24, 12) NOT NULL,
+    model_version_id VARCHAR(100) NOT NULL,
+    desk_id VARCHAR(255) NOT NULL,
+    score NUMERIC(10, 6),
+    explanation_id VARCHAR(255),
+    crystal_id VARCHAR(255),
+    recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

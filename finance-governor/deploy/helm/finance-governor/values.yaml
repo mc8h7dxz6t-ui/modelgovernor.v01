@@ -82,6 +82,13 @@ governanceCanary:
 prometheusRules:
   enabled: false
 
+podDisruptionBudget:
+  enabled: false
+  sidecar:
+    minAvailable: 2
+  gateway:
+    minAvailable: 1
+
 service:
   gateway:
     type: ClusterIP

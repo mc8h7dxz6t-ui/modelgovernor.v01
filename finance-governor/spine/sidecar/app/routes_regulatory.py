@@ -5,14 +5,23 @@ import json
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 from sqlalchemy import text
 
 from .auth import AuthContext, require_internal_auth
 from .db import get_db_session
 from .decision_seal import head_hash, verify_decision_chain
 from .guardrail_incidents import list_recent_incidents, schema_supports_guardrail_incidents
+from .rail_attempts import list_attempts, record_rail_attempt
 
 router = APIRouter(tags=["regulatory"], prefix="/internal")
+
+
+class RailAttemptRequest(BaseModel):
+    operation_id: str
+    platform: str
+    attempt_status: str
+    external_ref: str | None = None
 
 
 @router.get("/regulatory/export")
@@ -111,3 +120,27 @@ def guardrail_incidents(
 ) -> list:
     with get_db_session() as session:
         return list_recent_incidents(session, limit=limit)
+
+
+@router.post("/rail/attempt")
+def rail_attempt(body: RailAttemptRequest, _: AuthContext = Depends(require_internal_auth)) -> dict:
+    with get_db_session() as session:
+        try:
+            key = record_rail_attempt(
+                session,
+                operation_id=body.operation_id,
+                platform=body.platform,
+                attempt_status=body.attempt_status,
+                external_ref=body.external_ref,
+            )
+            session.commit()
+            return {"attempt_key": key}
+        except Exception as exc:
+            session.rollback()
+            return {"attempt_key": None, "skipped": str(exc)}
+
+
+@router.get("/rail/attempts/{operation_id}")
+def rail_attempts(operation_id: str, _: AuthContext = Depends(require_internal_auth)) -> list:
+    with get_db_session() as session:
+        return list_attempts(session, operation_id)
