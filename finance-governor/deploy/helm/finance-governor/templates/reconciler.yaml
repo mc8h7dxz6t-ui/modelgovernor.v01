@@ -24,7 +24,21 @@ spec:
           ports:
             - containerPort: 8092
           env:
+            - name: POSTGRES_USER
+              value: {{ .Values.postgres.user | quote }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "fg.secretName" . }}
+                  key: postgres-password
             - name: DATABASE_URL
-              value: postgresql+psycopg://postgres:postgres@fg-postgres:5432/financegovernor
+              value: postgresql+psycopg://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@fg-postgres:5432/{{ .Values.postgres.database }}
+            - name: REDIS_URL
+              value: redis://fg-redis:6379/0
             - name: RECONCILER_HEALTH_PORT
               value: "8092"
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8092
+            initialDelaySeconds: 8

@@ -77,6 +77,8 @@ make crystal-demo          # quick CCP walkthrough
 
 All tooling lives under `finance-governor/` — **no ModelGovernor runtime dependency**.
 
+Production: [deploy/PRODUCTION.md](deploy/PRODUCTION.md) · `make fg-prod-setup` · `make fg-helm-install`
+
 ## Environment
 
 ```bash
