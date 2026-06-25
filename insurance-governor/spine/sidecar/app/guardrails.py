@@ -6,6 +6,7 @@ import time
 from functools import lru_cache
 from typing import TYPE_CHECKING
 
+from .circuit_breaker import CircuitOpenError, get_circuit_breaker
 from .fallback_limiter import get_fallback_limiter, reset_fallback_limiter
 from .guardrail_errors import GuardrailError, InflightLimitExceeded, RateLimitExceeded, TraceDepthExceeded
 from .metrics import get_counters
@@ -61,14 +62,23 @@ class GuardrailService:
             get_counters().increment("guardrail_degraded_total")
 
     def check_crystallize(self, *, account_id: str, claim_id: str, operation_id: str) -> None:
+        if self._settings.guardrails_enabled:
+            try:
+                get_circuit_breaker().assert_closed("redis")
+            except CircuitOpenError:
+                get_counters().increment("redis_circuit_open_total")
+                raise
+
         if not self._degraded and self._redis is not None:
             try:
                 self._check_redis(account_id=account_id, claim_id=claim_id, operation_id=operation_id)
+                get_circuit_breaker().record_success("redis")
                 return
             except GuardrailError:
                 raise
             except Exception as exc:
                 logger.warning("redis guardrail check failed; switching to local fallback: %s", exc)
+                get_circuit_breaker().record_failure("redis")
                 self._mark_degraded()
 
         get_counters().increment("guardrail_degraded_total")
@@ -134,5 +144,8 @@ def get_guardrails() -> GuardrailService:
 
 
 def reset_guardrails() -> None:
+    from .circuit_breaker import reset_circuit_breaker
+
     get_guardrails.cache_clear()
+    reset_circuit_breaker()
     reset_fallback_limiter()

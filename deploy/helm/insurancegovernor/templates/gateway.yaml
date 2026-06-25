@@ -29,43 +29,13 @@ spec:
           ports:
             - containerPort: 8100
           env:
-            - name: SIDECAR_URL
+            - name: IG_SIDECAR_URL
               value: http://sidecar:8101
-            - name: SIDECAR_INTERNAL_TOKEN
+            - name: IG_INTERNAL_TOKEN
               valueFrom:
                 secretKeyRef:
                   name: {{ include "insurancegovernor.secretName" . }}
                   key: sidecar-internal-tokens
-            - name: MOCK_DISPATCH_COST
-              value: {{ .Values.gateway.mockDispatchCost | quote }}
-            - name: PROVIDER_MODE
-              value: {{ .Values.gateway.providerMode | quote }}
-            - name: OIDC_ENABLED
-              value: {{ .Values.gateway.oidc.enabled | quote }}
-            {{- if .Values.externalSecrets.enabled }}
-            - name: OPENAI_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "insurancegovernor.secretName" . }}
-                  key: openai-api-key
-                  optional: true
-            - name: ANTHROPIC_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "insurancegovernor.secretName" . }}
-                  key: anthropic-api-key
-                  optional: true
-            {{- end }}
-            {{- if .Values.gateway.oidc.issuerUrl }}
-            - name: OIDC_ISSUER_URL
-              value: {{ .Values.gateway.oidc.issuerUrl | quote }}
-            {{- end }}
-            {{- if .Values.gateway.oidc.audience }}
-            - name: OIDC_AUDIENCE
-              value: {{ .Values.gateway.oidc.audience | quote }}
-            {{- end }}
-            - name: OIDC_DISPATCH_ROLES
-              value: {{ .Values.gateway.oidc.dispatchRoles | quote }}
           livenessProbe:
             httpGet:
               path: /healthz

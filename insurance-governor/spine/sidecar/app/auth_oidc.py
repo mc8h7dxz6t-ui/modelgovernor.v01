@@ -74,6 +74,10 @@ def _jwks_client(jwks_url: str):
     return PyJWKClient(jwks_url, cache_keys=True, lifespan=300)
 
 
+def clear_jwks_client_cache() -> None:
+    _jwks_client.cache_clear()
+
+
 def _validate_oidc_jwt(token: str) -> AuthContext:
     settings = get_settings()
     if not settings.oidc_issuer_url:
@@ -97,6 +101,7 @@ def _validate_oidc_jwt(token: str) -> AuthContext:
     try:
         claims = decode(token, signing_key.key, **decode_kwargs)
     except InvalidTokenError as exc:
+        logger.info("OIDC JWT rejected: %s", exc)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid OIDC token") from exc
 
     if int(claims.get("exp", 0)) <= int(time.time()):

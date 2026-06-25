@@ -9,6 +9,18 @@
 | **L3 Institutional++** | Done | Hash chain verify, anchor table, guardrails + fallback |
 | **L4 Gold** | Done | 4-tier CI, Helm chart, load harness, Prometheus rules |
 
+## Competitive tech edges (vs policy admin / claims platforms)
+
+| Edge | Implementation |
+|------|----------------|
+| **Provable claim trail** | Hash-chained `claim_events` + `verify-chain` + S3 Object Lock anchors |
+| **Zero-error-budget invariants** | `claim_ops` 7-probe suite; load harness + Tier 4 Toxiproxy chaos in CI |
+| **Fail-closed degradation** | Redis guardrails → local fallback; dependency circuit breaker opens on Redis flapping |
+| **Enterprise RBAC** | OIDC JWT (Keycloak/Okta roles) + claims-admin gates on anchor/diagnostic |
+| **Production deploy kit** | Helm chart (PgBouncer, Redis Sentinel, OTEL, PDB/HPA) + ArgoCD app + AWS anchor bucket CFN |
+| **Synthetic canaries** | CronJobs probe `/readyz`, `/verify-chain`, gateway→sidecar path every 5–10 min |
+| **SLO observability** | Prometheus recording rules for crystallize/commit availability + p95 latency |
+
 ## L4 Gold checklist (implemented)
 
 ### Data plane
@@ -24,7 +36,8 @@
 - [x] Diagnostic write halt on crystallize/commit
 
 ### Security
-- [x] OIDC JWT + RBAC scaffold (`auth_oidc.py`)
+- [x] OIDC JWT + RBAC (`auth_oidc.py`) with integration tests
+- [x] Dependency circuit breaker on Redis flapping (`circuit_breaker.py`)
 - [x] Admin audit log on privileged actions (`admin_audit.py`)
 - [x] Claims-admin gate on diagnostic clear and anchor
 
@@ -40,8 +53,10 @@
 - [x] Tier 4: Toxiproxy chaos (`docker-compose.chaos.yml`, `tests/chaos/test_toxiproxy_claim_ops.py`, CI `ig-test-tier4-chaos`)
 
 ### Deploy
-- [x] `deploy/helm/insurancegovernor/` — forked from ModelGovernor with IG ports/migrations
-- [x] CI: `ig-test-tier1` through `ig-test-tier4-chaos`, `ig-validate-helm`, `ig-build-images`
+- [x] `deploy/helm/insurancegovernor/` — IG-native env vars (`IG_INTERNAL_TOKENS`, `CLAIM_ANCHOR_S3_*`)
+- [x] `deploy/argocd/application-insurancegovernor-production-helm.yaml`
+- [x] `deploy/infra/aws/claim-anchor-bucket.yaml` — Object Lock bucket
+- [x] CI: `ig-test-tier1` through `ig-test-tier4-chaos`, `ig-validate-helm`, `ig-validate-migrations`, `ig-build-images`
 
 ## Certification commands
 
@@ -54,6 +69,5 @@ helm lint deploy/helm/insurancegovernor
 ```
 
 ## Remaining for production hardening (post-L4)
-- S3 Object Lock anchor in production overlay (config present, enable per env)
 - PgBouncer + Redis Sentinel HA rehearsal compose for IG
-- ArgoCD Application manifest for `insurancegovernor` namespace
+- ClaimGate platform Deployment in Helm (image build gate exists)

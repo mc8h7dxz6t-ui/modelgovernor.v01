@@ -6,11 +6,6 @@ sidecar:
 
 gateway:
   replicas: 2
-  providerMode: live
-  oidc:
-    enabled: true
-    issuerUrl: ""
-    audience: insurancegovernor
 
 reconciler:
   replicas: 2
@@ -33,8 +28,10 @@ secrets:
 
 config:
   oidcEnabled: "true"
-  gatewayOidcEnabled: "true"
-  ledgerAnchorS3ObjectLockEnabled: "true"
+  oidcIssuerUrl: ""
+  oidcAudience: insurancegovernor
+  claimAnchorS3ObjectLockEnabled: "true"
+  claimAnchorS3Region: "us-east-1"
 
 syntheticProbe:
   enabled: true

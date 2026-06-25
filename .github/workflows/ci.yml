@@ -297,7 +297,10 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install dependencies
-        run: pip install -r insurance-governor/spine/sidecar/requirements.txt pytest
+        run: |
+          pip install -r insurance-governor/spine/sidecar/requirements.txt
+          pip install -r insurance-governor/spine/reconciler/requirements.txt
+          pip install pytest
       - name: Apply IG migrations
         env:
           PGPASSWORD: postgres
@@ -308,7 +311,23 @@ jobs:
       - name: Tier 2 Postgres tests
         env:
           POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5432/ig_test
-        run: PYTHONPATH=insurance-governor/spine/sidecar pytest insurance-governor/tests/test_postgres_vigorous.py -q
+        run: |
+          PYTHONPATH=insurance-governor/spine/sidecar pytest \
+            insurance-governor/tests/test_postgres_vigorous.py \
+            insurance-governor/tests/test_postgres_reliability.py \
+            insurance-governor/tests/test_migration_invariants.py \
+            -q
+
+  ig-validate-migrations:
+    name: IG migration invariant definitions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify IG migration bundle
+        run: PYTHONPATH=insurance-governor/spine/sidecar pytest insurance-governor/tests/test_migration_invariants.py -q
 
   ig-test-tier3:
     name: IG Tier 3 — Load harness
@@ -321,7 +340,31 @@ jobs:
       - name: Install dependencies
         run: pip install -r insurance-governor/spine/sidecar/requirements.txt pytest
       - name: Load harness
+        env:
+          LOAD_WORKERS: 8
+          LOAD_OPS_PER_WORKER: 5
         run: make ig-load-test
+
+      - name: Validate zero invariant violations in load report
+        run: |
+          python3 - <<'EOF'
+          import json
+          from pathlib import Path
+          reports = sorted(Path("insurance-governor/tests/load/load/reports").glob("crystallize_commit_*.json"))
+          if not reports:
+              raise SystemExit("No IG load report artifact generated")
+          report = json.loads(reports[-1].read_text())
+          violations = int(report.get("invariant_violations", 0))
+          if violations:
+              raise SystemExit(f"invariant_violations={violations}")
+          print(f"Validated: {reports[-1]}")
+          EOF
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ig-load-harness-report
+          path: insurance-governor/tests/load/load/reports/crystallize_commit_*.json
+          if-no-files-found: error
 
   ig-validate-helm:
     name: IG Helm chart lint
@@ -330,7 +373,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: azure/setup-helm@v4
       - name: Helm lint insurancegovernor
-        run: helm lint deploy/helm/insurancegovernor
+        run: helm lint deploy/helm/insurancegovernor -f deploy/helm/insurancegovernor/values-production.yaml
+      - name: Helm template production values
+        run: |
+          helm template insurancegovernor deploy/helm/insurancegovernor \
+            -f deploy/helm/insurancegovernor/values-production.yaml \
+            --namespace insurancegovernor > /tmp/ig-helm-production.yaml
+          wc -l /tmp/ig-helm-production.yaml
 
   ig-build-images:
     name: IG container image build gate

@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     rate_limit_per_minute: int = 120
     max_claim_depth: int = 50
     max_account_inflight: int = 10
+    circuit_breaker_enabled: bool = True
+    circuit_breaker_failure_threshold: int = 5
+    circuit_breaker_window_seconds: int = 60
+    circuit_breaker_open_seconds: int = 30
     fallback_max_claim_depth: int = 50
     fallback_max_account_inflight: int = 5
     fallback_rate_limit_per_minute: int = 60

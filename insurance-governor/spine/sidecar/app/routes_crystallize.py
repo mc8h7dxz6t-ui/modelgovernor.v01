@@ -12,6 +12,7 @@ from .config import get_settings
 from .db import get_db_session
 from .diagnostic_mode import is_diagnostic_mode
 from .guardrail_errors import GuardrailError
+from .circuit_breaker import CircuitOpenError
 from .guardrails import get_guardrails
 from .schemas import CrystallizeRequest, CrystallizeResponse
 
@@ -46,6 +47,8 @@ def crystallize(request: CrystallizeRequest, _: None = Depends(require_internal_
             )
     except GuardrailError as exc:
         raise HTTPException(status_code=429, detail=str(exc)) from exc
+    except CircuitOpenError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     except ConflictError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except InsufficientReserveError as exc:

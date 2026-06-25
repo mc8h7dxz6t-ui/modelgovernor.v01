@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: insurancegovernor-production-helm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: insurancegovernor
+    environment: production
+    deploy-method: helm
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/mc8h7dxz6t-ui/modelgovernor.v01
+    targetRevision: main
+    path: deploy/helm/insurancegovernor
+    helm:
+      releaseName: insurancegovernor
+      valueFiles:
+        - values-production.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: insurancegovernor
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

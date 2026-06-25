@@ -18,7 +18,7 @@ spec:
             - name: canary
               image: curlimages/curl:8.5.0
               env:
-                - name: SIDECAR_INTERNAL_TOKEN
+                - name: IG_INTERNAL_TOKEN
                   valueFrom:
                     secretKeyRef:
                       name: {{ include "insurancegovernor.secretName" . }}
@@ -27,7 +27,7 @@ spec:
               args:
                 - |
                   set -e
-                  TOKEN="${SIDECAR_INTERNAL_TOKEN%%,*}"
+                  TOKEN="${IG_INTERNAL_TOKEN%%,*}"
                   curl -sf http://sidecar:8101/readyz
                   curl -sf -H "x-internal-token: ${TOKEN}" http://sidecar:8101/internal/diagnostic/status
                   curl -sf -H "x-internal-token: ${TOKEN}" http://sidecar:8101/internal/claims/verify-chain

@@ -1,6 +1,7 @@
 from decimal import Decimal
 from typing import Any
 
+import httpx
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
@@ -25,6 +26,18 @@ class GovernedCommitRequest(BaseModel):
 @app.get("/healthz")
 def healthz() -> dict:
     return {"status": "ok"}
+
+
+@app.get("/readyz")
+def readyz() -> dict:
+    settings = get_settings()
+    try:
+        with httpx.Client(timeout=3.0) as client:
+            response = client.get(f"{settings.ig_sidecar_url.rstrip('/')}/readyz")
+            response.raise_for_status()
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"sidecar unavailable: {exc}") from exc
+    return {"status": "ready", "sidecar": "ok"}
 
 
 @app.post("/governed/commit")

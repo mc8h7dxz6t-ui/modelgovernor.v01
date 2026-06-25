@@ -1,21 +1,116 @@
-groups:
-  - name: insurancegovernor-invariants
-    rules:
-      - alert: InsuranceGovernorClaimChainVerificationFailed
-        expr: increase(insurancegovernor_claim_chain_verification_failed_total[5m]) > 0
-        labels:
-          severity: critical
-        annotations:
-          summary: Claim chain verification failed
-      - alert: InsuranceGovernorNegativeBalance
-        expr: increase(insurancegovernor_negative_balance_detected_total[5m]) > 0
-        labels:
-          severity: critical
-        annotations:
-          summary: Negative reserve balance detected
-      - alert: InsuranceGovernorClaimAuditViolation
-        expr: increase(insurancegovernor_claim_audit_violation_total[5m]) > 0
-        labels:
-          severity: critical
-        annotations:
-          summary: Post-sweep claim_ops audit violation
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: insurancegovernor-invariant-alerts
+  labels:
+    app: insurancegovernor-sidecar
+spec:
+  groups:
+    - name: insurancegovernor.slos
+      interval: 30s
+      rules:
+        - record: insurancegovernor:crystallize_success_rate:5m
+          expr: |
+            sum(rate(insurancegovernor_http_requests_total{route="/crystallize",status=~"2.."}[5m]))
+            /
+            clamp_min(sum(rate(insurancegovernor_http_requests_total{route="/crystallize"}[5m])), 1e-9)
+
+        - record: insurancegovernor:commit_success_rate:5m
+          expr: |
+            sum(rate(insurancegovernor_http_requests_total{route="/commit",status=~"2.."}[5m]))
+            /
+            clamp_min(sum(rate(insurancegovernor_http_requests_total{route="/commit"}[5m])), 1e-9)
+
+        - record: insurancegovernor:crystallize_p95_latency:5m
+          expr: |
+            histogram_quantile(
+              0.95,
+              sum(rate(insurancegovernor_http_request_duration_seconds_bucket{route="/crystallize"}[5m])) by (le)
+            )
+
+        - alert: InsuranceGovernorCrystallizeAvailabilitySLO
+          expr: insurancegovernor:crystallize_success_rate:5m < 0.995
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Crystallize availability below 99.5% SLO
+
+        - alert: InsuranceGovernorCommitAvailabilitySLO
+          expr: insurancegovernor:commit_success_rate:5m < 0.995
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Commit availability below 99.5% SLO
+
+        - alert: InsuranceGovernorCrystallizeLatencySLO
+          expr: insurancegovernor:crystallize_p95_latency:5m > 0.5
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Crystallize p95 latency above 500ms SLO
+
+    - name: insurancegovernor.invariants
+      rules:
+        - alert: InsuranceGovernorClaimChainVerificationFailed
+          expr: increase(insurancegovernor_claim_chain_verification_failed_total[5m]) > 0
+          labels:
+            severity: critical
+          annotations:
+            summary: Claim chain verification failed
+
+        - alert: InsuranceGovernorNegativeBalance
+          expr: increase(insurancegovernor_negative_balance_detected_total[5m]) > 0
+          labels:
+            severity: critical
+          annotations:
+            summary: Negative reserve balance detected
+
+        - alert: InsuranceGovernorClaimAuditViolation
+          expr: increase(insurancegovernor_claim_audit_violation_total[5m]) > 0
+          labels:
+            severity: critical
+          annotations:
+            summary: Post-sweep claim_ops audit violation
+
+        - alert: InsuranceGovernorGuardrailDegraded
+          expr: increase(insurancegovernor_guardrail_degraded_total[5m]) > 10
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Guardrails running in local fallback mode
+
+        - alert: InsuranceGovernorCircuitBreakerLocalFallback
+          expr: increase(insurancegovernor_dependency_circuit_local_fallback_total[5m]) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Dependency circuit breaker using local fallback
+
+        - alert: InsuranceGovernorRedisCircuitOpen
+          expr: increase(insurancegovernor_redis_circuit_open_total[5m]) > 0
+          for: 0m
+          labels:
+            severity: critical
+          annotations:
+            summary: Redis dependency circuit open — crystallize fail-closed
+
+        - alert: InsuranceGovernorClaimAnchorS3Failed
+          expr: increase(insurancegovernor_claim_chain_anchor_s3_failed_total[5m]) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: S3 Object Lock claim anchor upload failed
+
+        - alert: InsuranceGovernorSyntheticCanaryMissing
+          expr: absent(up{job="insurancegovernor-sidecar"}) == 1
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: Sidecar metrics absent — synthetic canary may be failing

@@ -53,11 +53,40 @@ spec:
                 secretKeyRef:
                   name: {{ include "insurancegovernor.secretName" . }}
                   key: redis-url
-            - name: SIDECAR_INTERNAL_TOKENS
+            - name: IG_INTERNAL_TOKENS
               valueFrom:
                 secretKeyRef:
                   name: {{ include "insurancegovernor.secretName" . }}
                   key: sidecar-internal-tokens
+            {{- if or .Values.secrets.claimAnchorS3Bucket .Values.externalSecrets.remoteRefs.claimAnchorS3Bucket }}
+            - name: CLAIM_ANCHOR_S3_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "insurancegovernor.secretName" . }}
+                  key: claim-anchor-s3-bucket
+                  optional: true
+            {{- end }}
+            {{- if .Values.config.oidcEnabled }}
+            {{- if .Values.externalSecrets.enabled }}
+            - name: OIDC_ISSUER_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "insurancegovernor.secretName" . }}
+                  key: oidc-issuer-url
+                  optional: true
+            - name: OIDC_AUDIENCE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "insurancegovernor.secretName" . }}
+                  key: oidc-audience
+                  optional: true
+            {{- else if .Values.config.oidcIssuerUrl }}
+            - name: OIDC_ISSUER_URL
+              value: {{ .Values.config.oidcIssuerUrl | quote }}
+            - name: OIDC_AUDIENCE
+              value: {{ .Values.config.oidcAudience | quote }}
+            {{- end }}
+            {{- end }}
             {{- if .Values.otelCollector.enabled }}
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: {{ .Values.sidecar.otel.endpoint | quote }}

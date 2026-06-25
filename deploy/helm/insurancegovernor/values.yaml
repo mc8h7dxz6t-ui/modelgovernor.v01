@@ -52,6 +52,7 @@ secrets:
   postgresPassword: CHANGE_ME
   redisUrl: redis://redis:6379/0
   sidecarInternalTokens: CHANGE_ME
+  claimAnchorS3Bucket: ""
 
 externalSecrets:
   enabled: false
@@ -69,7 +70,7 @@ externalSecrets:
     pgbouncerUserlist: insurancegovernor/pgbouncer-userlist
     oidcIssuerUrl: insurancegovernor/oidc-issuer-url
     oidcAudience: insurancegovernor/oidc-audience
-    ledgerAnchorS3Bucket: insurancegovernor/ledger-anchor-s3-bucket
+    claimAnchorS3Bucket: insurancegovernor/claim-anchor-s3-bucket
 
 postgres:
   enabled: true
@@ -118,13 +119,6 @@ sidecar:
 gateway:
   enabled: true
   replicas: 2
-  mockDispatchCost: "1.000000"
-  providerMode: mock
-  oidc:
-    enabled: false
-    issuerUrl: ""
-    audience: ""
-    dispatchRoles: "dispatch,insurancegovernor-dispatch"
   resources:
     requests:
       cpu: 50m
@@ -183,7 +177,7 @@ networkPolicy:
   enabled: true
 
 config:
-  defaultTraceCapAmount: "25.000000"
+  commitTtlSeconds: "300"
   driftAbsoluteTolerance: "0.500000"
   driftRatioTolerance: "0.050000"
   dbPoolSize: "3"
@@ -192,21 +186,25 @@ config:
   dbPoolRecycleSeconds: "900"
   guardrailsEnabled: "true"
   rateLimitPerMinute: "120"
-  maxTraceDepth: "50"
-  maxUserInflight: "10"
+  maxClaimDepth: "50"
+  maxAccountInflight: "10"
   circuitBreakerEnabled: "true"
+  circuitBreakerFailureThreshold: "5"
+  circuitBreakerWindowSeconds: "60"
+  circuitBreakerOpenSeconds: "30"
   fallbackGlobalTokensPerSecond: "20"
   fallbackTokenBucketCapacity: "40"
   fallbackRateLimitPerMinute: "60"
-  fallbackMaxUserInflight: "5"
+  fallbackMaxClaimDepth: "50"
+  fallbackMaxAccountInflight: "5"
   oidcEnabled: "false"
   oidcAllowInternalTokenFallback: "true"
   oidcViewerRoles: "viewer,insurancegovernor-viewer"
-  oidcFinancialAdminRoles: "financial-admin,insurancegovernor-financial-admin"
-  gatewayOidcEnabled: "false"
-  gatewayOidcIssuerUrl: ""
-  gatewayOidcAudience: ""
-  gatewayOidcDispatchRoles: "dispatch,insurancegovernor-dispatch"
-  openaiCompatEnabled: "true"
-  openaiCompatDefaultUserId: "default-user"
-  ledgerAnchorS3ObjectLockEnabled: "false"
+  oidcClaimsAdminRoles: "claims-admin,insurancegovernor-claims-admin"
+  oidcIssuerUrl: ""
+  oidcAudience: ""
+  claimAnchorS3Prefix: "claim-anchors"
+  claimAnchorS3ObjectLockEnabled: "false"
+  claimAnchorS3ObjectLockMode: "GOVERNANCE"
+  claimAnchorS3RetentionDays: "3650"
+  claimAnchorS3Region: ""

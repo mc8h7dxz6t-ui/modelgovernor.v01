@@ -84,3 +84,90 @@ def test_crystallize_idempotency_postgres(pg_spine):
         )
     assert r1.crystal_id == r2.crystal_id
     assert r2.status == "REPLAY"
+
+
+def test_full_lifecycle_commit_postgres(pg_spine):
+    from decimal import Decimal
+
+    from app.claim_ops import assert_claim_ops_invariants
+    from app.commit_ledger import commit_operation, crystallize_operation
+    from app.config import get_settings
+    from app.db import get_db_session
+
+    facets = {"claim_id": "pg-life-1", "payout_amount": "1000.00"}
+    settings = get_settings()
+    with get_db_session() as session:
+        crystal = crystallize_operation(
+            session,
+            settings,
+            platform="claim_gate",
+            operation_id="pg-life-1",
+            account_id="carrier-default",
+            risk_tier="high",
+            facets=facets,
+            policy_id="claim-high-us",
+            reserved_reserve=Decimal("1000"),
+        )
+    with get_db_session() as session:
+        result = commit_operation(
+            session,
+            crystal_id=crystal.crystal_id,
+            facets=facets,
+            committed_reserve=Decimal("1000"),
+            outcome="paid",
+        )
+        assert result.status == "COMMITTED"
+        assert_claim_ops_invariants(session)
+
+
+def test_insufficient_reserve_postgres(pg_spine):
+    from decimal import Decimal
+
+    import pytest
+
+    from app.commit_ledger import InsufficientReserveError, crystallize_operation
+    from app.config import get_settings
+    from app.db import get_db_session
+
+    facets = {"claim_id": "pg-broke", "payout_amount": "1.00"}
+    settings = get_settings()
+    with pytest.raises(InsufficientReserveError):
+        with get_db_session() as session:
+            crystallize_operation(
+                session,
+                settings,
+                platform="claim_gate",
+                operation_id="pg-broke",
+                account_id="carrier-default",
+                risk_tier="high",
+                facets=facets,
+                policy_id="claim-high-us",
+                reserved_reserve=Decimal("99999999999"),
+            )
+
+
+def test_claim_chain_verify_postgres(pg_spine):
+    from decimal import Decimal
+
+    from app.claim_seal import verify_claim_chain
+    from app.commit_ledger import crystallize_operation
+    from app.config import get_settings
+    from app.db import get_db_session
+
+    facets = {"claim_id": "pg-chain", "payout_amount": "50.00"}
+    settings = get_settings()
+    with get_db_session() as session:
+        crystallize_operation(
+            session,
+            settings,
+            platform="claim_gate",
+            operation_id="pg-chain",
+            account_id="carrier-default",
+            risk_tier="high",
+            facets=facets,
+            reserved_reserve=Decimal("0"),
+        )
+    with get_db_session() as session:
+        result = verify_claim_chain(session)
+        assert result["valid"] is True
+        assert result["total_events"] >= 1
