@@ -5,7 +5,7 @@ import logging
 import os
 from decimal import Decimal
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, HTTPException
 from pydantic import BaseModel
 
 from platforms.common.bias_monitoring import record_credit_cohort
@@ -125,7 +125,8 @@ def evaluate(req: CreditRequest) -> EvaluateResponse:
             )
             _record_rail_attempt(req.application_id, outcome.decision, outcome.explanation_id)
         except Exception as exc:
-            logger.warning("commit failed: %s", exc)
+            logger.exception("spine commit failed for %s", req.application_id)
+            raise HTTPException(status_code=503, detail=f"spine commit failed: {exc}") from exc
 
     _store.record_evaluation(
         {

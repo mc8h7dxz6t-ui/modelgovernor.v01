@@ -19,13 +19,13 @@ spec:
                 - name: FG_TOKEN
                   valueFrom:
                     secretKeyRef:
-                      name: fg-internal
+                      name: {{ include "fg.secretName" . }}
                       key: fg-internal-tokens
               command: ["/bin/sh", "-c"]
               args:
                 - |
                   set -e
                   curl -sf -X POST -H "x-internal-token: ${FG_TOKEN}" \
-                    http://fg-sidecar:8091/internal/decisions/anchor-head
+                    http://fg-sidecar:8091/internal/decisions/anchor-head | grep -q '"anchored":true'
                   echo "fg decision chain anchored"
 {{- end }}

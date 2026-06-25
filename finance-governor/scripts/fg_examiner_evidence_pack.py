@@ -31,8 +31,6 @@ def _test_count() -> int:
                 "tests/",
                 "--collect-only",
                 "-q",
-                "--ignore=tests/integration",
-                "--ignore=tests/chaos/test_toxiproxy_fg_spine.py",
             ],
             cwd=ROOT,
             stderr=subprocess.DEVNULL,

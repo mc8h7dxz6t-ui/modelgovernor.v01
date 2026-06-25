@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from tests.support.fg_migrations import sql_fragments
 
 MIGRATIONS = Path(__file__).resolve().parents[1] / "migrations"
@@ -21,3 +23,11 @@ def test_spine_init_includes_extension_and_seed_data():
     frags = sql_fragments(sql)
     assert any(f.startswith('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"') for f in frags)
     assert any(f.startswith("INSERT INTO account_ledgers") for f in frags)
+
+
+@pytest.mark.parametrize("migration", ["0002_fg_hardening.sql", "0003_platform_persistence.sql", "0004_platform_sdk.sql"])
+def test_migrations_parse_without_empty_fragments(migration: str):
+    sql = (MIGRATIONS / migration).read_text()
+    frags = sql_fragments(sql)
+    assert frags
+    assert all("CREATE" in f or "ALTER" in f or "INSERT" in f for f in frags)

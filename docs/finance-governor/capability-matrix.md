@@ -24,7 +24,7 @@ Legend: ✅ Implemented · 🔌 Deploy-time config · 📄 Documented operator s
 |------------|--------|-------------|------------|
 | Reserve-before-inference (crystallize + exposure) | ✅ | `make fg-demo-gold` | Gateway + sidecar |
 | Credit decision API | ✅ | Mock + live HTTP rail | `FG_CREDIT_RAIL_MODE=live` |
-| Live inference rails (HTTP provider + circuit breaker) | ✅ | `test_inference_rail.py` | `inference_rail.py` + `values-enterprise` |
+| Live inference rails (HTTP provider + circuit breaker) | ✅ | `test_inference_rail.py` + Helm `fg-credit-rail` | `inference_rail.py` + enterprise chart |
 | ISO 4217 exposure ledger (`NUMERIC(24,12)`) | ✅ | Auto | Postgres |
 | Append-only decision events + idempotent lifecycle | ✅ | Step 7 demo | Postgres |
 | Per-desk atomic exposure caps | ✅ | Auto | Sidecar |
@@ -36,7 +36,7 @@ Legend: ✅ Implemented · 🔌 Deploy-time config · 📄 Documented operator s
 | Diagnostic mode (no poison pill) | ✅ | `test_diagnostic_mode.py` | Redis / API flag |
 | Hash-chained decision events | ✅ | `verify-chain` API | Migration + sidecar |
 | Hourly chain verification CronJob | ✅ | Helm template | `decisionChainVerify` CronJob |
-| S3 Object Lock external anchor | ✅ | `decisionChainAnchor` CronJob | 🔌 `s3Anchor.bucket` + IAM |
+| S3 Object Lock external anchor | ✅ | `decisionChainAnchor` CronJob (validates `anchored:true`) | 🔌 `s3Anchor.bucket` + IAM — S3 path operator-verified |
 | Privileged admin audit log | ✅ | Demo + `/internal/admin/audit` | Postgres |
 | Gateway OIDC termination | ✅ | `test_auth_oidc.py` | `oidc.enabled: true` |
 | Sidecar OIDC + RBAC | ✅ | `require_financial_admin` | Config + middleware |

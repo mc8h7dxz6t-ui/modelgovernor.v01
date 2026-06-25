@@ -70,13 +70,31 @@ def get_platform(session: Session, platform_name: str) -> PlatformRecord | None:
     return _row_to_record(dict(row)) if row else None
 
 
+def registry_table_exists(session: Session) -> bool:
+    dialect = session.bind.dialect.name
+    if dialect == "postgresql":
+        row = session.execute(
+            text(
+                "SELECT 1 FROM information_schema.tables "
+                "WHERE table_schema = current_schema() AND table_name = 'platform_registry'"
+            )
+        ).first()
+        return row is not None
+    if dialect == "sqlite":
+        row = session.execute(
+            text("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'platform_registry'")
+        ).first()
+        return row is not None
+    return False
+
+
 def registry_enforced(session: Session) -> bool:
-    count = session.execute(text("SELECT COUNT(*) AS c FROM platform_registry")).mappings().first()
-    return bool(count and count["c"] > 0)
+    """Registry gate is active when the table exists (seeded platforms required)."""
+    return registry_table_exists(session)
 
 
 def assert_platform_allowed(session: Session, platform_name: str) -> PlatformRecord:
-    if not registry_enforced(session):
+    if not registry_table_exists(session):
         return PlatformRecord(
             platform_name=platform_name,
             display_name=platform_name,

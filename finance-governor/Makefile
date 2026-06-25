@@ -189,8 +189,8 @@ fg-certification:
 	python3 -m pytest tests/test_horizon_sweeper.py tests/test_reconciler_leader.py tests/test_commit_invariants.py tests/test_load_smoke_offline.py -q
 	@echo "==> Tier 2: Postgres integration (starts test DB if needed)"
 	@$(MAKE) fg-integration-test
-	@echo "==> Tier 3: offline load smoke"
-	python3 -m pytest tests/test_load_smoke_offline.py -q
+	@echo "==> Tier 3: offline load smoke + reconciler invariants"
+	python3 -m pytest tests/test_load_smoke_offline.py tests/test_horizon_sweeper.py tests/test_commit_invariants.py -q
 	@echo "==> Tier 4: Toxiproxy chaos (skipped if docker unavailable)"
 	@$(MAKE) fg-chaos-test 2>/dev/null || echo "chaos skipped"
 	@echo "==> Tier 5: live chain verify (skipped if spine down)"

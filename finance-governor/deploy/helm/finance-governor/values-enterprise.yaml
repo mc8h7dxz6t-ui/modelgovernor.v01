@@ -85,6 +85,11 @@ hpa:
 podMonitor:
   enabled: true
 
+creditRail:
+  enabled: true
+  replicas: 2
+  port: 8098
+
 platformCanary:
   enabled: true
   schedule: "*/5 * * * *"

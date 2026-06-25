@@ -23,10 +23,10 @@ def sqlite_store(monkeypatch):
         poolclass=StaticPool,
     )
     with engine.begin() as conn:
-        for stmt in SCHEMA.split(";"):
-            s = stmt.strip()
-            if s:
-                conn.execute(text(s))
+        from tests.support.fg_migrations import sql_fragments
+
+        for fragment in sql_fragments(SCHEMA):
+            conn.execute(text(fragment))
     monkeypatch.setenv("DATABASE_URL", "sqlite+pysqlite:///:memory:")
     import platforms.common.platform_store as ps
 

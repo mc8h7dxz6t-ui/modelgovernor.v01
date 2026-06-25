@@ -248,11 +248,12 @@ def verify_decision_chain(session: Session) -> DecisionChainVerificationResult:
 
     if not schema_supports_decision_seal(session):
         return DecisionChainVerificationResult(
-            valid=True,
+            valid=False,
             sealed_count=0,
             unsealed_count=0,
             total_events=0,
             head_hash=None,
+            first_break=DecisionChainBreak(event_id=0, reason="seal_schema_unavailable"),
         )
 
     dialect = session.bind.dialect.name

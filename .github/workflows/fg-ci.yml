@@ -174,7 +174,7 @@ jobs:
           pip install -r platforms/requirements.txt
           pip install -r spine/sidecar/requirements.txt
           pip install pytest uvicorn
-      - run: make fg-certification-external
+      - run: make fg-certification-external-full
 
   fg-docker-build:
     name: FG Docker image build gate

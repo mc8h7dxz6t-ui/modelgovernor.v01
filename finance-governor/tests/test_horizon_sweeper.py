@@ -103,3 +103,23 @@ def test_should_strand_on_expiry_ccp_rule():
     assert should_strand_on_expiry("critical") is True
     assert should_strand_on_expiry("high") is True
     assert should_strand_on_expiry("standard") is False
+
+
+def test_in_flight_horizon_strands(spine_db):
+    sweep_expired_horizons = load_reconciler_module("horizon_sweeper").sweep_expired_horizons
+
+    factory = sessionmaker(bind=spine_db)
+    with factory() as session:
+        _seed_crystal(session, crystal_id="c-inflight", operation_id="op-inflight", risk_tier="high")
+        session.execute(
+            text("UPDATE commit_escrow_ledger SET status = 'IN_FLIGHT' WHERE crystal_id = 'c-inflight'")
+        )
+        session.commit()
+
+    with factory() as session:
+        swept = sweep_expired_horizons(session, batch_size=10)
+        assert swept == 1
+        terminal = session.execute(
+            text("SELECT terminal_state FROM governance_crystals WHERE crystal_id = 'c-inflight'")
+        ).scalar_one()
+        assert terminal == "STRANDED"

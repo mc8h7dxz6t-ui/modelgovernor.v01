@@ -142,6 +142,11 @@ platforms:
       timeout: "10"
       circuitThreshold: "5"
 
+creditRail:
+  enabled: false
+  replicas: 1
+  port: 8098
+
 hpa:
   enabled: false
   sidecar:

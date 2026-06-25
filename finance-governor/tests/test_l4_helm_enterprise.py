@@ -97,6 +97,11 @@ def test_l4_extended_pdb_coverage(enterprise_docs):
         assert pdb in names
 
 
+def test_l4_credit_rail_when_live(enterprise_docs):
+    names = [d["metadata"]["name"] for d in enterprise_docs if d.get("metadata")]
+    assert "fg-credit-rail" in names
+
+
 def test_l4_no_simple_redis_when_sentinel(enterprise_docs):
     names = [d["metadata"]["name"] for d in enterprise_docs if d.get("metadata")]
     assert "fg-redis" not in names

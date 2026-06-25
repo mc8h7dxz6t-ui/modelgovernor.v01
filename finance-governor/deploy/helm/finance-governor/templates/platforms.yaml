@@ -236,6 +236,7 @@ spec:
       annotations:
         {{- include "fg.istioPodAnnotations" . | nindent 8 }}
     spec:
+      {{- include "fg.podAntiAffinity" . | nindent 6 }}
       containers:
         - name: creditgovern
           image: {{ .Values.image.creditgovern }}
