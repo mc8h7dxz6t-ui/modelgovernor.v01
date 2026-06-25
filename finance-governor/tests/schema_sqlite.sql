@@ -112,3 +112,24 @@ VALUES ('desk-default', 'exposure', 'USD', 100000000, 1);
 INSERT INTO crystal_mesh_rules (
     parent_platform, parent_facet_key, parent_facet_value, child_platform, block_commit, enabled
 ) VALUES ('algofreeze', 'freeze_state', 'FROZEN', 'wire_match', 1, 1);
+
+CREATE TABLE admin_audit_log (
+    audit_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    actor_subject VARCHAR(255) NOT NULL,
+    actor_method VARCHAR(50) NOT NULL,
+    action VARCHAR(100) NOT NULL,
+    target VARCHAR(255),
+    metadata TEXT NOT NULL DEFAULT '{}',
+    prev_hash VARCHAR(64),
+    row_hash VARCHAR(64),
+    recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE decision_chain_anchors (
+    anchor_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    head_hash VARCHAR(64) NOT NULL UNIQUE,
+    sealed_count INT NOT NULL,
+    total_events INT NOT NULL,
+    source VARCHAR(100) NOT NULL DEFAULT 'api',
+    anchored_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

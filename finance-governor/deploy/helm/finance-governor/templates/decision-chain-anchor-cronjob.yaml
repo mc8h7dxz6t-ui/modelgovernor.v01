@@ -1,0 +1,31 @@
+{{- if .Values.decisionChainAnchor.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: fg-decision-chain-anchor
+  namespace: {{ include "fg.namespace" . }}
+spec:
+  schedule: {{ .Values.decisionChainAnchor.schedule | quote }}
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: anchor
+              image: curlimages/curl:8.5.0
+              env:
+                - name: FG_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: fg-internal
+                      key: fg-internal-tokens
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -e
+                  curl -sf -X POST -H "x-internal-token: ${FG_TOKEN}" \
+                    http://fg-sidecar:8091/internal/decisions/anchor-head
+                  echo "fg decision chain anchored"
+{{- end }}

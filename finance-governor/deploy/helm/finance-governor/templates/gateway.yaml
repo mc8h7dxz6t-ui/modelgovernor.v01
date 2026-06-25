@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fg-gateway
+  namespace: {{ include "fg.namespace" . }}
+  labels:
+    {{- include "fg.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+spec:
+  replicas: {{ .Values.replicas.gateway }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: gateway
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: gateway
+        {{- include "fg.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: gateway
+          image: {{ .Values.image.gateway }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 8090
+          env:
+            - name: FG_SIDECAR_URL
+              value: http://fg-sidecar:8091
+            - name: FG_INTERNAL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: fg-internal
+                  key: fg-internal-tokens
+            - name: OIDC_ENABLED
+              value: {{ .Values.oidc.enabled | quote }}
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8090

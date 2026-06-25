@@ -1,0 +1,43 @@
+namespace: finance-governor
+
+image:
+  gateway: finance-governor-gateway:0.3.0
+  sidecar: finance-governor-sidecar:0.3.0
+  reconciler: finance-governor-reconciler:0.3.0
+  pullPolicy: IfNotPresent
+
+replicas:
+  gateway: 2
+  sidecar: 3
+  reconciler: 2
+
+postgres:
+  enabled: true
+  storage: 20Gi
+
+redis:
+  enabled: true
+
+internalToken: change-me-in-production
+
+oidc:
+  enabled: false
+  issuerUrl: ""
+  audience: ""
+
+decisionChainVerify:
+  enabled: true
+  schedule: "0 * * * *"
+
+decisionChainAnchor:
+  enabled: true
+  schedule: "15 * * * *"
+
+governanceCanary:
+  enabled: true
+  schedule: "*/10 * * * *"
+
+s3Anchor:
+  bucket: ""
+  prefix: finance-governor/decision-chain
+  objectLock: false

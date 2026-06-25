@@ -13,6 +13,7 @@ services:
     volumes:
       - fg_postgres_data:/var/lib/postgresql/data
       - ./migrations/0001_fg_spine_init.sql:/docker-entrypoint-initdb.d/0001_init.sql:ro
+      - ./migrations/0002_fg_hardening.sql:/docker-entrypoint-initdb.d/0002_hardening.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d financegovernor"]
       interval: 5s
