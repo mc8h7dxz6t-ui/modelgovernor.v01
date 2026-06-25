@@ -252,7 +252,7 @@ class _SqlBase:
 
     def append_event(self, platform: str, event_type: str, operation_id: str, metadata: dict | None = None) -> None:
         meta_json = json.dumps(metadata or {})
-        meta_sql = ":metadata" if self._dialect == "sqlite" else ":metadata::jsonb"
+        meta_sql = ":metadata" if self._dialect == "sqlite" else "CAST(:metadata AS jsonb)"
         with self._engine.begin() as conn:
             conn.execute(
                 text(

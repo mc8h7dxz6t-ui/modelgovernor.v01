@@ -10,12 +10,14 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 
+from tests.integration.conftest import POSTGRES_URL
+
+
 def test_subledger_postgres_roundtrip(postgres_engine, monkeypatch):
     import platforms.common.platform_store as ps
     from platforms.common.platform_store import get_subledger_store
 
-    url = str(postgres_engine.url)
-    monkeypatch.setenv("DATABASE_URL", url)
+    monkeypatch.setenv("DATABASE_URL", POSTGRES_URL)
     ps._engines.clear()
     ps._stores.clear()
 

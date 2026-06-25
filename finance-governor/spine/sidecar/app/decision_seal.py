@@ -191,7 +191,7 @@ def append_decision_event(
 
     prev = head_hash(session) or GENESIS_HASH
     now = datetime.now(timezone.utc)
-    meta_sql = ":meta" if session.bind.dialect.name == "sqlite" else ":meta::jsonb"
+    meta_sql = ":meta" if session.bind.dialect.name == "sqlite" else "CAST(:meta AS jsonb)"
     recorded_at_param = now.isoformat() if session.bind.dialect.name == "sqlite" else now
     amount = str(quantize_money(exposure_delta))
 

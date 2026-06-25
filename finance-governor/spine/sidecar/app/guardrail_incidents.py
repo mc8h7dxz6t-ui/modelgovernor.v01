@@ -28,7 +28,7 @@ def record_guardrail_incident(
     if not schema_supports_guardrail_incidents(session):
         return
     meta_json = json.dumps(metadata or {})
-    meta_sql = ":metadata" if session.bind.dialect.name == "sqlite" else ":metadata::jsonb"
+    meta_sql = ":metadata" if session.bind.dialect.name == "sqlite" else "CAST(:metadata AS jsonb)"
     session.execute(
         text(
             f"""
