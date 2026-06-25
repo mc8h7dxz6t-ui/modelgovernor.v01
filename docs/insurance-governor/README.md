@@ -14,6 +14,7 @@ Runtime insurance commit control plane — sibling to [ModelGovernor](../archite
 | [integration-architecture.md](integration-architecture.md) | FNOL, write-back, rails, oracle topology |
 | [completion-checklist.md](completion-checklist.md) | 100% automated completion matrix |
 | [production-infrastructure.md](production-infrastructure.md) | Mock → live: Postgres, bank/oracle feeds, Istio mTLS |
+| [insurance-governor-tomorrow-sale.md](../sales-sheets/insurance-governor-tomorrow-sale.md) | **Asset sale spec** — per-platform vs competitor, pre-revenue ask |
 
 Implementation: [`insurance-governor/`](../../insurance-governor/)
 
