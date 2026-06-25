@@ -255,9 +255,13 @@ def verify_decision_chain(session: Session) -> DecisionChainVerificationResult:
             head_hash=None,
         )
 
+    dialect = session.bind.dialect.name
+    recorded_col = (
+        "recorded_at::text AS recorded_at" if dialect == "postgresql" else "recorded_at"
+    )
     rows = session.execute(
         text(
-            """
+            f"""
             SELECT
                 event_id,
                 operation_id,
@@ -266,7 +270,7 @@ def verify_decision_chain(session: Session) -> DecisionChainVerificationResult:
                 event_type,
                 exposure_delta,
                 metadata,
-                recorded_at,
+                {recorded_col},
                 prev_hash,
                 row_hash
             FROM decision_events
