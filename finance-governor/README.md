@@ -62,6 +62,9 @@ Every irreversible action on the spine requires a **Governance Crystal**. See [c
 | Admin audit log | ✅ |
 | `make fg-demo-gold` | ✅ |
 | `make fg-certification` (4-tier) | ✅ |
+| `make fg-certification-l4` (L4 Gold) | ✅ |
+| Helm L4 enterprise (PgBouncer, Sentinel, HPA, platforms) | ✅ |
+| ArgoCD GitOps + Istio enterprise overlay | ✅ |
 | Helm chart (`deploy/helm/finance-governor`) | ✅ |
 | AlgoFreeze (Phase 1) | ✅ |
 | WireMatch (Phase 1b) | ✅ |

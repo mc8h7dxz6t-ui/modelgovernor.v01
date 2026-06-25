@@ -1,0 +1,53 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: finance-governor
+  namespace: argocd
+spec:
+  description: Finance Governor institutional++ platform
+  sourceRepos:
+    - "*"
+  destinations:
+    - namespace: finance-governor
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: finance-governor-production
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: finance-governor
+    environment: production
+    certification: l4-gold
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: finance-governor
+  source:
+    repoURL: https://github.com/mc8h7dxz6t-ui/modelgovernor.v01
+    targetRevision: main
+    path: finance-governor/deploy/helm/finance-governor
+    helm:
+      releaseName: fg
+      valueFiles:
+        - values-production.yaml
+        - values-enterprise.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: finance-governor
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
