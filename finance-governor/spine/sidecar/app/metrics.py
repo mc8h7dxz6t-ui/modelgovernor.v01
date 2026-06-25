@@ -5,6 +5,7 @@ from typing import Dict
 
 _COUNTER_NAMES = (
     "crystallize_success_total",
+    "crystallize_idempotent_replay_total",
     "commit_success_total",
     "surprise_commit_blocked_total",
     "crystal_fingerprint_mismatch_total",
@@ -17,6 +18,8 @@ _COUNTER_NAMES = (
     "regulatory_audit_diagnostic_entered_total",
     "reconciler_horizon_strand_total",
     "reconciler_expired_total",
+    "ledger_chain_verification_failed_total",
+    "decision_event_sealed_total",
 )
 
 

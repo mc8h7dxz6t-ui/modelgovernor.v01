@@ -6,6 +6,8 @@ import unicodedata
 from dataclasses import dataclass
 from decimal import Decimal
 
+GOLDEN_RECORD_VERSION = "revlon-lenders-v1"
+
 
 @dataclass(frozen=True)
 class GoldenRecord:

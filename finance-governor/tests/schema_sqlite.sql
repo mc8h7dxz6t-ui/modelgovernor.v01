@@ -108,3 +108,7 @@ INSERT INTO instrument_policy_registry (
 
 INSERT INTO account_ledgers (account_id, ledger_type, currency, balance, active)
 VALUES ('desk-default', 'exposure', 'USD', 100000000, 1);
+
+INSERT INTO crystal_mesh_rules (
+    parent_platform, parent_facet_key, parent_facet_value, child_platform, block_commit, enabled
+) VALUES ('algofreeze', 'freeze_state', 'FROZEN', 'wire_match', 1, 1);

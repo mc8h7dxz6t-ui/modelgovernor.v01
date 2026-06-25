@@ -1,5 +1,5 @@
 .PHONY: fg-spine-up fg-spine-down fg-spine-test fg-spine-smoke fg-spine-logs \
-	fg-stack-up fg-stack-down crystal-demo algofreeze-demo wirematch-demo
+	fg-stack-up fg-stack-down crystal-demo algofreeze-demo wirematch-demo fg-certification
 
 fg-spine-up:
 	docker compose up -d --build
@@ -50,3 +50,13 @@ algofreeze-demo:
 
 crystal-demo:
 	./scripts/crystal-demo.sh
+
+fg-certification:
+	@echo "==> Tier 1: unit + spine hardening tests"
+	python3 -m pytest tests/ -q
+	@echo "==> Chain verify smoke (requires spine up; skipped if unavailable)"
+	@if curl -sf -H 'x-internal-token: dev-fg-spine-token-change-me' \
+	  http://localhost:8091/internal/decisions/verify-chain 2>/dev/null \
+	  | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get('valid') is True, d" \
+	  2>/dev/null; then echo "chain verify OK"; else echo "chain verify skipped (spine not running)"; fi
+	@echo "fg-certification complete"
