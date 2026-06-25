@@ -8,3 +8,8 @@ required_facet_keys:
   - indemnity_decision
 commit_decisions:
   - APPROVED
+invariant_counters:
+  - indemnity_social_engineering_blocked_total
+  - indemnity_payee_held_total
+  - indemnity_payee_approved_total
+  - indemnity_fat_finger_held_total

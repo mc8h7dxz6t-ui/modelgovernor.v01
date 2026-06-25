@@ -4,9 +4,11 @@ from __future__ import annotations
 from decimal import Decimal
 
 from fastapi import FastAPI
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 
-from platforms.common.platform_sdk import GovernedPlatform, spine_health_payload
+from platforms.common.platform_metrics import render_prometheus_text
+from platforms.common.platform_sdk import GovernedPlatform, increment_invariant, spine_health_payload
 
 from .pay_gate import GOLDEN_BY_JURISDICTION, evaluate_indemnity_payment
 
@@ -35,6 +37,11 @@ def readyz() -> dict:
     return healthz()
 
 
+@app.get("/metrics", response_class=PlainTextResponse)
+def metrics() -> str:
+    return render_prometheus_text("indemnity_pay_gate")
+
+
 @app.post("/indemnity/evaluate")
 def evaluate(request: IndemnityRequest) -> dict:
     golden = GOLDEN_BY_JURISDICTION.get(request.jurisdiction.upper(), GOLDEN_BY_JURISDICTION["US"])
@@ -47,6 +54,14 @@ def evaluate(request: IndemnityRequest) -> dict:
         golden=golden,
         social_engineering_flag=request.social_engineering_flag,
     )
+    if result.reason == "social_engineering_alert":
+        increment_invariant("indemnity_pay_gate", "indemnity_social_engineering_blocked_total")
+    elif result.reason == "amount_anomaly_fat_finger":
+        increment_invariant("indemnity_pay_gate", "indemnity_fat_finger_held_total")
+    elif result.decision == "HELD":
+        increment_invariant("indemnity_pay_gate", "indemnity_payee_held_total")
+    elif result.decision == "APPROVED":
+        increment_invariant("indemnity_pay_gate", "indemnity_payee_approved_total")
     facets = {
         "payment_id": request.payment_id,
         "payee_hash": request.payee_account,

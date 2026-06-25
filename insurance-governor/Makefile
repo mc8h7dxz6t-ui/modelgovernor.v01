@@ -1,4 +1,4 @@
-.PHONY: ig-spine-up ig-spine-down ig-stack-up ig-stack-down ig-spine-test ig-spine-smoke claim-gate-demo ig-demo ig-certification ig-load-test ig-chaos-test ig-ha-up ig-ha-down ig-pilot-attestation ig-cluster-attestation ig-rail-smoke ig-design-partner-package ig-claim-gate-load ig-full-rehearsal bind-authority-demo parametric-oracle-demo
+.PHONY: ig-spine-up ig-spine-down ig-stack-up ig-stack-down ig-spine-test ig-spine-smoke claim-gate-demo ig-demo ig-certification ig-certification-strict ig-load-test ig-chaos-test ig-ha-up ig-ha-down ig-pilot-attestation ig-cluster-attestation ig-rail-smoke ig-design-partner-package ig-claim-gate-load ig-full-rehearsal ig-embedded-rehearsal ig-examiner-evidence bind-authority-demo parametric-oracle-demo
 
 ig-spine-up:
 	docker compose -f docker-compose.spine.yml up -d --build
@@ -47,6 +47,21 @@ ig-load-test:
 
 ig-certification:
 	cd .. && python3 insurance-governor/scripts/generate_invariant_report.py
+
+ig-certification-strict:
+	@echo "==> Strict L4 Gold gate (no skip fallbacks)"
+	@$(MAKE) ig-certification
+	@echo "==> Tier 4 chaos (requires docker-compose.chaos.yml)"
+	@$(MAKE) ig-chaos-test
+	@echo "==> Live chain verify (requires ig-stack-up)"
+	@curl -sf -H 'x-internal-token: dev-ig-spine-token-change-me' \
+	  http://localhost:8101/internal/claims/verify-chain \
+	  | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get('valid') is True, d"
+	@echo "ig-certification-strict complete"
+
+ig-examiner-evidence:
+	chmod +x scripts/ig_examiner_evidence_pack.py
+	cd .. && python3 insurance-governor/scripts/ig_examiner_evidence_pack.py
 
 ig-chaos-test:
 	cd .. && POSTGRES_TEST_URL=postgresql+psycopg://postgres:postgres@localhost:5436/ig_chaos \

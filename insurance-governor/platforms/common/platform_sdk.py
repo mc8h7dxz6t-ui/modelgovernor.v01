@@ -11,6 +11,7 @@ from typing import Any
 import yaml
 
 from .spine_adapter import CommitOutcome, HorizonStranded, SpineAdapter, SurpriseCommitBlocked
+from .platform_metrics import get_platform_counters, register_platform_counters
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,7 @@ class PlatformManifest:
     docker_image: str = ""
     required_facet_keys: tuple[str, ...] = ()
     commit_decisions: frozenset[str] = frozenset({"APPROVED"})
+    invariant_counters: tuple[str, ...] = ()
 
     @classmethod
     def from_mapping(cls, name: str, data: dict[str, Any]) -> PlatformManifest:
@@ -40,6 +42,7 @@ class PlatformManifest:
             docker_image=str(data.get("docker_image", "")),
             required_facet_keys=tuple(data.get("required_facet_keys", ())),
             commit_decisions=frozenset(data.get("commit_decisions", ("APPROVED",))),
+            invariant_counters=tuple(data.get("invariant_counters", ())),
         )
 
     @classmethod
@@ -77,6 +80,8 @@ class GovernedPlatform:
         spine_enabled: bool | None = None,
     ) -> None:
         self.manifest = platform if isinstance(platform, PlatformManifest) else PlatformManifest.load(platform)
+        if self.manifest.invariant_counters:
+            register_platform_counters(self.manifest.name, self.manifest.invariant_counters)
         if spine_enabled is None:
             spine_enabled = os.environ.get("IG_SPINE_ENABLED", "false").lower() == "true"
         self._adapter = SpineAdapter(platform=self.manifest.name, spine_enabled=spine_enabled)
@@ -132,3 +137,7 @@ class GovernedPlatform:
 def spine_health_payload(platform: str) -> dict[str, Any]:
     enabled = os.environ.get("IG_SPINE_ENABLED", "false").lower() == "true"
     return {"status": "ok", "platform": platform, "spine_enabled": enabled}
+
+
+def increment_invariant(platform: str, counter: str, delta: int = 1) -> None:
+    get_platform_counters(platform).increment(counter, delta)

@@ -6,6 +6,8 @@ Runtime insurance commit control plane — sibling to [ModelGovernor](../archite
 |----------|---------|
 | [platform-model.md](platform-model.md) | Standalone vs spine-connected deployment |
 | [institutional-gold-standard.md](institutional-gold-standard.md) | Reliability and invariant requirements |
+| [capability-matrix.md](capability-matrix.md) | RFP / diligence capability table |
+| [operations-runbook.md](operations-runbook.md) | Incident response and routine ops |
 | [warranty-enforcement-engine.md](warranty-enforcement-engine.md) | Cross-platform mesh = policy warranty enforcement |
 | [insurer-persona-mapping.md](insurer-persona-mapping.md) | Loss control positioning for Cyber, D&O, E&O, Crime |
 | [uk-us-regulatory-framework.md](uk-us-regulatory-framework.md) | FCA/PRA/Solvency II + NAIC/ECOA mapping |

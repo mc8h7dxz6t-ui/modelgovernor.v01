@@ -8,3 +8,7 @@ required_facet_keys:
   - freeze_state
 commit_decisions:
   - ACTIVE
+invariant_counters:
+  - version_mismatch_freeze_total
+  - frozen_inference_blocked_total
+  - inference_allowed_total

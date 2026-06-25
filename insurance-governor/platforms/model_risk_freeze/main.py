@@ -2,9 +2,12 @@
 from __future__ import annotations
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 
-from platforms.common.platform_sdk import GovernedPlatform, spine_health_payload
+from platforms.common.platform_metrics import render_prometheus_text
+
+from platforms.common.platform_sdk import GovernedPlatform, increment_invariant, spine_health_payload
 
 from .freeze_controller import ModelRiskController, VersionRegistry, evaluate_inference
 
@@ -69,6 +72,11 @@ def set_approved_version(body: VersionUpdate) -> dict:
     return {"approved_version": body.approved_version, "jurisdiction": key}
 
 
+@app.get("/metrics", response_class=PlainTextResponse)
+def metrics() -> str:
+    return render_prometheus_text("model_risk_freeze")
+
+
 @app.post("/inference/evaluate")
 def evaluate(body: InferenceRequest) -> dict:
     ctrl = _controller(body.jurisdiction)
@@ -80,6 +88,12 @@ def evaluate(body: InferenceRequest) -> dict:
         controller=ctrl,
         jurisdiction=body.jurisdiction,
     )
+    if result.reason and result.reason.startswith("version_mismatch"):
+        increment_invariant("model_risk_freeze", "version_mismatch_freeze_total")
+    elif not result.allowed:
+        increment_invariant("model_risk_freeze", "frozen_inference_blocked_total")
+    else:
+        increment_invariant("model_risk_freeze", "inference_allowed_total")
     facets = {
         "inference_id": body.inference_id,
         "freeze_state": result.freeze_state,

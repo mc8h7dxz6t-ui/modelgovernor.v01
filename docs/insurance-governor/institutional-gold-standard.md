@@ -14,12 +14,16 @@
 | Edge | Implementation |
 |------|----------------|
 | **Provable claim trail** | Hash-chained `claim_events` + `verify-chain` + S3 Object Lock anchors |
-| **Zero-error-budget invariants** | `claim_ops` 7-probe suite; load harness + Tier 4 Toxiproxy chaos in CI |
+| **Zero-error-budget invariants** | `claim_ops` 7-probe suite + per-wedge `ig_platform_invariant_events_total` |
+| **Per-wedge loss-control counters** | ModelRiskFreeze + IndemnityPayGate `/metrics` + `test_platform_invariant_counters.py` |
 | **Fail-closed degradation** | Redis guardrails → local fallback; dependency circuit breaker opens on Redis flapping |
 | **Enterprise RBAC** | OIDC JWT (Keycloak/Okta roles) + claims-admin gates on anchor/diagnostic |
 | **Production deploy kit** | Helm chart (PgBouncer, Redis Sentinel, OTEL, PDB/HPA) + ArgoCD app + AWS anchor bucket CFN |
 | **Synthetic canaries** | CronJobs probe `/readyz`, `/verify-chain`, gateway→sidecar path every 5–10 min |
 | **SLO observability** | Prometheus recording rules for crystallize/commit availability + p95 latency |
+| **Examiner evidence pack** | `make ig-examiner-evidence` → JSON + `pack_sha256` |
+| **Operations runbook** | `docs/insurance-governor/operations-runbook.md` |
+| **Capability matrix** | `docs/insurance-governor/capability-matrix.md` |
 
 ## L4 Gold checklist (implemented)
 
@@ -64,7 +68,9 @@
 make ig-spine-test        # Tier 1
 make ig-load-test         # Tier 3
 make ig-certification     # Tier 1 + load + artifact report
+make ig-certification-strict  # + chaos + live verify-chain (Docker + stack)
 make ig-chaos-test        # Tier 4 (requires chaos compose up)
+make ig-examiner-evidence # Examiner diligence JSON + pack_sha256
 helm lint deploy/helm/insurancegovernor
 ```
 
@@ -107,3 +113,4 @@ Production infrastructure: `docs/insurance-governor/production-infrastructure.md
 - Named carrier design-partner letter under NDA
 - Full ZK-SNARK circuit (current: SHA-256 commitments)
 - Customer Vault population for FedNow / clearinghouse credentials (adapters ready)
+- SOC 2 evidence pack (Finance Governor parity — planned)
