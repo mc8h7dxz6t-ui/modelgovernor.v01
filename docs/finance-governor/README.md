@@ -37,6 +37,7 @@ Financial institutions lose millions annually to preventable failures — human 
 | Document | Purpose |
 |----------|---------|
 | [desirability.md](desirability.md) | **Why buyers want it** — ROI, personas, GTM, bundle ACV |
+| [competitive-landscape.md](competitive-landscape.md) | **Who competes** — per-platform map and tech edge honesty |
 | [institutional-gold-standard.md](institutional-gold-standard.md) | **Industry++ reliability** — SLOs, invariants, testing, regulatory mapping |
 | [platform-model.md](platform-model.md) | Standalone vs spine-connected deployment |
 | [code-driven-fixes.md](code-driven-fixes.md) | Four deep-dive problems + code fixes |
