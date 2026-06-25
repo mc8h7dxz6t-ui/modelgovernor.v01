@@ -1,7 +1,9 @@
 .PHONY: demo-up demo-down demo-reset demo-smoke demo-drift-lock demo-status demo-ledger demo-events \
 	demo-gold-up demo-gold demo-gold-reliability demo-gold-down demo-gold-reset demo-gold-diagnose \
 	demo-all-platforms demo-all-platforms-live demo-all-platforms-manifests demo-all-platforms-proof \
-	demo-prereqs demo-prereqs-install proof-test load-test
+	demo-prereqs demo-prereqs-install proof-test load-test \
+	fg-spine-up fg-stack-up fg-spine-down fg-stack-down fg-spine-test fg-spine-smoke \
+	crystal-demo algofreeze-demo wirematch-demo
 
 demo-prereqs:
 	./scripts/install-demo-prereqs.sh --check-only
@@ -61,11 +63,26 @@ load-test:
 fg-spine-up:
 	$(MAKE) -C finance-governor fg-spine-up
 
+fg-stack-up:
+	$(MAKE) -C finance-governor fg-stack-up
+
 fg-spine-down:
 	$(MAKE) -C finance-governor fg-spine-down
+
+fg-stack-down:
+	$(MAKE) -C finance-governor fg-stack-down
 
 fg-spine-test:
 	$(MAKE) -C finance-governor fg-spine-test
 
 fg-spine-smoke:
 	$(MAKE) -C finance-governor fg-spine-smoke
+
+crystal-demo:
+	$(MAKE) -C finance-governor crystal-demo
+
+algofreeze-demo:
+	$(MAKE) -C finance-governor algofreeze-demo
+
+wirematch-demo:
+	$(MAKE) -C finance-governor wirematch-demo
