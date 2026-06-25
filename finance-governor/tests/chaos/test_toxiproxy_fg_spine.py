@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 import requests
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
 
 ROOT = Path(__file__).resolve().parents[2]
 SIDECAR = ROOT / "spine" / "sidecar"
@@ -28,23 +28,20 @@ def _pg_url() -> str:
 
 
 def _apply_schema(engine) -> None:
-    migrations = ROOT / "migrations"
-    for name in ("0001_fg_spine_init.sql", "0002_fg_hardening.sql", "0003_platform_persistence.sql"):
-        sql = (migrations / name).read_text()
-        with engine.begin() as conn:
-            for stmt in sql.split(";"):
-                s = stmt.strip()
-                if s and not s.startswith("--"):
-                    try:
-                        conn.execute(text(s))
-                    except Exception:
-                        pass
+    from tests.support.fg_migrations import apply_fg_migrations
+
+    apply_fg_migrations(engine)
 
 
 @pytest.fixture()
 def chaos_client(monkeypatch):
     url = _pg_url()
     engine = create_engine(url, future=True)
+    with engine.begin() as conn:
+        from sqlalchemy import text
+
+        conn.execute(text("DROP SCHEMA IF EXISTS public CASCADE"))
+        conn.execute(text("CREATE SCHEMA public"))
     _apply_schema(engine)
 
     for name in list(sys.modules):
@@ -53,7 +50,7 @@ def chaos_client(monkeypatch):
     if str(SIDECAR) not in sys.path:
         sys.path.insert(0, str(SIDECAR))
 
-    from app.config import Settings, get_settings
+    from app.config import Settings
     from app.db import override_engine
 
     test_settings = Settings(database_url=url, fg_internal_tokens="test-token")
@@ -73,17 +70,20 @@ def _reset_toxics() -> None:
         pytest.skip("toxiproxy unavailable")
 
 
-def test_crystallize_survives_db_latency(chaos_client):
-    _reset_toxics()
+def _apply_latency(ms: int = 50) -> None:
     try:
         requests.post(
             f"{TOXIPROXY_API}/proxies/{PROXY}/toxics",
-            json={"name": "latency", "type": "latency", "attributes": {"latency": 50, "jitter": 5}},
+            json={"name": "latency", "type": "latency", "attributes": {"latency": ms, "jitter": 5}},
             timeout=5,
         ).raise_for_status()
     except requests.RequestException:
         pytest.skip("toxiproxy toxic apply failed")
 
+
+def test_crystallize_survives_db_latency(chaos_client):
+    _reset_toxics()
+    _apply_latency()
     facets = {"amount": "10.00"}
     r = chaos_client.post(
         "/crystallize",
@@ -91,5 +91,44 @@ def test_crystallize_survives_db_latency(chaos_client):
         json={"platform": "wire_match", "operation_id": "fg-chaos-1", "risk_tier": "high", "facets": facets},
     )
     assert r.status_code == 200
+    verify = chaos_client.get("/internal/decisions/verify-chain", headers=HEADERS)
+    assert verify.json()["valid"] is True
+
+
+def test_credit_lifecycle_survives_db_latency(chaos_client):
+    _reset_toxics()
+    _apply_latency(80)
+    facets = {
+        "application_id": "fg-chaos-credit-1",
+        "exposure_amount": "5000.00",
+        "model_version_id": "credit-model-v3",
+        "desk_id": "desk-default",
+    }
+    cry = chaos_client.post(
+        "/crystallize",
+        headers=HEADERS,
+        json={
+            "platform": "credit_govern",
+            "operation_id": "fg-chaos-credit-1",
+            "account_id": "desk-default",
+            "risk_tier": "high",
+            "facets": facets,
+            "policy_id": "credit-high-us",
+            "reserved_exposure": "5000.00",
+        },
+    )
+    assert cry.status_code == 200, cry.text
+    crystal_id = cry.json()["crystal_id"]
+    commit = chaos_client.post(
+        "/commit",
+        headers=HEADERS,
+        json={
+            "crystal_id": crystal_id,
+            "facets": {**facets, "score": 0.82, "explanation_id": "exp-chaos"},
+            "committed_exposure": "5000.00",
+            "outcome": "approved",
+        },
+    )
+    assert commit.status_code == 200, commit.text
     verify = chaos_client.get("/internal/decisions/verify-chain", headers=HEADERS)
     assert verify.json()["valid"] is True

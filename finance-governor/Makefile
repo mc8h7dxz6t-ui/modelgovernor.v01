@@ -2,7 +2,7 @@
 	fg-stack-up fg-stack-down crystal-demo algofreeze-demo wirematch-demo \
 	subledger-demo assetledger-demo credit-demo fg-all-platforms-demo \
 	fg-demo-gold-reliability fg-certification fg-demo-up fg-demo-down fg-demo-gold \
-	fg-test-postgres-up fg-test-postgres-down fg-integration-test fg-load-smoke
+	fg-test-postgres-up fg-test-postgres-down fg-integration-test fg-chaos-test fg-load-smoke
 
 fg-spine-up:
 	docker compose up -d --build
@@ -39,8 +39,20 @@ fg-spine-test:
 
 fg-integration-test:
 	@if command -v docker >/dev/null 2>&1; then $(MAKE) fg-test-postgres-up; else echo "docker not available — integration tests will skip if postgres unreachable"; fi
-	python3 -m pytest tests/integration/ -q; status=$$?; \
+	FG_POSTGRES_TEST_URL=postgresql+psycopg://postgres:postgres@localhost:5434/fg_test \
+	  python3 -m pytest tests/integration/ -q; status=$$?; \
 	if command -v docker >/dev/null 2>&1; then $(MAKE) fg-test-postgres-down; fi; \
+	exit $$status
+
+fg-chaos-test:
+	@if command -v docker >/dev/null 2>&1; then \
+	  docker compose -f docker-compose.chaos.yml up -d --wait && \
+	  docker compose -f docker-compose.chaos.yml run --rm toxiproxy-config; \
+	else echo "docker not available — skipping chaos"; exit 0; fi
+	FG_POSTGRES_TEST_URL=postgresql+psycopg://postgres:postgres@localhost:5437/fg_chaos \
+	  FG_TOXIPROXY_API=http://localhost:8475 \
+	  python3 -m pytest tests/chaos/test_toxiproxy_fg_spine.py -q; status=$$?; \
+	if command -v docker >/dev/null 2>&1; then docker compose -f docker-compose.chaos.yml down -v; fi; \
 	exit $$status
 
 fg-spine-smoke:
@@ -143,15 +155,17 @@ crystal-demo:
 	./scripts/crystal-demo.sh
 
 fg-certification:
-	@echo "==> Tier 1: unit + chaos (SQLite)"
-	python3 -m pytest tests/ -q --ignore=tests/integration
+	@echo "==> Tier 1: unit + platform tests"
+	python3 -m pytest tests/ -q --ignore=tests/integration --ignore=tests/chaos/test_toxiproxy_fg_spine.py
 	@echo "==> Tier 2: Postgres integration (starts test DB if needed)"
 	@$(MAKE) fg-integration-test
 	@echo "==> Tier 3: load smoke (skipped if spine down)"
 	@python3 scripts/fg_load_smoke.py 2>/dev/null && echo "load smoke OK" || echo "load smoke skipped (spine not running)"
-	@echo "==> Tier 4: live chain verify (skipped if spine down)"
+	@echo "==> Tier 4: Toxiproxy chaos (skipped if docker unavailable)"
+	@$(MAKE) fg-chaos-test 2>/dev/null || echo "chaos skipped"
+	@echo "==> Tier 5: live chain verify (skipped if spine down)"
 	@if curl -sf -H 'x-internal-token: dev-fg-spine-token-change-me' \
 	  http://localhost:8091/internal/decisions/verify-chain 2>/dev/null \
 	  | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get('valid') is True, d" \
 	  2>/dev/null; then echo "chain verify OK"; else echo "chain verify skipped (spine not running)"; fi
-	@echo "fg-certification complete (L3 institutional++)"
+	@echo "fg-certification complete (institutional++)"

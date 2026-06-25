@@ -65,12 +65,35 @@ def regulatory_export(
             )
         ).mappings().all()
         incidents = list_recent_incidents(session, limit=limit) if schema_supports_guardrail_incidents(session) else []
+        platform_events: list[dict] = []
+        try:
+            platform_events = [
+                dict(r)
+                for r in session.execute(
+                    text(
+                        """
+                        SELECT event_id, platform, event_type, operation_id, metadata, recorded_at
+                        FROM platform_events
+                        ORDER BY event_id DESC
+                        LIMIT :limit
+                        """
+                    ),
+                    {"limit": limit},
+                ).mappings().all()
+            ]
+            for item in platform_events:
+                meta = item.get("metadata")
+                if isinstance(meta, str):
+                    item["metadata"] = json.loads(meta)
+        except Exception:
+            platform_events = []
         return {
             "exported_at": datetime.now(timezone.utc).isoformat(),
             "chain_verification": chain.to_dict(),
             "chain_head": head_hash(session),
             "crystals": [dict(c) for c in crystals],
             "decision_events": [dict(e) for e in events],
+            "platform_events": platform_events,
             "anchors": [dict(a) for a in anchors],
             "guardrail_incidents": incidents,
         }

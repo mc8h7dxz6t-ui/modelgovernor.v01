@@ -31,6 +31,7 @@ def test_regulatory_export_shape(client):
     assert "crystals" in body
     assert "decision_events" in body
     assert "guardrail_incidents" in body
+    assert "platform_events" in body
     assert body["chain_verification"]["valid"] is True
 
 
