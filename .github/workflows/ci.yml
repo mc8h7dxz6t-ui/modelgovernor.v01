@@ -459,10 +459,35 @@ jobs:
           pytest insurance-governor/tests/test_fnol_adapter.py \
             insurance-governor/tests/test_fnol_writeback.py \
             insurance-governor/tests/test_bank_rail_sandbox.py -q
-      - name: Data room publish script (mock artifacts)
+      - name: Data room publish script rejects stub attestation
         run: |
           mkdir -p artifacts/reliability/insurance-governor
-          echo '{"valid":true,"cluster_id":"ci-mock"}' > artifacts/reliability/insurance-governor/cluster_attestation.json
-          echo '{"tier":"L4","valid":true}' > artifacts/reliability/insurance-governor/latest_attestation.json
+          echo '{"probes_note":"stub","certification":true}' > artifacts/reliability/insurance-governor/cluster_attestation.json
+          if python3 insurance-governor/scripts/publish_data_room.py; then
+            echo "expected publish to fail on stub attestation"
+            exit 1
+          fi
+      - name: Data room publish script accepts live-shaped attestation
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          probes = [{"name": f"p{i}", "status": "pass"} for i in range(8)]
+          data = {
+            "generated_at": "2026-01-01T00:00:00+00:00",
+            "attestation_type": "cluster",
+            "environment": "ci-mock",
+            "probes_total": 8,
+            "probes_passed": 8,
+            "artifact_sha256": "b" * 64,
+            "probes": probes,
+            "certification": True,
+          }
+          root = Path("artifacts/reliability/insurance-governor")
+          root.mkdir(parents=True, exist_ok=True)
+          (root / "cluster_attestation.json").write_text(json.dumps(data, indent=2))
+          (root / "latest_attestation.json").write_text('{"tier":"L4","valid":true}')
+          PY
           python3 insurance-governor/scripts/publish_data_room.py
           test -f docs/insurance-governor/data-room/published/manifest.json
+          python3 -c "import json; m=json.load(open('docs/insurance-governor/data-room/published/manifest.json')); assert m.get('probes_passed')==8"

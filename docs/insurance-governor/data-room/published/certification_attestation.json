@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-25T13:38:27.715155+00:00",
+  "generated_at": "2026-06-25T14:47:52.222528+00:00",
   "certification_level": "L4_GOLD",
   "platforms": [
     "claim_gate",
@@ -15,7 +15,7 @@
     "reserve_reconcile"
   ],
   "tier1_exit_code": 0,
-  "tier1_summary": "79 passed, 10 skipped, 1 warning in 0.81s",
+  "tier1_summary": "81 passed, 10 skipped, 1 warning in 0.81s",
   "load_exit_code": 0,
   "platform_tests_exit_code": 0,
   "certification": true,

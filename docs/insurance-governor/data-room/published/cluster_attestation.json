@@ -1,11 +1,48 @@
 {
-  "generated_at": "2026-06-25T13:33:57.542358+00:00",
+  "artifact_sha256": "3983a2a3f6cdcf4e20dbdc61b38cd53aba15cf270fb8cccd7465999a74b4a172",
   "attestation_type": "cluster",
-  "environment": "staging-rehearsal",
+  "certification": true,
+  "cluster_id": "ig-embedded-rehearsal-001",
   "design_partner": "[REDACTED_CARRIER]",
-  "cluster_id": "ig-staging-001",
-  "certification_bundled": true,
-  "certification_sha256": "1efda47629cce76c002b45e6de276ee9f7d332a994236f7fb75e44af3b4b5d5a",
-  "probes_note": "Run scripts/ig-cluster-attestation.sh on customer VPC to replace with live probes",
-  "certification": true
+  "endpoints": {
+    "mode": "embedded_testclient",
+    "note": "Prefer make ig-full-rehearsal on Docker for HTTP stack"
+  },
+  "environment": "local-embedded-rehearsal",
+  "generated_at": "2026-06-25T14:47:49.404565+00:00",
+  "probes": [
+    {
+      "name": "spine_ready",
+      "status": "pass"
+    },
+    {
+      "name": "governed_commit",
+      "status": "pass"
+    },
+    {
+      "name": "verify_chain",
+      "status": "pass"
+    },
+    {
+      "name": "anchor_head",
+      "status": "pass"
+    },
+    {
+      "name": "claim_gate_evaluate",
+      "status": "pass"
+    },
+    {
+      "name": "claim_gate_fnol_guidewire",
+      "status": "pass"
+    },
+    {
+      "name": "claim_gate_fnol_acturis_uk",
+      "status": "pass"
+    }
+  ],
+  "probes_failed": 0,
+  "probes_passed": 7,
+  "probes_total": 7,
+  "certification_sha256": "8ff7a9bbd5259018f79c0627d311f372872fa441baf480414e3648e69849f57c",
+  "certification_bundled": true
 }

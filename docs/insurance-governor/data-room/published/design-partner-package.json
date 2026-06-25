@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-06-25T13:38:31.857341+00:00",
+  "generated_at": "2026-06-25T14:47:52.253220+00:00",
   "design_partner_redacted": "[REDACTED_CARRIER]",
-  "environment": "staging-rehearsal",
-  "attestation_sha256": null,
-  "certification_sha256": "1efda47629cce76c002b45e6de276ee9f7d332a994236f7fb75e44af3b4b5d5a",
+  "environment": "local-embedded-rehearsal",
+  "attestation_sha256": "3983a2a3f6cdcf4e20dbdc61b38cd53aba15cf270fb8cccd7465999a74b4a172",
+  "certification_sha256": "8ff7a9bbd5259018f79c0627d311f372872fa441baf480414e3648e69849f57c",
   "data_room_markdown": "docs/insurance-governor/data-room/design-partner-attestation-redacted.md",
-  "probes_passed": null,
-  "probes_total": null
+  "probes_passed": 7,
+  "probes_total": 7
 }

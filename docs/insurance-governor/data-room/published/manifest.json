@@ -1,11 +1,16 @@
 {
-  "published_at": "2026-06-25T13:38:43.015033+00:00",
+  "published_at": "2026-06-25T14:47:52.280966+00:00",
   "completion_level": "enterprise_rehearsal_100",
-  "cluster_attestation_sha256": "89aac1f91b42bff0d67690ed5a12184475b2e53374f59893e61f70398a3500b1",
-  "certification_sha256": "1efda47629cce76c002b45e6de276ee9f7d332a994236f7fb75e44af3b4b5d5a",
+  "cluster_attestation_sha256": "15a4715bd7571ecdfdd0e210541742de76c32cb141d189b5433de836d590a8b0",
+  "certification_sha256": "8ff7a9bbd5259018f79c0627d311f372872fa441baf480414e3648e69849f57c",
+  "probes_passed": 7,
+  "probes_total": 7,
+  "attestation_artifact_sha256": "3983a2a3f6cdcf4e20dbdc61b38cd53aba15cf270fb8cccd7465999a74b4a172",
+  "environment": "local-embedded-rehearsal",
   "files": [
     "certification_attestation.json",
     "cluster_attestation.json",
+    "design-partner-attestation-redacted.md",
     "design-partner-package.json",
     "design-partner-signed-letter.md",
     "manifest.json"

@@ -4,7 +4,7 @@
 	demo-prereqs demo-prereqs-install proof-test load-test \
 	fg-spine-up fg-stack-up fg-spine-down fg-stack-down fg-spine-test fg-spine-smoke \
 	crystal-demo algofreeze-demo wirematch-demo \
-	ig-spine-up ig-stack-up ig-spine-down ig-stack-down ig-spine-test ig-spine-smoke claim-gate-demo ig-demo ig-certification ig-load-test ig-ha-up ig-pilot-attestation ig-cluster-attestation ig-rail-smoke ig-design-partner-package ig-claim-gate-load ig-full-rehearsal
+	ig-spine-up ig-stack-up ig-spine-down ig-stack-down ig-spine-test ig-spine-smoke claim-gate-demo ig-demo ig-certification ig-load-test ig-ha-up ig-pilot-attestation ig-cluster-attestation ig-rail-smoke ig-design-partner-package ig-claim-gate-load ig-full-rehearsal ig-embedded-rehearsal
 
 demo-prereqs:
 	./scripts/install-demo-prereqs.sh --check-only
@@ -139,3 +139,6 @@ ig-claim-gate-load:
 
 ig-full-rehearsal:
 	$(MAKE) -C insurance-governor ig-full-rehearsal
+
+ig-embedded-rehearsal:
+	$(MAKE) -C insurance-governor ig-embedded-rehearsal

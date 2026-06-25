@@ -14,6 +14,7 @@ This letter attests that **[REDACTED_CARRIER]** (or its authorized representativ
 |----------|---------|
 | Cluster attestation | `{{CLUSTER_SHA256}}` |
 | Certification attestation | `{{CERT_SHA256}}` |
+| Live probes passed | **{{PROBES_PASSED}} / {{PROBES_TOTAL}}** |
 
 ## Scope exercised
 

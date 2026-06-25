@@ -97,6 +97,12 @@ Carrier legal name, VPC identifiers, and IdP tenant IDs are redacted. Full signe
 def main() -> int:
     DATA_ROOM.mkdir(parents=True, exist_ok=True)
     attestation = _load_attestation()
+    if not attestation:
+        print("No attestation artifact found — run attestation_runner against live stack first", file=sys.stderr)
+        return 1
+    if attestation.get("probes_note") or int(attestation.get("probes_total") or 0) <= 0:
+        print("Attestation has no live probes — run make ig-full-rehearsal first", file=sys.stderr)
+        return 1
     cert = ARTIFACTS / "latest_attestation.json"
 
     md = generate_markdown(attestation, cert)

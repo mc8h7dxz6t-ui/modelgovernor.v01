@@ -137,16 +137,18 @@ def run_attestation() -> dict[str, Any]:
 
     def _optional_probe(name: str, health_path: str, action: str, body: dict[str, Any] | None) -> None:
         def _run() -> None:
-            try:
-                _get(f"{host_base}{health_path}")
-            except Exception:
-                return
+            _get(f"{host_base}{health_path}")
             if action == "GET":
                 _get(f"{host_base}{health_path.replace('/healthz', '/status')}")
             elif body is not None:
                 endpoint = health_path.replace("/healthz", "/indemnity/evaluate" if "8110" in health_path else "/bind/evaluate")
                 _post(f"{host_base}{endpoint}", body)
 
+        try:
+            _get(f"{host_base}{health_path}")
+        except Exception:
+            probes.append({"name": name, "status": "skip", "reason": "platform_not_running"})
+            return
         probes.append(_probe(name, _run))
 
     _optional_probe("bind_authority", ":8104/healthz", "POST", {"application_id": "pilot-bind", "premium": "10000", "limit": "500000"})

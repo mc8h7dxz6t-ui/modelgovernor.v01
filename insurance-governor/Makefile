@@ -79,8 +79,18 @@ ig-claim-gate-load:
 	cd .. && python3 -m pytest insurance-governor/tests/load/test_claim_gate_production.py -q
 
 ig-full-rehearsal:
-	chmod +x scripts/ig-full-rehearsal.sh scripts/mock_fednow_sandbox.py scripts/publish_data_room.py
+	chmod +x scripts/ig-full-rehearsal.sh scripts/mock_fednow_sandbox.py scripts/publish_data_room.py scripts/attestation_embedded_rehearsal.py
 	cd .. && insurance-governor/scripts/ig-full-rehearsal.sh
+
+ig-embedded-rehearsal:
+	chmod +x scripts/attestation_embedded_rehearsal.py scripts/publish_data_room.py
+	cd .. && \
+	  IG_ATTESTATION_ENV=local-embedded-rehearsal \
+	  python3 insurance-governor/scripts/attestation_embedded_rehearsal.py && \
+	  python3 insurance-governor/scripts/attestation_validate.py && \
+	  (make ig-certification || true) && \
+	  python3 insurance-governor/scripts/generate_design_partner_attestation.py && \
+	  python3 insurance-governor/scripts/publish_data_room.py
 
 bind-authority-demo:
 	curl -sf http://localhost:8104/healthz

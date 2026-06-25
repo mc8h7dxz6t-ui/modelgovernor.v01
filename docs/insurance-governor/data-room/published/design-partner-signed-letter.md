@@ -2,7 +2,7 @@
 
 **Insurance Governor — Enterprise Rehearsal Certification**
 
-Generated: 2026-06-25T13:38:43.014966+00:00
+Generated: 2026-06-25T14:47:52.280889+00:00
 
 ---
 
@@ -12,8 +12,9 @@ This letter attests that **[REDACTED_CARRIER]** (or its authorized representativ
 
 | Artifact | SHA-256 |
 |----------|---------|
-| Cluster attestation | `89aac1f91b42bff0d67690ed5a12184475b2e53374f59893e61f70398a3500b1` |
-| Certification attestation | `1efda47629cce76c002b45e6de276ee9f7d332a994236f7fb75e44af3b4b5d5a` |
+| Cluster attestation | `15a4715bd7571ecdfdd0e210541742de76c32cb141d189b5433de836d590a8b0` |
+| Certification attestation | `8ff7a9bbd5259018f79c0627d311f372872fa441baf480414e3648e69849f57c` |
+| Live probes passed | **7 / 7** |
 
 ## Scope exercised
 

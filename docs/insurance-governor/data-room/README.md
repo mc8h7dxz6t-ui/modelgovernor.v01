@@ -19,7 +19,10 @@ make ig-design-partner-package
 Full enterprise rehearsal (stack + FedNow sandbox + published data room):
 
 ```bash
-make ig-full-rehearsal
+make ig-full-rehearsal      # Docker HTTP stack (preferred on Mac)
+make ig-embedded-rehearsal  # No Docker — in-process probes (7/7)
 ```
+
+`publish_data_room.py` rejects stub attestations (0/0 probes). Published bundle must come from one of the commands above.
 
 Live probe artifact (not committed — gitignored): `artifacts/reliability/insurance-governor/cluster_attestation.json`

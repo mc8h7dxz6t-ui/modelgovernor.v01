@@ -111,26 +111,15 @@ def main() -> int:
     out.write_text(payload)
     latest.write_text(payload)
 
-    # Publish cluster attestation scaffold when no live cluster probe ran
+    # Augment live cluster attestation with certification hash (never create stubs)
     cluster_path = ARTIFACTS / "cluster_attestation.json"
     cert_hash = hashlib.sha256(payload.encode()).hexdigest()
     if cluster_path.is_file():
         cluster_report = json.loads(cluster_path.read_text())
-        cluster_report["certification_sha256"] = cert_hash
-        cluster_report["certification"] = report["certification"]
-    else:
-        cluster_report = {
-            "generated_at": report["generated_at"],
-            "attestation_type": "cluster",
-            "environment": os.environ.get("IG_ATTESTATION_ENV", "staging-rehearsal"),
-            "design_partner": "[REDACTED_CARRIER]",
-            "cluster_id": os.environ.get("IG_CLUSTER_ID", "ig-staging-001"),
-            "certification_bundled": True,
-            "certification_sha256": cert_hash,
-            "probes_note": "Run scripts/ig-cluster-attestation.sh on customer VPC to replace with live probes",
-            "certification": report["certification"],
-        }
-    cluster_path.write_text(json.dumps(cluster_report, indent=2))
+        if int(cluster_report.get("probes_total") or 0) > 0:
+            cluster_report["certification_sha256"] = cert_hash
+            cluster_report["certification_bundled"] = report["certification"]
+            cluster_path.write_text(json.dumps(cluster_report, indent=2))
 
     print(payload)
     return 0 if report["certification"] else 1
