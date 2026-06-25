@@ -20,6 +20,9 @@ _COUNTER_NAMES = (
     "reconciler_expired_total",
     "ledger_chain_verification_failed_total",
     "decision_event_sealed_total",
+    "decision_chain_anchor_recorded_total",
+    "decision_chain_anchor_s3_ok_total",
+    "decision_chain_anchor_s3_failed_total",
 )
 
 

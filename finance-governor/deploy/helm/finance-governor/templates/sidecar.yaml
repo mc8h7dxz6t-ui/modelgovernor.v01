@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fg-sidecar
+  namespace: {{ include "fg.namespace" . }}
+  labels:
+    {{- include "fg.labels" . | nindent 4 }}
+    app.kubernetes.io/component: sidecar
+spec:
+  replicas: {{ .Values.replicas.sidecar }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: sidecar
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: sidecar
+        {{- include "fg.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: sidecar
+          image: {{ .Values.image.sidecar }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 8091
+          env:
+            - name: DATABASE_URL
+              value: postgresql+psycopg://postgres:postgres@fg-postgres:5432/financegovernor
+            - name: FG_INTERNAL_TOKENS
+              valueFrom:
+                secretKeyRef:
+                  name: fg-internal
+                  key: fg-internal-tokens
+            - name: DECISION_ANCHOR_S3_BUCKET
+              value: {{ .Values.s3Anchor.bucket | quote }}
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8091
+            initialDelaySeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8091

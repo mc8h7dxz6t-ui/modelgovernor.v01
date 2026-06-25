@@ -3,7 +3,8 @@
 	demo-all-platforms demo-all-platforms-live demo-all-platforms-manifests demo-all-platforms-proof \
 	demo-prereqs demo-prereqs-install proof-test load-test \
 	fg-spine-up fg-stack-up fg-spine-down fg-stack-down fg-spine-test fg-spine-smoke \
-	crystal-demo algofreeze-demo wirematch-demo fg-certification
+	crystal-demo algofreeze-demo wirematch-demo fg-certification \
+	fg-demo-up fg-demo-down fg-demo-gold fg-integration-test fg-load-smoke
 
 demo-prereqs:
 	./scripts/install-demo-prereqs.sh --check-only
@@ -89,3 +90,18 @@ wirematch-demo:
 
 fg-certification:
 	$(MAKE) -C finance-governor fg-certification
+
+fg-demo-up:
+	$(MAKE) -C finance-governor fg-demo-up
+
+fg-demo-down:
+	$(MAKE) -C finance-governor fg-demo-down
+
+fg-demo-gold:
+	$(MAKE) -C finance-governor fg-demo-gold
+
+fg-integration-test:
+	$(MAKE) -C finance-governor fg-integration-test
+
+fg-load-smoke:
+	$(MAKE) -C finance-governor fg-load-smoke
