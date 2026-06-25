@@ -93,6 +93,23 @@ def from_acturis(payload: dict[str, Any]) -> NormalizedFnol:
     )
 
 
+def from_ice(payload: dict[str, Any]) -> NormalizedFnol:
+    """ICE InsureTech (UK) Open Claims notification shape (simplified)."""
+    note = payload.get("claimNotification", payload.get("notification", payload))
+    return NormalizedFnol(
+        vendor="ice",
+        claim_id=str(note.get("claimReference") or note.get("claimNumber")),
+        policy_number=str(note.get("policyNumber", note.get("policyReference", "POL-MOTOR-UK-001"))),
+        loss_date=_parse_date(str(note.get("dateOfLoss", note.get("incidentDate", date.today().isoformat())))),
+        reported_amount=Decimal(str(note.get("estimatedReserve", note.get("reserveAmount", "0")))),
+        currency=str(note.get("currency", "GBP")),
+        loss_type=str(note.get("perilCode", note.get("claimType", "motor"))),
+        claimant_id=str(note.get("insuredId", note.get("policyholderId", "unknown"))),
+        raw_vendor_id=str(note.get("notificationId", note.get("eventId", ""))),
+        fraud_signals=list(note.get("fraudIndicators", note.get("referralFlags", []))),
+    )
+
+
 def from_ssp(payload: dict[str, Any]) -> NormalizedFnol:
     """SSP (UK) Open Claims / Pure cloud event shape (simplified)."""
     event = payload.get("claim", payload.get("event", payload))
@@ -115,6 +132,7 @@ _ADAPTERS = {
     "snapsheet": from_snapsheet,
     "majesco": from_majesco,
     "acturis": from_acturis,
+    "ice": from_ice,
     "ssp": from_ssp,
 }
 

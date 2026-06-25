@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from platforms.common.integrations.fnol_adapter import normalize_fnol
+from platforms.common.integrations.fnol_writeback import sync_fnol_decision
 from platforms.common.platform_sdk import GovernedPlatform, spine_health_payload
 
 from .payment_rail import PaymentInstruction, submit_payment
@@ -48,6 +49,8 @@ class PayoutResponse(BaseModel):
     siu_state: str | None = None
     payment_id: str | None = None
     payment_status: str | None = None
+    writeback_status: str | None = None
+    writeback_external_ref: str | None = None
     rules_applied: list[str] = Field(default_factory=list)
 
 
@@ -177,7 +180,24 @@ def fnol_webhook(body: FnolWebhookRequest) -> PayoutResponse:
         payee_id=fnol.claimant_id,
     )
     response = _run_evaluation(req)
-    return response.model_copy(update={"reason": response.reason or f"fnol_{fnol.vendor}"})
+    writeback = sync_fnol_decision(
+        vendor=fnol.vendor,
+        claim_id=fnol.claim_id,
+        decision=response.decision,
+        facets={
+            "gate_score": response.gate_score,
+            "net_payable": response.net_payable,
+            "crystal_id": response.crystal_id,
+            "payment_id": response.payment_id,
+        },
+    )
+    return response.model_copy(
+        update={
+            "reason": response.reason or f"fnol_{fnol.vendor}",
+            "writeback_status": writeback.status,
+            "writeback_external_ref": writeback.external_ref,
+        }
+    )
 
 
 @router.post("/claim/siu/refer")

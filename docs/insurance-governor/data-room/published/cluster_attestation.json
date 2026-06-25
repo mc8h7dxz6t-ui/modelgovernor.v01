@@ -1,0 +1,11 @@
+{
+  "generated_at": "2026-06-25T13:33:57.542358+00:00",
+  "attestation_type": "cluster",
+  "environment": "staging-rehearsal",
+  "design_partner": "[REDACTED_CARRIER]",
+  "cluster_id": "ig-staging-001",
+  "certification_bundled": true,
+  "certification_sha256": "1efda47629cce76c002b45e6de276ee9f7d332a994236f7fb75e44af3b4b5d5a",
+  "probes_note": "Run scripts/ig-cluster-attestation.sh on customer VPC to replace with live probes",
+  "certification": true
+}

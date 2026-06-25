@@ -1,0 +1,13 @@
+{
+  "published_at": "2026-06-25T13:38:43.015033+00:00",
+  "completion_level": "enterprise_rehearsal_100",
+  "cluster_attestation_sha256": "89aac1f91b42bff0d67690ed5a12184475b2e53374f59893e61f70398a3500b1",
+  "certification_sha256": "1efda47629cce76c002b45e6de276ee9f7d332a994236f7fb75e44af3b4b5d5a",
+  "files": [
+    "certification_attestation.json",
+    "cluster_attestation.json",
+    "design-partner-package.json",
+    "design-partner-signed-letter.md",
+    "manifest.json"
+  ]
+}

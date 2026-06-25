@@ -153,10 +153,16 @@ INSERT INTO coverage_policy_registry (
 ), (
     'bind-standard-uk', 'commercial', 'bind_authority', 'UK', 'high',
     2000000, 600000, 0
+), (
+    'claim-motor-uk-gbp', 'casualty', 'claim_gate', 'UK', 'high',
+    3500000, 300000, 0
 );
 
 INSERT INTO reserve_ledgers (account_id, ledger_type, currency, balance, active)
-VALUES ('carrier-default', 'case', 'USD', 100000000, 1);
+VALUES
+  ('carrier-default', 'case', 'USD', 100000000, 1),
+  ('carrier-default', 'case', 'GBP', 50000000, 1),
+  ('carrier-uk-lloyd', 'case', 'GBP', 25000000, 1);
 
 INSERT INTO platform_registry (platform_name, display_name, auth_token_hash, enabled, manifest_json)
 VALUES

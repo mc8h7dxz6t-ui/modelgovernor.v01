@@ -11,6 +11,8 @@ Runtime insurance commit control plane — sibling to [ModelGovernor](../archite
 | [uk-us-regulatory-framework.md](uk-us-regulatory-framework.md) | FCA/PRA/Solvency II + NAIC/ECOA mapping |
 | [market-gaps-insurance.md](market-gaps-insurance.md) | Underserved insurer gaps and wedge strategy |
 | [design-partner-attestation.md](design-partner-attestation.md) | Pilot credibility package |
+| [integration-architecture.md](integration-architecture.md) | FNOL, write-back, rails, oracle topology |
+| [completion-checklist.md](completion-checklist.md) | 100% automated completion matrix |
 | [production-infrastructure.md](production-infrastructure.md) | Mock → live: Postgres, bank/oracle feeds, Istio mTLS |
 
 Implementation: [`insurance-governor/`](../../insurance-governor/)
@@ -21,4 +23,5 @@ Implementation: [`insurance-governor/`](../../insurance-governor/)
 make ig-spine-test    # Tier 1 tests
 make ig-stack-up      # Spine + ClaimGate
 make claim-gate-demo  # Payout gate smoke
+make ig-full-rehearsal # Enterprise rehearsal + published data room
 ```

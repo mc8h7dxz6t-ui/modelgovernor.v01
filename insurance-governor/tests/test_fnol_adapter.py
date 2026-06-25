@@ -101,3 +101,24 @@ def test_ssp_uk_fnol():
     )
     assert fnol.vendor == "ssp"
     assert fnol.claim_id == "SSP-UK-200"
+
+
+def test_ice_uk_fnol():
+    fnol = normalize_fnol(
+        "ice",
+        {
+            "claimNotification": {
+                "claimReference": "ICE-UK-300",
+                "policyNumber": "POL-MOTOR-UK-001",
+                "dateOfLoss": "2025-02-20",
+                "estimatedReserve": "4800.00",
+                "currency": "GBP",
+                "notificationId": "ice-evt-300",
+                "fraudIndicators": ["late_report"],
+            }
+        },
+    )
+    assert fnol.vendor == "ice"
+    assert fnol.currency == "GBP"
+    assert fnol.claim_id == "ICE-UK-300"
+    assert fnol.fraud_signals == ["late_report"]

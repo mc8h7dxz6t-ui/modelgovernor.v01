@@ -15,7 +15,7 @@
 |--------|--------|
 | Attestation probes passed | **0 / 0** |
 | Pilot attestation SHA-256 | `pending` |
-| Certification artifact SHA-256 | `88cadb8020aa81c17e0396c0b30c02666f154947fddea88287c9fa1d21e20dbe` |
+| Certification artifact SHA-256 | `1efda47629cce76c002b45e6de276ee9f7d332a994236f7fb75e44af3b4b5d5a` |
 | Payment rail mode | Staging sandbox (no production funds) |
 
 ---

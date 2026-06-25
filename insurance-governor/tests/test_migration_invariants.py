@@ -16,6 +16,7 @@ REQUIRED = [
     "0006_extended_platforms.sql",
     "0007_uk_us_warranty_mesh.sql",
     "0008_production_state.sql",
+    "0009_gbp_ledger_uk.sql",
 ]
 
 

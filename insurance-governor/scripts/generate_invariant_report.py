@@ -43,6 +43,7 @@ def main() -> int:
         "insurance-governor/tests/test_claim_gate.py",
         "insurance-governor/tests/test_claim_gate_deep.py",
         "insurance-governor/tests/test_fnol_adapter.py",
+        "insurance-governor/tests/test_fnol_writeback.py",
         "insurance-governor/tests/test_bind_authority.py",
         "insurance-governor/tests/test_parametric_oracle.py",
         "insurance-governor/tests/test_oracle_feed.py",

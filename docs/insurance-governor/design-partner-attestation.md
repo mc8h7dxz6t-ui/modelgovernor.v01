@@ -13,11 +13,12 @@ Published attestation package for carrier/MGA design-partner conversations. Summ
 | ParametricOracle | Oracle feed (`/trigger/feed`) + attestation hash gate | **Demo-ready** |
 | ZkClaimAudit | Fact seal + selective disclosure proof | **Demo-ready** |
 | SpatialTwin / Battery / Subrogation | Domain gates on shared spine | **Scaffold + unit tests** |
-| Core integration | Guidewire, Snapsheet, Majesco, **Acturis**, **SSP** FNOL adapters | **Webhook ingest** |
+| Core integration | Guidewire, Snapsheet, Majesco, **Acturis**, **SSP**, **ICE** FNOL adapters | **Webhook ingest + write-back** |
 | Live cluster | `make ig-cluster-attestation` on customer VPC | **Published** (`cluster_attestation.json`) |
 | Design-partner data room | Redacted PDF-ready markdown | **`data-room/design-partner-attestation-redacted.md`** |
 | Rail smoke | FedNow sandbox adapter + `make ig-rail-smoke` | **Staging-ready** |
 | ClaimGate load | FNOL + Postgres idempotency harness | **`test_claim_gate_production.py`** |
+| Full rehearsal | `make ig-full-rehearsal` → published data room | **`data-room/published/`** |
 
 ---
 
@@ -35,6 +36,9 @@ make ig-cluster-attestation
 
 # 4. Data room redacted package
 make ig-design-partner-package
+
+# 5. Full enterprise rehearsal (local compose + FedNow sandbox)
+make ig-full-rehearsal
 ```
 
 Artifact paths:

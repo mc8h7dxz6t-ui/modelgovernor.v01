@@ -435,3 +435,34 @@ jobs:
       - name: Tear down chaos stack
         if: always()
         run: docker compose -f insurance-governor/docker-compose.chaos.yml down -v
+
+  ig-enterprise-rehearsal-gate:
+    name: IG Enterprise — rehearsal gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install -r insurance-governor/spine/sidecar/requirements.txt
+          pip install -r insurance-governor/platforms/requirements.txt
+          pip install pytest httpx
+      - name: Migration invariants (0009 bundle)
+        run: PYTHONPATH=insurance-governor/spine/sidecar pytest insurance-governor/tests/test_migration_invariants.py -q
+      - name: FNOL + write-back unit tests
+        env:
+          PYTHONPATH: insurance-governor
+        run: |
+          pytest insurance-governor/tests/test_fnol_adapter.py \
+            insurance-governor/tests/test_fnol_writeback.py \
+            insurance-governor/tests/test_bank_rail_sandbox.py -q
+      - name: Data room publish script (mock artifacts)
+        run: |
+          mkdir -p artifacts/reliability/insurance-governor
+          echo '{"valid":true,"cluster_id":"ci-mock"}' > artifacts/reliability/insurance-governor/cluster_attestation.json
+          echo '{"tier":"L4","valid":true}' > artifacts/reliability/insurance-governor/latest_attestation.json
+          python3 insurance-governor/scripts/publish_data_room.py
+          test -f docs/insurance-governor/data-room/published/manifest.json

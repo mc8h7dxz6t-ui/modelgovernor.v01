@@ -1,4 +1,4 @@
-.PHONY: ig-spine-up ig-spine-down ig-stack-up ig-stack-down ig-spine-test ig-spine-smoke claim-gate-demo ig-demo ig-certification ig-load-test ig-chaos-test ig-ha-up ig-ha-down ig-pilot-attestation ig-cluster-attestation ig-rail-smoke ig-design-partner-package ig-claim-gate-load bind-authority-demo parametric-oracle-demo
+.PHONY: ig-spine-up ig-spine-down ig-stack-up ig-stack-down ig-spine-test ig-spine-smoke claim-gate-demo ig-demo ig-certification ig-load-test ig-chaos-test ig-ha-up ig-ha-down ig-pilot-attestation ig-cluster-attestation ig-rail-smoke ig-design-partner-package ig-claim-gate-load ig-full-rehearsal bind-authority-demo parametric-oracle-demo
 
 ig-spine-up:
 	docker compose -f docker-compose.spine.yml up -d --build
@@ -77,6 +77,10 @@ ig-design-partner-package:
 
 ig-claim-gate-load:
 	cd .. && python3 -m pytest insurance-governor/tests/load/test_claim_gate_production.py -q
+
+ig-full-rehearsal:
+	chmod +x scripts/ig-full-rehearsal.sh scripts/mock_fednow_sandbox.py scripts/publish_data_room.py
+	cd .. && insurance-governor/scripts/ig-full-rehearsal.sh
 
 bind-authority-demo:
 	curl -sf http://localhost:8104/healthz

@@ -20,6 +20,7 @@ services:
       - ./migrations/0006_extended_platforms.sql:/docker-entrypoint-initdb.d/0006_extended.sql:ro
       - ./migrations/0007_uk_us_warranty_mesh.sql:/docker-entrypoint-initdb.d/0007_mesh.sql:ro
       - ./migrations/0008_production_state.sql:/docker-entrypoint-initdb.d/0008_state.sql:ro
+      - ./migrations/0009_gbp_ledger_uk.sql:/docker-entrypoint-initdb.d/0009_gbp.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d insurancegovernor"]
       interval: 5s

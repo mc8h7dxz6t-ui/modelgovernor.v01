@@ -1,0 +1,70 @@
+{
+  "generated_at": "2026-06-25T13:38:27.715155+00:00",
+  "certification_level": "L4_GOLD",
+  "platforms": [
+    "claim_gate",
+    "bind_authority",
+    "parametric_oracle",
+    "zk_claim_audit",
+    "spatial_twin",
+    "battery_liability",
+    "subrogation_graph",
+    "indemnity_pay_gate",
+    "model_risk_freeze",
+    "underwriting_govern",
+    "reserve_reconcile"
+  ],
+  "tier1_exit_code": 0,
+  "tier1_summary": "79 passed, 10 skipped, 1 warning in 0.81s",
+  "load_exit_code": 0,
+  "platform_tests_exit_code": 0,
+  "certification": true,
+  "attestation": {
+    "hash_chain_verify": true,
+    "claim_ops_probes": 7,
+    "ci_tiers": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "helm_deploy_kit": true,
+    "s3_object_lock_anchor": true,
+    "oidc_rbac": true,
+    "circuit_breaker": true,
+    "synthetic_canaries": true
+  },
+  "commercial": {
+    "claim_gate_depth": "policy_rules+siu+payment_rail+fnol",
+    "core_integrations": [
+      "guidewire",
+      "snapsheet",
+      "majesco",
+      "acturis",
+      "ssp"
+    ],
+    "headline_wedges": [
+      "zk_claim_audit",
+      "spatial_twin",
+      "battery_liability",
+      "subrogation_graph"
+    ],
+    "loss_control_wedges": [
+      "indemnity_pay_gate",
+      "model_risk_freeze",
+      "underwriting_govern",
+      "reserve_reconcile"
+    ],
+    "warranty_mesh_rules": 6,
+    "jurisdictions": [
+      "US",
+      "UK"
+    ],
+    "production_state": "postgres_payment_idempotency+claim_commitments",
+    "live_integrations": "bank_rail+oracle_providers+istio_mtls",
+    "oracle_feed": "http_mock_and_ORACLE_FEED_URL",
+    "sales_sheet": "docs/sales-sheets/insurance-governor-production.md",
+    "design_partner_doc": "docs/insurance-governor/design-partner-attestation.md",
+    "data_room_redacted": "docs/insurance-governor/data-room/design-partner-attestation-redacted.md"
+  }
+}
