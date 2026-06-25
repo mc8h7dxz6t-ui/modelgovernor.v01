@@ -8,6 +8,7 @@ Full specification and commercial packaging for each ModelGovernor deployment pl
 | **B — Staging / Pilot** | [02-staging-pilot-platform.md](02-staging-pilot-platform.md) | POC in customer VPC | **$120K–$250K** / yr | **$400K–$800K** |
 | **C — Production Institutional++** | [03-production-institutional.md](03-production-institutional.md) | Regulated enterprise, platform teams | **$350K–$900K** / yr | **$1.8M–$3.5M** |
 | **D — Enterprise Security Pack** | [04-enterprise-security-pack.md](04-enterprise-security-pack.md) | Zero-trust / InfoSec add-on | **+$80K–$200K** / yr | **$350K–$650K** |
+| **Insurance Governor — Production** | [insurance-governor-production.md](insurance-governor-production.md) | P&C carriers, claims modernization | **$280K–$750K** / yr | **$1.5M–$3.0M** |
 
 **Consolidated pre-revenue valuation (full bundle):** see [valuation-pre-revenue.md](valuation-pre-revenue.md) — **$3.5M–$8.5M** illustrative range post gold-standard packaging.
 

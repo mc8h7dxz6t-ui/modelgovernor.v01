@@ -104,8 +104,65 @@ services:
       IG_SPINE_ENABLED: ${IG_SPINE_ENABLED:-true}
       IG_SIDECAR_URL: http://ig-sidecar:8101
       IG_INTERNAL_TOKEN: ${IG_INTERNAL_TOKENS:-dev-ig-spine-token-change-me}
+      ORACLE_FEED_SOURCE: ${ORACLE_FEED_SOURCE:-usgs-feed}
     ports:
       - "8105:8105"
+    depends_on:
+      ig-sidecar:
+        condition: service_started
+
+  ig-zk-claim-audit:
+    build:
+      context: ..
+      dockerfile: insurance-governor/platforms/zk_claim_audit/Dockerfile
+    environment:
+      IG_SPINE_ENABLED: ${IG_SPINE_ENABLED:-true}
+      IG_SIDECAR_URL: http://ig-sidecar:8101
+      IG_INTERNAL_TOKEN: ${IG_INTERNAL_TOKENS:-dev-ig-spine-token-change-me}
+    ports:
+      - "8106:8106"
+    depends_on:
+      ig-sidecar:
+        condition: service_started
+
+  ig-spatial-twin:
+    build:
+      context: ..
+      dockerfile: insurance-governor/platforms/spatial_twin/Dockerfile
+    environment:
+      IG_SPINE_ENABLED: ${IG_SPINE_ENABLED:-true}
+      IG_SIDECAR_URL: http://ig-sidecar:8101
+      IG_INTERNAL_TOKEN: ${IG_INTERNAL_TOKENS:-dev-ig-spine-token-change-me}
+    ports:
+      - "8107:8107"
+    depends_on:
+      ig-sidecar:
+        condition: service_started
+
+  ig-battery-liability:
+    build:
+      context: ..
+      dockerfile: insurance-governor/platforms/battery_liability/Dockerfile
+    environment:
+      IG_SPINE_ENABLED: ${IG_SPINE_ENABLED:-true}
+      IG_SIDECAR_URL: http://ig-sidecar:8101
+      IG_INTERNAL_TOKEN: ${IG_INTERNAL_TOKENS:-dev-ig-spine-token-change-me}
+    ports:
+      - "8108:8108"
+    depends_on:
+      ig-sidecar:
+        condition: service_started
+
+  ig-subrogation-graph:
+    build:
+      context: ..
+      dockerfile: insurance-governor/platforms/subrogation_graph/Dockerfile
+    environment:
+      IG_SPINE_ENABLED: ${IG_SPINE_ENABLED:-true}
+      IG_SIDECAR_URL: http://ig-sidecar:8101
+      IG_INTERNAL_TOKEN: ${IG_INTERNAL_TOKENS:-dev-ig-spine-token-change-me}
+    ports:
+      - "8109:8109"
     depends_on:
       ig-sidecar:
         condition: service_started

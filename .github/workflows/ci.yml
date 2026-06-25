@@ -395,6 +395,10 @@ jobs:
           docker build -f insurance-governor/platforms/claim_gate/Dockerfile -t insurancegovernor/claim-gate:ci .
           docker build -f insurance-governor/platforms/bind_authority/Dockerfile -t insurancegovernor/bind-authority:ci .
           docker build -f insurance-governor/platforms/parametric_oracle/Dockerfile -t insurancegovernor/parametric-oracle:ci .
+          docker build -f insurance-governor/platforms/zk_claim_audit/Dockerfile -t insurancegovernor/zk-claim-audit:ci .
+          docker build -f insurance-governor/platforms/spatial_twin/Dockerfile -t insurancegovernor/spatial-twin:ci .
+          docker build -f insurance-governor/platforms/battery_liability/Dockerfile -t insurancegovernor/battery-liability:ci .
+          docker build -f insurance-governor/platforms/subrogation_graph/Dockerfile -t insurancegovernor/subrogation-graph:ci .
 
   ig-test-tier4-chaos:
     name: IG Tier 4 — Toxiproxy chaos (claim ops)

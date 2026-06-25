@@ -111,6 +111,18 @@ INSERT INTO coverage_policy_registry (
 ), (
     'parametric-cat-us', 'property', 'parametric_oracle', 'US', 'critical',
     10000000, 60000, 0
+), (
+    'zk-audit-us', 'casualty', 'zk_claim_audit', 'US', 'critical',
+    1000000, 300000, 0
+), (
+    'spatial-property-us', 'property', 'spatial_twin', 'US', 'high',
+    5000000, 300000, 0
+), (
+    'ev-battery-us', 'auto', 'battery_liability', 'US', 'critical',
+    2500000, 300000, 0
+), (
+    'subrogation-us', 'casualty', 'subrogation_graph', 'US', 'high',
+    3000000, 600000, 0
 );
 
 INSERT INTO reserve_ledgers (account_id, ledger_type, currency, balance, active)
@@ -120,7 +132,11 @@ INSERT INTO platform_registry (platform_name, display_name, auth_token_hash, ena
 VALUES
   ('claim_gate', 'ClaimGate', 'dev-claim-gate-hash', 1, '{"required_facet_keys":["claim_id"],"commit_decisions":["APPROVED"]}'),
   ('bind_authority', 'BindAuthority', 'dev-bind-authority-hash', 1, '{"required_facet_keys":["application_id"],"commit_decisions":["BOUND"]}'),
-  ('parametric_oracle', 'ParametricOracle', 'dev-parametric-oracle-hash', 1, '{"required_facet_keys":["event_id","oracle_attestation_hash"],"commit_decisions":["TRIGGERED"]}');
+  ('parametric_oracle', 'ParametricOracle', 'dev-parametric-oracle-hash', 1, '{"required_facet_keys":["event_id","oracle_attestation_hash"],"commit_decisions":["TRIGGERED"]}'),
+  ('zk_claim_audit', 'ZkClaimAudit', 'dev-zk-claim-audit-hash', 1, '{"required_facet_keys":["claim_id","commitment_hash"],"commit_decisions":["SEALED","VERIFIED"]}'),
+  ('spatial_twin', 'SpatialTwin', 'dev-spatial-twin-hash', 1, '{"required_facet_keys":["claim_id","point_cloud_hash"],"commit_decisions":["APPROVED"]}'),
+  ('battery_liability', 'BatteryLiability', 'dev-battery-liability-hash', 1, '{"required_facet_keys":["claim_id"],"commit_decisions":["APPROVED"]}'),
+  ('subrogation_graph', 'SubrogationGraph', 'dev-subrogation-graph-hash', 1, '{"required_facet_keys":["claim_id"],"commit_decisions":["RECOVERY_APPROVED"]}');
 
 CREATE TABLE claim_chain_anchors (
     anchor_id INTEGER PRIMARY KEY AUTOINCREMENT,

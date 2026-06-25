@@ -35,3 +35,50 @@ platforms:
       - oracle_attestation_hash
     commit_decisions:
       - TRIGGERED
+
+  zk_claim_audit:
+    display_name: ZkClaimAudit
+    default_policy_id: zk-audit-us
+    default_risk_tier: critical
+    port: 8106
+    docker_image: insurancegovernor/zk-claim-audit
+    required_facet_keys:
+      - claim_id
+      - commitment_hash
+    commit_decisions:
+      - SEALED
+      - VERIFIED
+
+  spatial_twin:
+    display_name: SpatialTwin
+    default_policy_id: spatial-property-us
+    default_risk_tier: high
+    port: 8107
+    docker_image: insurancegovernor/spatial-twin
+    required_facet_keys:
+      - claim_id
+      - point_cloud_hash
+    commit_decisions:
+      - APPROVED
+
+  battery_liability:
+    display_name: BatteryLiability
+    default_policy_id: ev-battery-us
+    default_risk_tier: critical
+    port: 8108
+    docker_image: insurancegovernor/battery-liability
+    required_facet_keys:
+      - claim_id
+    commit_decisions:
+      - APPROVED
+
+  subrogation_graph:
+    display_name: SubrogationGraph
+    default_policy_id: subrogation-us
+    default_risk_tier: high
+    port: 8109
+    docker_image: insurancegovernor/subrogation-graph
+    required_facet_keys:
+      - claim_id
+    commit_decisions:
+      - RECOVERY_APPROVED

@@ -31,22 +31,32 @@ def main() -> int:
         [sys.executable, "-m", "pytest", "insurance-governor/tests/load/test_ig_load_harness.py", "-q"],
         env,
     )
+    platform_tests = [
+        "insurance-governor/tests/test_claim_gate.py",
+        "insurance-governor/tests/test_claim_gate_deep.py",
+        "insurance-governor/tests/test_fnol_adapter.py",
+        "insurance-governor/tests/test_bind_authority.py",
+        "insurance-governor/tests/test_parametric_oracle.py",
+        "insurance-governor/tests/test_oracle_feed.py",
+        "insurance-governor/tests/test_zk_claim_audit.py",
+        "insurance-governor/tests/test_headline_wedges.py",
+    ]
     platforms = _run(
-        [
-            sys.executable,
-            "-m",
-            "pytest",
-            "insurance-governor/tests/test_claim_gate.py",
-            "insurance-governor/tests/test_bind_authority.py",
-            "insurance-governor/tests/test_parametric_oracle.py",
-            "-q",
-        ],
+        [sys.executable, "-m", "pytest", *platform_tests, "-q"],
         env,
     )
     report = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "certification_level": "L4_GOLD",
-        "platforms": ["claim_gate", "bind_authority", "parametric_oracle"],
+        "platforms": [
+            "claim_gate",
+            "bind_authority",
+            "parametric_oracle",
+            "zk_claim_audit",
+            "spatial_twin",
+            "battery_liability",
+            "subrogation_graph",
+        ],
         "tier1_exit_code": tier1.returncode,
         "tier1_summary": tier1.stdout.strip().splitlines()[-1] if tier1.stdout else "",
         "load_exit_code": load.returncode,
@@ -61,6 +71,14 @@ def main() -> int:
             "oidc_rbac": True,
             "circuit_breaker": True,
             "synthetic_canaries": True,
+        },
+        "commercial": {
+            "claim_gate_depth": "policy_rules+siu+payment_rail+fnol",
+            "core_integrations": ["guidewire", "snapsheet", "majesco"],
+            "headline_wedges": ["zk_claim_audit", "spatial_twin", "battery_liability", "subrogation_graph"],
+            "oracle_feed": "http_mock_and_ORACLE_FEED_URL",
+            "sales_sheet": "docs/sales-sheets/insurance-governor-production.md",
+            "design_partner_doc": "docs/insurance-governor/design-partner-attestation.md",
         },
     }
     ts = int(datetime.now(timezone.utc).timestamp())

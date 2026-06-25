@@ -34,6 +34,22 @@ images:
     repository: insurancegovernor/parametric-oracle
     tag: latest
     pullPolicy: IfNotPresent
+  zkClaimAudit:
+    repository: insurancegovernor/zk-claim-audit
+    tag: latest
+    pullPolicy: IfNotPresent
+  spatialTwin:
+    repository: insurancegovernor/spatial-twin
+    tag: latest
+    pullPolicy: IfNotPresent
+  batteryLiability:
+    repository: insurancegovernor/battery-liability
+    tag: latest
+    pullPolicy: IfNotPresent
+  subrogationGraph:
+    repository: insurancegovernor/subrogation-graph
+    tag: latest
+    pullPolicy: IfNotPresent
   postgres:
     repository: postgres
     tag: "16"
@@ -172,6 +188,58 @@ platforms:
     name: parametric_oracle
     imageKey: parametricOracle
     port: 8105
+    replicas: 2
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+  zk_claim_audit:
+    enabled: true
+    name: zk_claim_audit
+    imageKey: zkClaimAudit
+    port: 8106
+    replicas: 2
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+  spatial_twin:
+    enabled: true
+    name: spatial_twin
+    imageKey: spatialTwin
+    port: 8107
+    replicas: 2
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+  battery_liability:
+    enabled: true
+    name: battery_liability
+    imageKey: batteryLiability
+    port: 8108
+    replicas: 2
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+  subrogation_graph:
+    enabled: true
+    name: subrogation_graph
+    imageKey: subrogationGraph
+    port: 8109
     replicas: 2
     resources:
       requests:

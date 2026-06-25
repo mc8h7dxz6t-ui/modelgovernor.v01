@@ -31,8 +31,12 @@ echo "OK  chain head anchored"
 if curl -sf http://localhost:8103/healthz >/dev/null 2>&1; then
   curl -sf -X POST http://localhost:8103/claim/evaluate \
     -H 'content-type: application/json' \
-    -d '{"claim_id":"pilot-gate-1","payout_amount":"5000.00"}' >/dev/null
+    -d '{"claim_id":"pilot-gate-1","payout_amount":"5000.00","policy_number":"POL-AUTO-001","idempotency_key":"pilot-pay-1"}' >/dev/null
   echo "OK  ClaimGate evaluate"
+  curl -sf -X POST http://localhost:8103/claim/fnol/webhook \
+    -H 'content-type: application/json' \
+    -d '{"vendor":"guidewire","payload":{"claim":{"claimNumber":"pilot-fnol-1","reportedAmount":"8000.00","policyNumber":"POL-AUTO-001","lossDate":"2025-06-01","id":"gw-evt-1"}}}' >/dev/null
+  echo "OK  ClaimGate FNOL webhook (Guidewire)"
 fi
 
 if curl -sf http://localhost:8104/healthz >/dev/null 2>&1; then
@@ -43,16 +47,57 @@ if curl -sf http://localhost:8104/healthz >/dev/null 2>&1; then
 fi
 
 if curl -sf http://localhost:8105/healthz >/dev/null 2>&1; then
-  HASH="$(python3 - <<'PY'
-import hashlib
-payload = '{"magnitude":7.2}'
-print(hashlib.sha256(f"usgs-feed:{payload}".encode()).hexdigest())
+  python3 - <<'PY'
+import json
+import urllib.request
+
+feed = json.load(urllib.request.urlopen("http://localhost:8105/trigger/feed"))
+body = json.dumps({
+    "event_id": "pilot-trig-1",
+    "metric_value": feed["metric_value"],
+    "threshold": feed["threshold"],
+    "oracle_source": feed["source"],
+    "oracle_payload": feed["payload"],
+    "oracle_attestation_hash": feed["oracle_attestation_hash"],
+    "payout_reserve": "50000.00",
+}).encode()
+req = urllib.request.Request(
+    "http://localhost:8105/trigger/evaluate",
+    data=body,
+    headers={"content-type": "application/json"},
+    method="POST",
+)
+urllib.request.urlopen(req)
 PY
-)"
-  curl -sf -X POST http://localhost:8105/trigger/evaluate \
+  echo "OK  ParametricOracle feed + evaluate"
+fi
+
+if curl -sf http://localhost:8106/healthz >/dev/null 2>&1; then
+  curl -sf -X POST http://localhost:8106/audit/seal \
     -H 'content-type: application/json' \
-    -d "{\"event_id\":\"pilot-trig-1\",\"metric_value\":\"7.2\",\"threshold\":\"6.5\",\"oracle_source\":\"usgs-feed\",\"oracle_payload\":\"{\\\"magnitude\\\":7.2}\",\"oracle_attestation_hash\":\"$HASH\",\"payout_reserve\":\"50000.00\"}" >/dev/null
-  echo "OK  ParametricOracle evaluate"
+    -d '{"claim_id":"pilot-zk-1","private_facts":{"loss_amount":"12000"}}' >/dev/null
+  echo "OK  ZkClaimAudit seal"
+fi
+
+if curl -sf http://localhost:8107/healthz >/dev/null 2>&1; then
+  curl -sf -X POST http://localhost:8107/spatial/evaluate \
+    -H 'content-type: application/json' \
+    -d '{"claim_id":"pilot-spatial-1","point_count":500000,"damage_estimate":"25000.00"}' >/dev/null
+  echo "OK  SpatialTwin evaluate"
+fi
+
+if curl -sf http://localhost:8108/healthz >/dev/null 2>&1; then
+  curl -sf -X POST http://localhost:8108/battery/evaluate \
+    -H 'content-type: application/json' \
+    -d '{"claim_id":"pilot-bat-1","state_of_health_pct":65,"thermal_event":true,"repair_estimate":"18000"}' >/dev/null
+  echo "OK  BatteryLiability evaluate"
+fi
+
+if curl -sf http://localhost:8109/healthz >/dev/null 2>&1; then
+  curl -sf -X POST http://localhost:8109/subrogation/evaluate \
+    -H 'content-type: application/json' \
+    -d '{"claim_id":"pilot-sub-1","total_loss":"100000","defendants":{"carrier_a":0.55}}' >/dev/null
+  echo "OK  SubrogationGraph evaluate"
 fi
 
 cd "$ROOT"

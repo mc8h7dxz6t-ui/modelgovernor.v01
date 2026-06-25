@@ -8,9 +8,10 @@ from pydantic import BaseModel
 
 from platforms.common.platform_sdk import GovernedPlatform, spine_health_payload
 
+from .oracle_feed import fetch_oracle_feed
 from .trigger_gate import evaluate_trigger, trigger_facets, verify_oracle_attestation
 
-app = FastAPI(title="parametricoracle", version="0.2.0")
+app = FastAPI(title="parametricoracle", version="0.3.0")
 _GOVERNED = GovernedPlatform("parametric_oracle")
 
 
@@ -42,6 +43,20 @@ def healthz() -> dict:
 @app.get("/readyz")
 def readyz() -> dict:
     return healthz()
+
+
+@app.get("/trigger/feed")
+def feed(source: str | None = None) -> dict:
+    """Fetch live or mock oracle reading (Chainlink/API via ORACLE_FEED_URL)."""
+    reading = fetch_oracle_feed(source=source)
+    return {
+        "source": reading.source,
+        "metric_value": str(reading.metric_value),
+        "threshold": str(reading.threshold),
+        "payload": reading.payload,
+        "oracle_attestation_hash": reading.attestation_hash,
+        "fetched_at": reading.fetched_at,
+    }
 
 
 @app.post("/trigger/evaluate", response_model=TriggerResponse)

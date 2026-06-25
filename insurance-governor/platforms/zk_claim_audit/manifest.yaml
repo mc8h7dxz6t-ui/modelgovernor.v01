@@ -1,0 +1,11 @@
+name: zk_claim_audit
+display_name: ZkClaimAudit
+default_policy_id: zk-audit-us
+default_risk_tier: critical
+port: 8106
+required_facet_keys:
+  - claim_id
+  - commitment_hash
+commit_decisions:
+  - SEALED
+  - VERIFIED

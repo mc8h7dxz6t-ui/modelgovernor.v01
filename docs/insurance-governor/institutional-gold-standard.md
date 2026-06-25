@@ -72,13 +72,29 @@ helm lint deploy/helm/insurancegovernor
 
 Any platform integrates via **manifest + GovernedPlatform SDK**:
 
-- `platforms/registry.yaml` — catalog
+- `platforms/registry.yaml` — catalog (7 platforms)
 - `platforms/<name>/manifest.yaml` — required facets, commit decisions, policy
 - `platforms/common/platform_sdk.py` — `GovernedPlatform.govern_operation()`
+- `platforms/common/integrations/fnol_adapter.py` — Guidewire, Snapsheet, Majesco FNOL
 - Spine `platform_registry_enforce` — rejects unregistered platforms / missing facets (422)
 - `scripts/scaffold-platform.sh` — generate new platform in minutes
 - Helm `values.platforms.*` — deploy any registered platform without new templates
 
+### Product wedges (commercial depth)
+
+| Platform | Depth | Integration |
+|----------|-------|-------------|
+| ClaimGate | Policy rules, SIU, payment rail, FNOL webhook | Guidewire / Snapsheet / Majesco |
+| ParametricOracle | Oracle feed + attestation hash | `ORACLE_FEED_URL` / mock USGS |
+| ZkClaimAudit | Fact seal + selective disclosure | Examiner audit narrative |
+| SpatialTwin | LiDAR hash + damage gate | Property / cat spatial |
+| BatteryLiability | SOH / thermal liability | EV fleet programs |
+| SubrogationGraph | Multi-defendant recovery | Subrogation desk |
+
+Sales sheet: `docs/sales-sheets/insurance-governor-production.md`  
+Design-partner attestation: `docs/insurance-governor/design-partner-attestation.md`
+
 ## Remaining for production hardening (post-L4)
-- PgBouncer + Redis Sentinel HA rehearsal compose for IG
-- ClaimGate platform Deployment in Helm (image build gate exists)
+- Redis Sentinel HA rehearsal compose for IG (PgBouncer compose exists)
+- Named carrier design-partner letter under NDA
+- Full ZK-SNARK circuit (current: SHA-256 commitments)

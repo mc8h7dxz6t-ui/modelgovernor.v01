@@ -13,6 +13,7 @@ REQUIRED = [
     "0003_admin_audit_log.sql",
     "0004_platform_policies.sql",
     "0005_platform_manifest.sql",
+    "0006_extended_platforms.sql",
 ]
 
 
