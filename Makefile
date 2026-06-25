@@ -4,7 +4,8 @@
 	demo-prereqs demo-prereqs-install proof-test load-test \
 	fg-spine-up fg-stack-up fg-spine-down fg-stack-down fg-spine-test fg-spine-smoke \
 	crystal-demo algofreeze-demo wirematch-demo fg-certification \
-	fg-demo-up fg-demo-down fg-demo-gold fg-integration-test fg-load-smoke
+	fg-demo-up fg-demo-down fg-demo-gold fg-integration-test fg-load-smoke \
+	fg-prod-setup fg-aws-anchor-bucket fg-helm-template fg-helm-install
 
 demo-prereqs:
 	./scripts/install-demo-prereqs.sh --check-only
@@ -105,3 +106,15 @@ fg-integration-test:
 
 fg-load-smoke:
 	$(MAKE) -C finance-governor fg-load-smoke
+
+fg-prod-setup:
+	$(MAKE) -C finance-governor fg-prod-setup
+
+fg-aws-anchor-bucket:
+	$(MAKE) -C finance-governor fg-aws-anchor-bucket
+
+fg-helm-template:
+	$(MAKE) -C finance-governor fg-helm-template
+
+fg-helm-install:
+	$(MAKE) -C finance-governor fg-helm-install

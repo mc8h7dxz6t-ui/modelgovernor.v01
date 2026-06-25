@@ -1,0 +1,51 @@
+# Finance Governor production overlay — OIDC + S3 anchor + hardened secrets
+# Usage: helm upgrade --install fg ./deploy/helm/finance-governor -f values-production.yaml
+
+namespace: finance-governor
+
+image:
+  pullPolicy: Always
+
+replicas:
+  gateway: 2
+  sidecar: 3
+  reconciler: 2
+
+secrets:
+  create: false
+  name: fg-internal
+
+externalSecrets:
+  enabled: true
+
+oidc:
+  enabled: true
+  # Set via ExternalSecret or --set oidc.issuerUrl / oidc.audience
+  issuerUrl: ""
+  audience: finance-governor
+  allowInternalTokenFallback: false
+  internalTokenIsAdmin: false
+
+s3Anchor:
+  bucket: ""
+  region: us-east-1
+  objectLock: true
+  retentionDays: 365
+
+serviceAccount:
+  create: true
+  annotations:
+    # eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/fg-sidecar-decision-anchor
+
+postgres:
+  enabled: true
+  password: ""
+
+decisionChainVerify:
+  enabled: true
+
+decisionChainAnchor:
+  enabled: true
+
+governanceCanary:
+  enabled: true

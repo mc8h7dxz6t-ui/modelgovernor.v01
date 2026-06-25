@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "fg.configMapName" . }}
+  namespace: {{ include "fg.namespace" . }}
+  labels:
+    {{- include "fg.labels" . | nindent 4 }}
+data:
+  OIDC_ENABLED: {{ .Values.oidc.enabled | quote }}
+  OIDC_ISSUER_URL: {{ .Values.oidc.issuerUrl | quote }}
+  OIDC_JWKS_URL: {{ .Values.oidc.jwksUrl | quote }}
+  OIDC_AUDIENCE: {{ .Values.oidc.audience | quote }}
+  OIDC_ALGORITHMS: {{ .Values.oidc.algorithms | quote }}
+  OIDC_COMMIT_ROLES: {{ .Values.oidc.commitRoles | quote }}
+  OIDC_FINANCIAL_ADMIN_ROLES: {{ .Values.oidc.financialAdminRoles | quote }}
+  OIDC_VIEWER_ROLES: {{ .Values.oidc.viewerRoles | quote }}
+  OIDC_ALLOW_INTERNAL_TOKEN_FALLBACK: {{ .Values.oidc.allowInternalTokenFallback | quote }}
+  OIDC_INTERNAL_TOKEN_IS_ADMIN: {{ .Values.oidc.internalTokenIsAdmin | quote }}
+  DECISION_ANCHOR_S3_PREFIX: {{ .Values.s3Anchor.prefix | quote }}
+  DECISION_ANCHOR_S3_REGION: {{ .Values.s3Anchor.region | quote }}
+  DECISION_ANCHOR_S3_OBJECT_LOCK_ENABLED: {{ .Values.s3Anchor.objectLock | quote }}
+  DECISION_ANCHOR_S3_RETENTION_DAYS: {{ .Values.s3Anchor.retentionDays | quote }}
+  FG_SIDECAR_URL: http://fg-sidecar:8091

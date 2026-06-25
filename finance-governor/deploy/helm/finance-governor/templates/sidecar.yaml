@@ -17,28 +17,60 @@ spec:
         app.kubernetes.io/component: sidecar
         {{- include "fg.labels" . | nindent 8 }}
     spec:
+      serviceAccountName: {{ .Values.serviceAccount.name }}
       containers:
         - name: sidecar
           image: {{ .Values.image.sidecar }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: 8091
+          envFrom:
+            - configMapRef:
+                name: {{ include "fg.configMapName" . }}
           env:
+            - name: POSTGRES_USER
+              value: {{ .Values.postgres.user | quote }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "fg.secretName" . }}
+                  key: postgres-password
             - name: DATABASE_URL
-              value: postgresql+psycopg://postgres:postgres@fg-postgres:5432/financegovernor
+              value: postgresql+psycopg://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@fg-postgres:5432/{{ .Values.postgres.database }}
+            - name: REDIS_URL
+              value: redis://fg-redis:6379/0
             - name: FG_INTERNAL_TOKENS
               valueFrom:
                 secretKeyRef:
-                  name: fg-internal
+                  name: {{ include "fg.secretName" . }}
                   key: fg-internal-tokens
+            - name: OIDC_ISSUER_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "fg.secretName" . }}
+                  key: oidc-issuer-url
+                  optional: true
+            - name: OIDC_AUDIENCE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "fg.secretName" . }}
+                  key: oidc-audience
+                  optional: true
             - name: DECISION_ANCHOR_S3_BUCKET
-              value: {{ .Values.s3Anchor.bucket | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "fg.secretName" . }}
+                  key: decision-anchor-s3-bucket
+                  optional: true
           readinessProbe:
             httpGet:
               path: /readyz
               port: 8091
-            initialDelaySeconds: 5
+            initialDelaySeconds: 8
+            periodSeconds: 10
           livenessProbe:
             httpGet:
               path: /healthz
               port: 8091
+            initialDelaySeconds: 10
+            periodSeconds: 20
