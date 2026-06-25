@@ -1,0 +1,54 @@
+{
+  "generated_at": "2026-06-25T16:37:10.525779+00:00",
+  "certification_level": "L2_INSTITUTIONAL",
+  "platforms": [
+    "algofreeze",
+    "wire_match",
+    "subledger_sync",
+    "asset_ledger",
+    "credit_govern"
+  ],
+  "tier1_exit_code": 0,
+  "tier1_summary": "33 passed, 1 warning in 0.54s",
+  "competitive_gaps_bridged": {
+    "algofreeze": [
+      "ci_cd_deploy_sha_registry",
+      "feed_heartbeat_freeze",
+      "zero_egress_when_frozen",
+      "ems_proxy_integration_point"
+    ],
+    "wire_match": [
+      "semantic_beneficiary_intent",
+      "iso20022_adapter",
+      "pre_rail_send_gate",
+      "idempotency_duplicate_block"
+    ],
+    "subledger_sync": [
+      "fx_snapshot_hash_at_match",
+      "real_time_ic_pairing",
+      "orphan_sweep_strand"
+    ],
+    "asset_ledger": [
+      "reg_table_version_pinning",
+      "runtime_depreciation_events",
+      "book_value_invariant"
+    ],
+    "credit_govern": [
+      "reserve_before_score",
+      "model_version_policy_lock",
+      "exposure_cap_enforcement",
+      "high_risk_strand"
+    ],
+    "spine_mesh": [
+      "no_wire_while_algo_frozen"
+    ]
+  },
+  "invariant_probes": [
+    "frozen_egress_attempt_total",
+    "wire_sent_below_threshold_total",
+    "match_tolerance_breach_total",
+    "negative_book_value_total",
+    "model_version_mismatch_total",
+    "crystal_mesh_block_total"
+  ]
+}

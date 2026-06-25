@@ -3,7 +3,8 @@
 	demo-all-platforms demo-all-platforms-live demo-all-platforms-manifests demo-all-platforms-proof \
 	demo-prereqs demo-prereqs-install proof-test load-test \
 	fg-spine-up fg-stack-up fg-spine-down fg-stack-down fg-spine-test fg-spine-smoke \
-	crystal-demo algofreeze-demo wirematch-demo
+	crystal-demo algofreeze-demo wirematch-demo subledger-demo assetledger-demo \
+	creditgovern-demo fg-mesh-demo fg-certification
 
 demo-prereqs:
 	./scripts/install-demo-prereqs.sh --check-only
