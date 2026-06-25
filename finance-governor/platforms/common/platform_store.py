@@ -224,6 +224,7 @@ class MemoryCreditStore(CreditStore):
         if app_id in self._rows:
             return False
         self._rows[app_id] = row
+        append_platform_event("credit_govern", "EVALUATED", app_id, row)
         return True
 
     def get_evaluation(self, application_id: str) -> dict | None:
@@ -508,6 +509,7 @@ class SqlCreditStore(_SqlBase, CreditStore):
 
 _engines: dict[str, Engine] = {}
 _stores: dict[str, Any] = {}
+_memory_events: list[dict[str, Any]] = []
 
 
 def _get_engine() -> Engine | None:
@@ -545,13 +547,55 @@ def get_credit_store() -> CreditStore:
 
 
 def reset_all_stores() -> None:
+    global _memory_events
+    _memory_events.clear()
     for store in _stores.values():
         if hasattr(store, "reset"):
             store.reset()
 
 
 def append_platform_event(platform: str, event_type: str, operation_id: str, metadata: dict | None = None) -> None:
+    item = {
+        "platform": platform,
+        "event_type": event_type,
+        "operation_id": operation_id,
+        "metadata": metadata or {},
+        "recorded_at": _utcnow().isoformat(),
+    }
     engine = _get_engine()
-    if not engine:
-        return
-    _SqlBase(engine).append_event(platform, event_type, operation_id, metadata)
+    if engine:
+        _SqlBase(engine).append_event(platform, event_type, operation_id, metadata)
+    else:
+        _memory_events.append(item)
+
+
+def list_platform_events(platform: str | None = None, *, limit: int = 50) -> list[dict]:
+    engine = _get_engine()
+    if engine:
+        clause = "WHERE platform = :platform" if platform else ""
+        params: dict[str, Any] = {"limit": limit}
+        if platform:
+            params["platform"] = platform
+        with engine.connect() as conn:
+            rows = conn.execute(
+                text(
+                    f"""
+                    SELECT platform, event_type, operation_id, metadata, recorded_at
+                    FROM platform_events
+                    {clause}
+                    ORDER BY event_id DESC
+                    LIMIT :limit
+                    """
+                ),
+                params,
+            ).mappings().all()
+        out = []
+        for row in rows:
+            item = dict(row)
+            meta = item.get("metadata")
+            if isinstance(meta, str):
+                item["metadata"] = json.loads(meta)
+            out.append(item)
+        return out
+    events = _memory_events if platform is None else [e for e in _memory_events if e["platform"] == platform]
+    return list(reversed(events[-limit:]))

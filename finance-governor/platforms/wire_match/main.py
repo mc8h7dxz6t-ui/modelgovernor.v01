@@ -38,6 +38,13 @@ class EvaluateResponse(BaseModel):
     crystal_id: str | None = None
 
 
+@app.get("/events")
+def list_events(limit: int = 20) -> list:
+    from platforms.common.platform_store import list_platform_events
+
+    return list_platform_events("wire_match", limit=limit)
+
+
 @app.post("/wire/evaluate", response_model=EvaluateResponse)
 def evaluate(wire: WireRequest) -> EvaluateResponse:
     amount = Decimal(wire.amount)

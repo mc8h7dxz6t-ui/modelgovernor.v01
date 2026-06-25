@@ -80,6 +80,13 @@ def _base_facets(runtime_sha: str) -> dict:
     }
 
 
+@app.get("/events")
+def list_events(limit: int = 20) -> list:
+    from platforms.common.platform_store import list_platform_events
+
+    return list_platform_events("algofreeze", limit=limit)
+
+
 @app.post("/orders")
 def submit_order(body: OrderRequest) -> dict:
     if not _registry.check(body.runtime_sha):
