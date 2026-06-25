@@ -49,6 +49,8 @@ def build_pack() -> dict:
         "capability_matrix": str(DOCS / "capability-matrix.md"),
         "institutional_gold_standard": str(DOCS / "institutional-gold-standard.md"),
         "operations_runbook": str(DOCS / "operations-runbook.md"),
+        "l4_certification": str(DOCS / "l4-certification.md"),
+        "soc2_evidence_pack": str(DOCS / "soc2-evidence-pack.md"),
         "warranty_enforcement_engine": str(DOCS / "warranty-enforcement-engine.md"),
         "design_partner_attestation": str(DOCS / "design-partner-attestation.md"),
         "uk_us_regulatory_framework": str(DOCS / "uk-us-regulatory-framework.md"),
@@ -68,9 +70,12 @@ def build_pack() -> dict:
         "certification_targets": {
             "institutional_plus_plus": "make ig-certification",
             "strict_l4_gold": "make ig-certification-strict",
+            "l4_gold_ci": "make ig-certification-l4-ci",
+            "l4_gold_full": "make ig-certification-l4",
             "enterprise_rehearsal": "make ig-full-rehearsal",
             "embedded_rehearsal": "make ig-embedded-rehearsal",
         },
+        "regulatory_export_endpoint": "/internal/regulatory/export",
         "artifact_references": {k: {"path": v, "exists": Path(v).is_file()} for k, v in refs.items()},
         "spine_invariant_counters": [
             "surprise_commit_blocked_total",

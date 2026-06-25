@@ -11,6 +11,7 @@ from .metrics import get_counters
 from .routes_admin import router as admin_router
 from .routes_commit import router as commit_router
 from .routes_crystallize import router as crystallize_router
+from .routes_regulatory import router as regulatory_router
 from .schemas import HealthResponse
 
 
@@ -54,3 +55,4 @@ def metrics_prometheus() -> Response:
 app.include_router(crystallize_router)
 app.include_router(commit_router)
 app.include_router(admin_router)
+app.include_router(regulatory_router)

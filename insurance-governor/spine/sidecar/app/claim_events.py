@@ -10,7 +10,7 @@ from typing import Any
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from .claim_seal import GENESIS_HASH, compute_row_hash, head_hash
+from .claim_seal import GENESIS_HASH, compute_row_hash, head_hash, schema_supports_claim_seal
 from .currency import quantize_money
 
 _append_lock = threading.Lock()
@@ -30,6 +30,9 @@ def append_claim_event(
     reserve_delta: Decimal,
     metadata: dict[str, Any],
 ) -> int:
+    if not schema_supports_claim_seal(session):
+        raise RuntimeError("claim_events seal columns unavailable")
+
     with _append_lock:
         prev = head_hash(session) or GENESIS_HASH
         now = datetime.now(timezone.utc)

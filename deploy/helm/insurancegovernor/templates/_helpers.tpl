@@ -54,6 +54,22 @@ sidecar.istio.io/inject: "true"
 {{- end }}
 {{- end }}
 
+{{- define "insurancegovernor.postgresBackendHost" -}}
+{{- if .Values.postgres.external.enabled -}}
+{{- .Values.postgres.external.host -}}
+{{- else -}}
+postgres
+{{- end -}}
+{{- end }}
+
+{{- define "insurancegovernor.postgresBackendPort" -}}
+{{- if .Values.postgres.external.enabled -}}
+{{- .Values.postgres.external.port -}}
+{{- else -}}
+5432
+{{- end -}}
+{{- end }}
+
 {{- define "insurancegovernor.platformIntegrationEnv" -}}
 - name: IG_PLATFORM_DATABASE_URL
   valueFrom:

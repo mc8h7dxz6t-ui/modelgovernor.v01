@@ -1,4 +1,4 @@
-.PHONY: ig-spine-up ig-spine-down ig-stack-up ig-stack-down ig-spine-test ig-spine-smoke claim-gate-demo ig-demo ig-certification ig-certification-strict ig-load-test ig-chaos-test ig-ha-up ig-ha-down ig-pilot-attestation ig-cluster-attestation ig-rail-smoke ig-design-partner-package ig-claim-gate-load ig-full-rehearsal ig-embedded-rehearsal ig-examiner-evidence bind-authority-demo parametric-oracle-demo
+.PHONY: ig-spine-up ig-spine-down ig-stack-up ig-stack-down ig-spine-test ig-spine-smoke claim-gate-demo ig-demo ig-certification ig-certification-strict ig-certification-l4 ig-certification-l4-ci ig-helm-enterprise ig-platform-conformance ig-load-test ig-chaos-test ig-ha-up ig-ha-down ig-pilot-attestation ig-cluster-attestation ig-rail-smoke ig-design-partner-package ig-claim-gate-load ig-full-rehearsal ig-embedded-rehearsal ig-examiner-evidence bind-authority-demo parametric-oracle-demo
 
 ig-spine-up:
 	docker compose -f docker-compose.spine.yml up -d --build
@@ -62,6 +62,45 @@ ig-certification-strict:
 ig-examiner-evidence:
 	chmod +x scripts/ig_examiner_evidence_pack.py
 	cd .. && python3 insurance-governor/scripts/ig_examiner_evidence_pack.py
+
+ig-helm-enterprise:
+	helm template ig ../deploy/helm/insurancegovernor \
+	  -f ../deploy/helm/insurancegovernor/values-production.yaml \
+	  -f ../deploy/helm/insurancegovernor/values-enterprise.yaml \
+	  --set secrets.create=true \
+	  --set secrets.postgresPassword=postgres
+
+ig-certification-l4-ci:
+	@echo "==> L4 Gold CI gate (reliability + enterprise manifests)"
+	cd .. && PYTHONPATH=insurance-governor/spine/sidecar:insurance-governor/tests:insurance-governor python3 -m pytest \
+	  insurance-governor/tests/test_l4_helm_enterprise.py \
+	  insurance-governor/tests/test_l4_certification.py \
+	  insurance-governor/tests/test_horizon_sweeper.py \
+	  insurance-governor/tests/test_commit_invariants.py \
+	  insurance-governor/tests/test_claim_seal_failclosed.py \
+	  insurance-governor/tests/test_platform_registry_failclosed.py \
+	  insurance-governor/tests/test_regulatory_export.py -q
+	@$(MAKE) ig-helm-enterprise > /dev/null
+	@echo "ig-certification-l4-ci complete"
+
+ig-certification-l4:
+	@echo "==> L4 Gold certification gate"
+	@$(MAKE) ig-certification
+	@echo "==> L4 Helm enterprise render"
+	@$(MAKE) ig-helm-enterprise > /dev/null
+	@echo "==> L4 Helm enterprise tests"
+	cd .. && PYTHONPATH=insurance-governor/spine/sidecar python3 -m pytest \
+	  insurance-governor/tests/test_l4_helm_enterprise.py \
+	  insurance-governor/tests/test_l4_certification.py -q
+	@$(MAKE) ig-examiner-evidence
+	@echo "ig-certification-l4 complete (L4 Gold)"
+
+ig-platform-conformance:
+	cd .. && PYTHONPATH=insurance-governor/spine/sidecar python3 -m pytest \
+	  insurance-governor/tests/test_platform_sdk.py \
+	  insurance-governor/tests/test_platform_invariant_counters.py \
+	  insurance-governor/tests/test_headline_wedges.py \
+	  insurance-governor/tests/test_loss_control_wedges.py -q
 
 ig-chaos-test:
 	cd .. && POSTGRES_TEST_URL=postgresql+psycopg://postgres:postgres@localhost:5436/ig_chaos \

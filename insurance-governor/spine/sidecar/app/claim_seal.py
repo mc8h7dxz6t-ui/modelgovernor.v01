@@ -89,11 +89,42 @@ def compute_row_hash(
 
 
 def head_hash(session: Session) -> str | None:
+    if not schema_supports_claim_seal(session):
+        return None
     row = session.execute(text("SELECT row_hash FROM claim_events ORDER BY event_id DESC LIMIT 1")).first()
     return row[0] if row else None
 
 
+def schema_supports_claim_seal(session: Session) -> bool:
+    dialect = session.bind.dialect.name
+    if dialect == "postgresql":
+        row = session.execute(
+            text(
+                """
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_name = 'claim_events' AND column_name = 'row_hash'
+                """
+            )
+        ).first()
+        return row is not None
+    if dialect == "sqlite":
+        rows = session.execute(text("PRAGMA table_info(claim_events)")).fetchall()
+        return any(str(column[1]) == "row_hash" for column in rows)
+    return False
+
+
 def verify_claim_chain(session: Session) -> ClaimChainVerificationResult:
+    if not schema_supports_claim_seal(session):
+        return ClaimChainVerificationResult(
+            valid=False,
+            sealed_count=0,
+            unsealed_count=0,
+            total_events=0,
+            head_hash=None,
+            first_break=ClaimChainBreak(event_id=0, reason="seal_schema_unavailable"),
+        )
+
     rows = session.execute(
         text(
             """

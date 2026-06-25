@@ -382,6 +382,23 @@ jobs:
             --namespace insurancegovernor > /tmp/ig-helm-production.yaml
           wc -l /tmp/ig-helm-production.yaml
 
+  ig-certification-l4:
+    name: IG L4 Gold — enterprise certification CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: azure/setup-helm@v4
+      - name: Install dependencies
+        run: |
+          pip install -r insurance-governor/spine/sidecar/requirements.txt
+          pip install -r insurance-governor/platforms/requirements.txt
+          pip install pytest pyyaml httpx
+      - name: L4 Gold CI gate
+        run: make ig-certification-l4-ci
+
   ig-build-images:
     name: IG container image build gate
     runs-on: ubuntu-latest

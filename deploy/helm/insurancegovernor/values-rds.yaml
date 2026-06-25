@@ -1,0 +1,20 @@
+# AWS RDS production overlay — managed Postgres (no in-cluster Deployment)
+# Usage:
+#   helm upgrade --install ig ./deploy/helm/insurancegovernor \
+#     -f values-production.yaml -f values-enterprise.yaml -f values-rds.yaml \
+#     --set postgres.external.host=ig-prod.cluster-xxxx.us-east-1.rds.amazonaws.com
+
+postgres:
+  enabled: false
+  external:
+    enabled: true
+    host: ig-prod.cluster-xxxx.us-east-1.rds.amazonaws.com
+    port: 5432
+    sslMode: require
+    rds:
+      enabled: true
+      iamAuth: false
+
+pgbouncer:
+  enabled: true
+  replicas: 3

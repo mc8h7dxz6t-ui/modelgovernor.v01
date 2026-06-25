@@ -121,6 +121,14 @@ postgres:
   replicas: 1
   database: insurancegovernor
   user: postgres
+  external:
+    enabled: false
+    host: ""
+    port: 5432
+    sslMode: require
+    rds:
+      enabled: false
+      iamAuth: false
   storage:
     emptyDir: true
 
@@ -130,6 +138,9 @@ pgbouncer:
   poolMode: transaction
   maxClientConn: 500
   defaultPoolSize: 20
+  pdb:
+    enabled: false
+    minAvailable: 1
 
 redis:
   enabled: true
@@ -321,6 +332,9 @@ reconciler:
   enabled: true
   replicas: 2
   sweepIntervalSeconds: 30
+  pdb:
+    enabled: false
+    minAvailable: 1
   resources:
     requests:
       cpu: 50m
@@ -362,6 +376,14 @@ ledgerChainAnchor:
 governanceCanary:
   enabled: true
   schedule: "*/10 * * * *"
+
+modelRiskFreezeVersionProbe:
+  enabled: false
+  schedule: "*/15 * * * *"
+
+claimGateGoldenProbe:
+  enabled: false
+  schedule: "*/15 * * * *"
 
 networkPolicy:
   enabled: true

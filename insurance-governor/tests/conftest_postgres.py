@@ -8,14 +8,9 @@ import pytest
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 
+from support.ig_migrations import apply_ig_migrations
+
 ROOT = Path(__file__).resolve().parents[1]
-MIGRATIONS = [
-    ROOT / "migrations" / "0001_ig_spine_init.sql",
-    ROOT / "migrations" / "0002_claim_chain_anchors.sql",
-    ROOT / "migrations" / "0003_admin_audit_log.sql",
-    ROOT / "migrations" / "0004_platform_policies.sql",
-    ROOT / "migrations" / "0005_platform_manifest.sql",
-]
 
 _TRUNCATE = [
     "claim_events",
@@ -25,16 +20,14 @@ _TRUNCATE = [
     "admin_audit_log",
     "guardrail_incidents",
     "aggregate_limit_state",
+    "payment_idempotency",
+    "claim_commitments",
+    "oracle_feed_cache",
 ]
 
 
 def _apply_migrations(engine: Engine) -> None:
-    with engine.begin() as conn:
-        for mig in MIGRATIONS:
-            for stmt in mig.read_text().split(";"):
-                s = stmt.strip()
-                if s and not s.startswith("--"):
-                    conn.execute(text(s))
+    apply_ig_migrations(engine)
 
 
 @pytest.fixture(scope="session")

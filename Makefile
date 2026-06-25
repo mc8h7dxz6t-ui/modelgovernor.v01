@@ -7,7 +7,8 @@
 	fg-demo-up fg-demo-down fg-demo-gold fg-integration-test fg-load-smoke \
 	fg-prod-setup fg-aws-anchor-bucket fg-helm-template fg-helm-install fg-examiner-evidence \
 	ig-spine-up ig-stack-up ig-spine-down ig-stack-down ig-spine-test ig-spine-smoke \
-	claim-gate-demo ig-demo ig-certification ig-certification-strict ig-load-test ig-ha-up ig-pilot-attestation \
+	claim-gate-demo ig-demo ig-certification ig-certification-strict ig-certification-l4 ig-certification-l4-ci \
+	ig-helm-enterprise ig-platform-conformance ig-load-test ig-ha-up ig-pilot-attestation \
 	ig-cluster-attestation ig-rail-smoke ig-design-partner-package ig-claim-gate-load \
 	ig-full-rehearsal ig-embedded-rehearsal ig-examiner-evidence
 
@@ -159,6 +160,18 @@ ig-certification:
 
 ig-certification-strict:
 	$(MAKE) -C insurance-governor ig-certification-strict
+
+ig-certification-l4:
+	$(MAKE) -C insurance-governor ig-certification-l4
+
+ig-certification-l4-ci:
+	$(MAKE) -C insurance-governor ig-certification-l4-ci
+
+ig-helm-enterprise:
+	$(MAKE) -C insurance-governor ig-helm-enterprise
+
+ig-platform-conformance:
+	$(MAKE) -C insurance-governor ig-platform-conformance
 
 ig-examiner-evidence:
 	$(MAKE) -C insurance-governor ig-examiner-evidence

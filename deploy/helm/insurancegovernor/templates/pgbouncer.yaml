@@ -11,7 +11,7 @@ metadata:
 data:
   pgbouncer.ini: |
     [databases]
-    {{ .Values.postgres.database }} = host=postgres port=5432 dbname={{ .Values.postgres.database }}
+    {{ .Values.postgres.database }} = host={{ include "insurancegovernor.postgresBackendHost" . }} port={{ include "insurancegovernor.postgresBackendPort" . }} dbname={{ .Values.postgres.database }}
 
     [pgbouncer]
     listen_addr = 0.0.0.0

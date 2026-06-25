@@ -9,19 +9,29 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 try:
-    from prometheus_client import Counter, Histogram, generate_latest
+    from prometheus_client import REGISTRY, Counter, Histogram, generate_latest
 
-    HTTP_REQUESTS = Counter(
-        "insurancegovernor_http_requests_total",
-        "HTTP requests processed by the sidecar.",
-        ["method", "route", "status"],
-    )
-    HTTP_LATENCY = Histogram(
-        "insurancegovernor_http_request_duration_seconds",
-        "HTTP request latency in seconds.",
-        ["method", "route"],
-        buckets=(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0),
-    )
+    def _existing_collector(metric_name: str):
+        return REGISTRY._names_to_collectors.get(metric_name)
+
+    _http_requests = _existing_collector("insurancegovernor_http_requests_total")
+    if _http_requests is None:
+        _http_requests = Counter(
+            "insurancegovernor_http_requests_total",
+            "HTTP requests processed by the sidecar.",
+            ["method", "route", "status"],
+        )
+    HTTP_REQUESTS = _http_requests
+
+    _http_latency = _existing_collector("insurancegovernor_http_request_duration_seconds")
+    if _http_latency is None:
+        _http_latency = Histogram(
+            "insurancegovernor_http_request_duration_seconds",
+            "HTTP request latency in seconds.",
+            ["method", "route"],
+            buckets=(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0),
+        )
+    HTTP_LATENCY = _http_latency
     _METRICS_ENABLED = True
 except ImportError:
     _METRICS_ENABLED = False
