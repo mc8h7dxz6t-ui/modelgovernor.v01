@@ -82,3 +82,59 @@ platforms:
       - claim_id
     commit_decisions:
       - RECOVERY_APPROVED
+
+  indemnity_pay_gate:
+    display_name: IndemnityPayGate
+    default_policy_id: crime-indemnity-us
+    default_risk_tier: critical
+    port: 8110
+    docker_image: insurancegovernor/indemnity-pay-gate
+    required_facet_keys:
+      - payment_id
+      - indemnity_decision
+    commit_decisions:
+      - APPROVED
+    loss_control_line: Crime / FI Bond
+    finance_analogue: WireMatch
+
+  model_risk_freeze:
+    display_name: ModelRiskFreeze
+    default_policy_id: model-risk-us
+    default_risk_tier: critical
+    port: 8111
+    docker_image: insurancegovernor/model-risk-freeze
+    required_facet_keys:
+      - inference_id
+      - freeze_state
+    commit_decisions:
+      - ACTIVE
+    loss_control_line: E&O / Cyber
+    finance_analogue: AlgoFreeze
+
+  underwriting_govern:
+    display_name: UnderwritingGovern
+    default_policy_id: underwriting-fair-us
+    default_risk_tier: high
+    port: 8112
+    docker_image: insurancegovernor/underwriting-govern
+    required_facet_keys:
+      - application_id
+      - govern_decision
+    commit_decisions:
+      - COMPLIANT
+    loss_control_line: D&O / Regulatory
+    finance_analogue: CreditGovern
+
+  reserve_reconcile:
+    display_name: ReserveReconcile
+    default_policy_id: reserve-sync-us
+    default_risk_tier: high
+    port: 8113
+    docker_image: insurancegovernor/reserve-reconcile
+    required_facet_keys:
+      - claim_id
+      - match_state
+    commit_decisions:
+      - MATCHED
+    loss_control_line: Operational / D&O
+    finance_analogue: SubledgerSync

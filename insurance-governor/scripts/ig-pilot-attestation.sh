@@ -100,6 +100,32 @@ if curl -sf http://localhost:8109/healthz >/dev/null 2>&1; then
   echo "OK  SubrogationGraph evaluate"
 fi
 
+if curl -sf http://localhost:8110/healthz >/dev/null 2>&1; then
+  curl -sf -X POST http://localhost:8110/indemnity/evaluate \
+    -H 'content-type: application/json' \
+    -d '{"payment_id":"pilot-pay-crime-1","payee_name":"Acme Indemnity Trust","payee_account":"US44ACME001","amount":"50000","jurisdiction":"US"}' >/dev/null
+  echo "OK  IndemnityPayGate evaluate (Crime)"
+fi
+
+if curl -sf http://localhost:8111/healthz >/dev/null 2>&1; then
+  curl -sf http://localhost:8111/status?jurisdiction=UK >/dev/null
+  echo "OK  ModelRiskFreeze status (E&O/Cyber)"
+fi
+
+if curl -sf http://localhost:8112/healthz >/dev/null 2>&1; then
+  curl -sf -X POST http://localhost:8112/underwrite/evaluate \
+    -H 'content-type: application/json' \
+    -d '{"application_id":"pilot-uw-1","model_score":0.82,"jurisdiction":"UK","protected_attribute_deltas":{}}' >/dev/null
+  echo "OK  UnderwritingGovern evaluate (D&O)"
+fi
+
+if curl -sf http://localhost:8113/healthz >/dev/null 2>&1; then
+  curl -sf -X POST http://localhost:8113/reserve/match \
+    -H 'content-type: application/json' \
+    -d '{"claim_id":"pilot-rc-1","case_reserve":"100000","reinsurance_reserve":"100000","jurisdiction":"US"}' >/dev/null
+  echo "OK  ReserveReconcile match"
+fi
+
 cd "$ROOT"
 make ig-certification
 echo "==> Pilot attestation complete"

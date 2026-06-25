@@ -82,16 +82,24 @@ Any platform integrates via **manifest + GovernedPlatform SDK**:
 
 ### Product wedges (commercial depth)
 
-| Platform | Depth | Integration |
-|----------|-------|-------------|
-| ClaimGate | Policy rules, SIU, payment rail, FNOL webhook | Guidewire / Snapsheet / Majesco |
-| ParametricOracle | Oracle feed + attestation hash | `ORACLE_FEED_URL` / mock USGS |
-| ZkClaimAudit | Fact seal + selective disclosure | Examiner audit narrative |
-| SpatialTwin | LiDAR hash + damage gate | Property / cat spatial |
-| BatteryLiability | SOH / thermal liability | EV fleet programs |
-| SubrogationGraph | Multi-defendant recovery | Subrogation desk |
+| Platform | Depth | Integration | Loss line |
+|----------|-------|-------------|-----------|
+| **ModelRiskFreeze** | Version registry, freeze on drift, mesh parent | UK/US jurisdictions | E&O / Cyber |
+| **IndemnityPayGate** | Semantic payee gate, social engineering block | UK/US golden records | Crime / FI Bond |
+| **UnderwritingGovern** | Bias / fair lending, adverse action flag | FCA Consumer Duty / ECOA | D&O / Regulatory |
+| **ReserveReconcile** | Case vs reinsurance drift, mesh parent | Solvency II / NAIC | Operational |
+| ClaimGate | Policy rules, SIU, payment rail, FNOL webhook | Guidewire / Snapsheet / Majesco | Indemnity |
+| ParametricOracle | Oracle feed + attestation hash | `ORACLE_FEED_URL` / mock USGS | Cat/parametric |
+| ZkClaimAudit | Fact seal + selective disclosure | Examiner audit narrative | Compliance |
+| SpatialTwin | LiDAR hash + damage gate | Property / cat spatial | Property |
+| BatteryLiability | SOH / thermal liability | EV fleet programs | Auto |
+| SubrogationGraph | Multi-defendant recovery | Subrogation desk | Casualty |
+
+**Warranty mesh:** 6 seeded cross-platform rules — see [warranty-enforcement-engine.md](warranty-enforcement-engine.md)
 
 Sales sheet: `docs/sales-sheets/insurance-governor-production.md`  
+Insurer personas: `docs/insurance-governor/insurer-persona-mapping.md`  
+UK/US standards: `docs/insurance-governor/uk-us-regulatory-framework.md`  
 Design-partner attestation: `docs/insurance-governor/design-partner-attestation.md`
 
 ## Remaining for production hardening (post-L4)

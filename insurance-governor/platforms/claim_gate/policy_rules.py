@@ -128,4 +128,16 @@ DEFAULT_POLICIES: dict[str, PolicyContext] = {
         expiration_date=date(2026, 12, 31),
         jurisdiction="US-CA",
     ),
+    "POL-MOTOR-UK-001": PolicyContext(
+        policy_number="POL-MOTOR-UK-001",
+        coverage_line=CoverageLine.AUTO_LIABILITY,
+        per_occurrence_limit=Decimal("500000.00"),
+        aggregate_limit=Decimal("1500000.00"),
+        aggregate_used=Decimal("100000.00"),
+        deductible=Decimal("250.00"),
+        auto_approve_limit=Decimal("100000.00"),
+        effective_date=date(2024, 1, 1),
+        expiration_date=date(2026, 12, 31),
+        jurisdiction="UK",
+    ),
 }

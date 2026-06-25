@@ -167,5 +167,61 @@ services:
       ig-sidecar:
         condition: service_started
 
+  ig-indemnity-pay-gate:
+    build:
+      context: ..
+      dockerfile: insurance-governor/platforms/indemnity_pay_gate/Dockerfile
+    environment:
+      IG_SPINE_ENABLED: ${IG_SPINE_ENABLED:-true}
+      IG_SIDECAR_URL: http://ig-sidecar:8101
+      IG_INTERNAL_TOKEN: ${IG_INTERNAL_TOKENS:-dev-ig-spine-token-change-me}
+    ports:
+      - "8110:8110"
+    depends_on:
+      ig-sidecar:
+        condition: service_started
+
+  ig-model-risk-freeze:
+    build:
+      context: ..
+      dockerfile: insurance-governor/platforms/model_risk_freeze/Dockerfile
+    environment:
+      IG_SPINE_ENABLED: ${IG_SPINE_ENABLED:-true}
+      IG_SIDECAR_URL: http://ig-sidecar:8101
+      IG_INTERNAL_TOKEN: ${IG_INTERNAL_TOKENS:-dev-ig-spine-token-change-me}
+    ports:
+      - "8111:8111"
+    depends_on:
+      ig-sidecar:
+        condition: service_started
+
+  ig-underwriting-govern:
+    build:
+      context: ..
+      dockerfile: insurance-governor/platforms/underwriting_govern/Dockerfile
+    environment:
+      IG_SPINE_ENABLED: ${IG_SPINE_ENABLED:-true}
+      IG_SIDECAR_URL: http://ig-sidecar:8101
+      IG_INTERNAL_TOKEN: ${IG_INTERNAL_TOKENS:-dev-ig-spine-token-change-me}
+    ports:
+      - "8112:8112"
+    depends_on:
+      ig-sidecar:
+        condition: service_started
+
+  ig-reserve-reconcile:
+    build:
+      context: ..
+      dockerfile: insurance-governor/platforms/reserve_reconcile/Dockerfile
+    environment:
+      IG_SPINE_ENABLED: ${IG_SPINE_ENABLED:-true}
+      IG_SIDECAR_URL: http://ig-sidecar:8101
+      IG_INTERNAL_TOKEN: ${IG_INTERNAL_TOKENS:-dev-ig-spine-token-change-me}
+    ports:
+      - "8113:8113"
+    depends_on:
+      ig-sidecar:
+        condition: service_started
+
 volumes:
   ig_postgres_data:

@@ -1,0 +1,10 @@
+name: underwriting_govern
+display_name: UnderwritingGovern
+default_policy_id: underwriting-fair-us
+default_risk_tier: high
+port: 8112
+required_facet_keys:
+  - application_id
+  - govern_decision
+commit_decisions:
+  - COMPLIANT

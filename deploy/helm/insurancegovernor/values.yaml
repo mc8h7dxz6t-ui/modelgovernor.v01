@@ -50,6 +50,22 @@ images:
     repository: insurancegovernor/subrogation-graph
     tag: latest
     pullPolicy: IfNotPresent
+  indemnityPayGate:
+    repository: insurancegovernor/indemnity-pay-gate
+    tag: latest
+    pullPolicy: IfNotPresent
+  modelRiskFreeze:
+    repository: insurancegovernor/model-risk-freeze
+    tag: latest
+    pullPolicy: IfNotPresent
+  underwritingGovern:
+    repository: insurancegovernor/underwriting-govern
+    tag: latest
+    pullPolicy: IfNotPresent
+  reserveReconcile:
+    repository: insurancegovernor/reserve-reconcile
+    tag: latest
+    pullPolicy: IfNotPresent
   postgres:
     repository: postgres
     tag: "16"
@@ -240,6 +256,58 @@ platforms:
     name: subrogation_graph
     imageKey: subrogationGraph
     port: 8109
+    replicas: 2
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+  indemnity_pay_gate:
+    enabled: true
+    name: indemnity_pay_gate
+    imageKey: indemnityPayGate
+    port: 8110
+    replicas: 2
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+  model_risk_freeze:
+    enabled: true
+    name: model_risk_freeze
+    imageKey: modelRiskFreeze
+    port: 8111
+    replicas: 2
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+  underwriting_govern:
+    enabled: true
+    name: underwriting_govern
+    imageKey: underwritingGovern
+    port: 8112
+    replicas: 2
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+  reserve_reconcile:
+    enabled: true
+    name: reserve_reconcile
+    imageKey: reserveReconcile
+    port: 8113
     replicas: 2
     resources:
       requests:

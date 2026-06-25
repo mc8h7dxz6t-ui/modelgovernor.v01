@@ -1,21 +1,21 @@
 # Insurance Governor — Production Institutional++
 
 **SKU:** `IG-PLATFORM-PRODUCTION`  
-**Tagline:** Governed claims spine — hash-chained reserves, policy-gated payouts, core-system FNOL ingest.
+**Tagline:** Loss-control attestation spine — warranty enforcement, indemnity spend mitigation, UK/US regulatory proof.
 
 ---
 
 ## Executive summary
 
-Production topology for carriers and MGAs that need tamper-evident claim commits, SIU-aware payout gates, and plug-and-play domain wedges (ClaimGate, ZkClaimAudit, ParametricOracle, SpatialTwin, EV battery liability, subrogation graph) on a shared spine.
+Production topology for carriers and MGAs selling **loss control**, not workflow automation. Hash-chained reserves prove policy warranties in real time — reducing claims frequency, severity, and defense-cost reserves across **Cyber, D&O, E&O, and Crime / FI bonds**.
 
 | | |
 |---|---|
-| **Target buyer** | P&C carriers, MGAs, insurtech platform teams, claims modernization programs |
-| **Sales motion** | Design-partner pilot → production rollout on shared spine |
-| **Time to live** | 4–8 weeks (managed Postgres, IdP, core webhook integration) |
-| **Suggested ACV (list)** | **$280K–$750K / year** |
-| **Pre-revenue asset worth** | **$1.5M–$3.0M** |
+| **Target buyer** | Financial lines underwriters, CRO, Chief Actuary, wholesale brokers (London / Lloyd's) |
+| **Sales motion** | “Deductible reduction via verified controls” → design-partner pilot |
+| **Time to live** | 4–8 weeks |
+| **Suggested ACV (list)** | **$320K–$850K / year** |
+| **Pre-revenue asset worth** | **$2.0M–$4.0M** (11 platforms + warranty mesh) |
 
 ---
 

@@ -123,6 +123,36 @@ INSERT INTO coverage_policy_registry (
 ), (
     'subrogation-us', 'casualty', 'subrogation_graph', 'US', 'high',
     3000000, 600000, 0
+), (
+    'crime-indemnity-us', 'crime', 'indemnity_pay_gate', 'US', 'critical',
+    5000000, 30000, 0
+), (
+    'crime-indemnity-uk', 'crime', 'indemnity_pay_gate', 'UK', 'critical',
+    3000000, 30000, 0
+), (
+    'model-risk-us', 'cyber', 'model_risk_freeze', 'US', 'critical',
+    10000000, 5000, 0
+), (
+    'model-risk-uk', 'cyber', 'model_risk_freeze', 'UK', 'critical',
+    8000000, 5000, 0
+), (
+    'underwriting-fair-us', 'commercial', 'underwriting_govern', 'US', 'high',
+    2500000, 600000, 0
+), (
+    'underwriting-fair-uk', 'commercial', 'underwriting_govern', 'UK', 'high',
+    2000000, 600000, 0
+), (
+    'reserve-sync-us', 'reinsurance', 'reserve_reconcile', 'US', 'high',
+    10000000, 300000, 0
+), (
+    'reserve-sync-uk', 'reinsurance', 'reserve_reconcile', 'UK', 'high',
+    8000000, 300000, 0
+), (
+    'claim-high-uk', 'casualty', 'claim_gate', 'UK', 'high',
+    4000000, 300000, 0
+), (
+    'bind-standard-uk', 'commercial', 'bind_authority', 'UK', 'high',
+    2000000, 600000, 0
 );
 
 INSERT INTO reserve_ledgers (account_id, ledger_type, currency, balance, active)
@@ -136,7 +166,20 @@ VALUES
   ('zk_claim_audit', 'ZkClaimAudit', 'dev-zk-claim-audit-hash', 1, '{"required_facet_keys":["claim_id","commitment_hash"],"commit_decisions":["SEALED","VERIFIED"]}'),
   ('spatial_twin', 'SpatialTwin', 'dev-spatial-twin-hash', 1, '{"required_facet_keys":["claim_id","point_cloud_hash"],"commit_decisions":["APPROVED"]}'),
   ('battery_liability', 'BatteryLiability', 'dev-battery-liability-hash', 1, '{"required_facet_keys":["claim_id"],"commit_decisions":["APPROVED"]}'),
-  ('subrogation_graph', 'SubrogationGraph', 'dev-subrogation-graph-hash', 1, '{"required_facet_keys":["claim_id"],"commit_decisions":["RECOVERY_APPROVED"]}');
+  ('subrogation_graph', 'SubrogationGraph', 'dev-subrogation-graph-hash', 1, '{"required_facet_keys":["claim_id"],"commit_decisions":["RECOVERY_APPROVED"]}'),
+  ('indemnity_pay_gate', 'IndemnityPayGate', 'dev-indemnity-pay-gate-hash', 1, '{"required_facet_keys":["payment_id","indemnity_decision"],"commit_decisions":["APPROVED"]}'),
+  ('model_risk_freeze', 'ModelRiskFreeze', 'dev-model-risk-freeze-hash', 1, '{"required_facet_keys":["inference_id","freeze_state"],"commit_decisions":["ACTIVE"]}'),
+  ('underwriting_govern', 'UnderwritingGovern', 'dev-underwriting-govern-hash', 1, '{"required_facet_keys":["application_id","govern_decision"],"commit_decisions":["COMPLIANT"]}'),
+  ('reserve_reconcile', 'ReserveReconcile', 'dev-reserve-reconcile-hash', 1, '{"required_facet_keys":["claim_id","match_state"],"commit_decisions":["MATCHED"]}');
+
+INSERT INTO crystal_mesh_rules (parent_platform, parent_facet_key, parent_facet_value, child_platform, block_commit, enabled)
+VALUES
+  ('model_risk_freeze', 'freeze_state', 'FROZEN', 'claim_gate', 1, 1),
+  ('model_risk_freeze', 'freeze_state', 'FROZEN', 'indemnity_pay_gate', 1, 1),
+  ('claim_gate', 'gate_decision', 'REFERRED', 'indemnity_pay_gate', 1, 1),
+  ('underwriting_govern', 'govern_decision', 'VIOLATION', 'bind_authority', 1, 1),
+  ('reserve_reconcile', 'match_state', 'DRIFT', 'claim_gate', 1, 1),
+  ('reserve_reconcile', 'match_state', 'DRIFT', 'indemnity_pay_gate', 1, 1);
 
 CREATE TABLE claim_chain_anchors (
     anchor_id INTEGER PRIMARY KEY AUTOINCREMENT,

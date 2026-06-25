@@ -1,0 +1,10 @@
+name: model_risk_freeze
+display_name: ModelRiskFreeze
+default_policy_id: model-risk-us
+default_risk_tier: critical
+port: 8111
+required_facet_keys:
+  - inference_id
+  - freeze_state
+commit_decisions:
+  - ACTIVE
