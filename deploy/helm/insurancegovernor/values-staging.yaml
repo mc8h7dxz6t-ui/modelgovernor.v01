@@ -21,3 +21,15 @@ externalSecrets:
 
 syntheticProbe:
   enabled: true
+
+integrations:
+  paymentRailMode: fednow_sandbox
+  oracleFeedMode: live
+  oracleFeedSource: usgs-live
+  fednowApiUrl: ""
+  clearinghouseApiUrl: ""
+
+enterprise:
+  istio:
+    enabled: true
+    mtlsMode: STRICT

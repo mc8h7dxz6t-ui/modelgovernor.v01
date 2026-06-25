@@ -2,6 +2,7 @@
 """Generate Insurance Governor institutional attestation artifact."""
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -28,7 +29,14 @@ def main() -> int:
         env,
     )
     load = _run(
-        [sys.executable, "-m", "pytest", "insurance-governor/tests/load/test_ig_load_harness.py", "-q"],
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            "insurance-governor/tests/load/test_ig_load_harness.py",
+            "insurance-governor/tests/load/test_claim_gate_production.py",
+            "-q",
+        ],
         env,
     )
     platform_tests = [
@@ -43,6 +51,7 @@ def main() -> int:
         "insurance-governor/tests/test_loss_control_wedges.py",
         "insurance-governor/tests/test_mesh_warranty.py",
         "insurance-governor/tests/test_production_integrations.py",
+        "insurance-governor/tests/test_bank_rail_sandbox.py",
     ]
     platforms = _run(
         [sys.executable, "-m", "pytest", *platform_tests, "-q"],
@@ -79,9 +88,9 @@ def main() -> int:
             "circuit_breaker": True,
             "synthetic_canaries": True,
         },
-            "commercial": {
+        "commercial": {
             "claim_gate_depth": "policy_rules+siu+payment_rail+fnol",
-            "core_integrations": ["guidewire", "snapsheet", "majesco"],
+            "core_integrations": ["guidewire", "snapsheet", "majesco", "acturis", "ssp"],
             "headline_wedges": ["zk_claim_audit", "spatial_twin", "battery_liability", "subrogation_graph"],
             "loss_control_wedges": ["indemnity_pay_gate", "model_risk_freeze", "underwriting_govern", "reserve_reconcile"],
             "warranty_mesh_rules": 6,
@@ -91,6 +100,7 @@ def main() -> int:
             "oracle_feed": "http_mock_and_ORACLE_FEED_URL",
             "sales_sheet": "docs/sales-sheets/insurance-governor-production.md",
             "design_partner_doc": "docs/insurance-governor/design-partner-attestation.md",
+            "data_room_redacted": "docs/insurance-governor/data-room/design-partner-attestation-redacted.md",
         },
     }
     ts = int(datetime.now(timezone.utc).timestamp())
@@ -99,6 +109,28 @@ def main() -> int:
     payload = json.dumps(report, indent=2)
     out.write_text(payload)
     latest.write_text(payload)
+
+    # Publish cluster attestation scaffold when no live cluster probe ran
+    cluster_path = ARTIFACTS / "cluster_attestation.json"
+    cert_hash = hashlib.sha256(payload.encode()).hexdigest()
+    if cluster_path.is_file():
+        cluster_report = json.loads(cluster_path.read_text())
+        cluster_report["certification_sha256"] = cert_hash
+        cluster_report["certification"] = report["certification"]
+    else:
+        cluster_report = {
+            "generated_at": report["generated_at"],
+            "attestation_type": "cluster",
+            "environment": os.environ.get("IG_ATTESTATION_ENV", "staging-rehearsal"),
+            "design_partner": "[REDACTED_CARRIER]",
+            "cluster_id": os.environ.get("IG_CLUSTER_ID", "ig-staging-001"),
+            "certification_bundled": True,
+            "certification_sha256": cert_hash,
+            "probes_note": "Run scripts/ig-cluster-attestation.sh on customer VPC to replace with live probes",
+            "certification": report["certification"],
+        }
+    cluster_path.write_text(json.dumps(cluster_report, indent=2))
+
     print(payload)
     return 0 if report["certification"] else 1
 

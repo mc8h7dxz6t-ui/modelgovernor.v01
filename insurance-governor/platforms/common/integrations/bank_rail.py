@@ -28,10 +28,10 @@ def dispatch_payment(instruction: PaymentInstruction) -> RailDispatchResult:
             rail=instruction.rail,
             status=PaymentStatus.COMPLETED,
         )
-    if mode == "fednow":
-        return _dispatch_fednow(instruction)
-    if mode in ("clearinghouse", "ach"):
-        return _dispatch_clearinghouse(instruction)
+    if mode in ("fednow", "fednow_sandbox"):
+        return _dispatch_fednow(instruction, sandbox=mode == "fednow_sandbox")
+    if mode in ("clearinghouse", "ach", "clearinghouse_sandbox"):
+        return _dispatch_clearinghouse(instruction, sandbox="sandbox" in mode)
     raise ValueError(f"unsupported PAYMENT_RAIL_MODE: {mode}")
 
 
@@ -43,10 +43,12 @@ def _auth_headers() -> dict[str, str]:
     return headers
 
 
-def _dispatch_fednow(instruction: PaymentInstruction) -> RailDispatchResult:
-    url = os.environ.get("FEDNOW_API_URL")
+def _dispatch_fednow(instruction: PaymentInstruction, *, sandbox: bool = False) -> RailDispatchResult:
+    url = os.environ.get("FEDNOW_SANDBOX_URL" if sandbox else "FEDNOW_API_URL")
+    if not url and sandbox:
+        url = os.environ.get("FEDNOW_API_URL")
     if not url:
-        raise RuntimeError("FEDNOW_API_URL required when PAYMENT_RAIL_MODE=fednow")
+        raise RuntimeError("FEDNOW_API_URL or FEDNOW_SANDBOX_URL required for fednow rail")
     body = {
         "paymentId": instruction.payment_id,
         "amount": str(instruction.amount),
@@ -60,15 +62,17 @@ def _dispatch_fednow(instruction: PaymentInstruction) -> RailDispatchResult:
         data = response.json()
     return RailDispatchResult(
         external_ref=str(data.get("transactionId", data.get("id", instruction.payment_id))),
-        rail="fednow",
+        rail="fednow_sandbox" if sandbox else "fednow",
         status=PaymentStatus.SUBMITTED if data.get("status") == "PENDING" else PaymentStatus.COMPLETED,
     )
 
 
-def _dispatch_clearinghouse(instruction: PaymentInstruction) -> RailDispatchResult:
-    url = os.environ.get("CLEARINGHOUSE_API_URL") or os.environ.get("ACH_API_URL")
+def _dispatch_clearinghouse(instruction: PaymentInstruction, *, sandbox: bool = False) -> RailDispatchResult:
+    url = os.environ.get("CLEARINGHOUSE_SANDBOX_URL" if sandbox else "CLEARINGHOUSE_API_URL") or os.environ.get("ACH_API_URL")
+    if not url and sandbox:
+        url = os.environ.get("CLEARINGHOUSE_API_URL")
     if not url:
-        raise RuntimeError("CLEARINGHOUSE_API_URL required when PAYMENT_RAIL_MODE=clearinghouse")
+        raise RuntimeError("CLEARINGHOUSE_API_URL required for clearinghouse rail")
     body = {
         "payment_id": instruction.payment_id,
         "amount": str(instruction.amount),
@@ -82,6 +86,6 @@ def _dispatch_clearinghouse(instruction: PaymentInstruction) -> RailDispatchResu
         data = response.json()
     return RailDispatchResult(
         external_ref=str(data.get("trace_id", data.get("confirmation", instruction.payment_id))),
-        rail="clearinghouse",
+        rail="clearinghouse_sandbox" if sandbox else "clearinghouse",
         status=PaymentStatus.COMPLETED,
     )

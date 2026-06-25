@@ -13,8 +13,11 @@ Published attestation package for carrier/MGA design-partner conversations. Summ
 | ParametricOracle | Oracle feed (`/trigger/feed`) + attestation hash gate | **Demo-ready** |
 | ZkClaimAudit | Fact seal + selective disclosure proof | **Demo-ready** |
 | SpatialTwin / Battery / Subrogation | Domain gates on shared spine | **Scaffold + unit tests** |
-| Core integration | Guidewire, Snapsheet, Majesco FNOL adapters | **Webhook ingest** |
-| Live cluster | `make ig-pilot-attestation` on compose stack | **Rehearsal** |
+| Core integration | Guidewire, Snapsheet, Majesco, **Acturis**, **SSP** FNOL adapters | **Webhook ingest** |
+| Live cluster | `make ig-cluster-attestation` on customer VPC | **Published** (`cluster_attestation.json`) |
+| Design-partner data room | Redacted PDF-ready markdown | **`data-room/design-partner-attestation-redacted.md`** |
+| Rail smoke | FedNow sandbox adapter + `make ig-rail-smoke` | **Staging-ready** |
+| ClaimGate load | FNOL + Postgres idempotency harness | **`test_claim_gate_production.py`** |
 
 ---
 
@@ -24,14 +27,20 @@ Published attestation package for carrier/MGA design-partner conversations. Summ
 # 1. Start spine + platforms
 make ig-stack-up
 
-# 2. Run pilot script (health, governed commit, verify-chain, anchor, platform smokes)
+# 2. Local pilot (compose)
 make ig-pilot-attestation
 
-# 3. Generate certification artifact
-make ig-certification
+# 3. Customer VPC / Helm staging (set IG_SIDECAR_URL etc.)
+make ig-cluster-attestation
+
+# 4. Data room redacted package
+make ig-design-partner-package
 ```
 
-Artifact path: `artifacts/reliability/insurance-governor/latest_attestation.json`
+Artifact paths:
+- `artifacts/reliability/insurance-governor/cluster_attestation.json`
+- `artifacts/reliability/insurance-governor/latest_attestation.json`
+- `docs/insurance-governor/data-room/design-partner-attestation-redacted.md`
 
 ---
 

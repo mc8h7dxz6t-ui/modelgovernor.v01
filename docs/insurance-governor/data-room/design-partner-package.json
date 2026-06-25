@@ -1,0 +1,10 @@
+{
+  "generated_at": "2026-06-25T13:33:57.577385+00:00",
+  "design_partner_redacted": "[REDACTED_CARRIER]",
+  "environment": "staging-rehearsal",
+  "attestation_sha256": null,
+  "certification_sha256": "88cadb8020aa81c17e0396c0b30c02666f154947fddea88287c9fa1d21e20dbe",
+  "data_room_markdown": "docs/insurance-governor/data-room/design-partner-attestation-redacted.md",
+  "probes_passed": null,
+  "probes_total": null
+}

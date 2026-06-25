@@ -1,4 +1,4 @@
-.PHONY: ig-spine-up ig-spine-down ig-stack-up ig-stack-down ig-spine-test ig-spine-smoke claim-gate-demo ig-demo ig-certification ig-load-test ig-chaos-test ig-ha-up ig-ha-down ig-pilot-attestation bind-authority-demo parametric-oracle-demo
+.PHONY: ig-spine-up ig-spine-down ig-stack-up ig-stack-down ig-spine-test ig-spine-smoke claim-gate-demo ig-demo ig-certification ig-load-test ig-chaos-test ig-ha-up ig-ha-down ig-pilot-attestation ig-cluster-attestation ig-rail-smoke ig-design-partner-package ig-claim-gate-load bind-authority-demo parametric-oracle-demo
 
 ig-spine-up:
 	docker compose -f docker-compose.spine.yml up -d --build
@@ -61,8 +61,22 @@ ig-ha-down:
 	docker compose -f docker-compose.ha.yml down
 
 ig-pilot-attestation:
-	chmod +x scripts/ig-pilot-attestation.sh
+	chmod +x scripts/ig-pilot-attestation.sh scripts/attestation_runner.py
 	cd .. && insurance-governor/scripts/ig-pilot-attestation.sh
+
+ig-cluster-attestation:
+	chmod +x scripts/ig-cluster-attestation.sh
+	cd .. && insurance-governor/scripts/ig-cluster-attestation.sh
+
+ig-rail-smoke:
+	chmod +x scripts/ig-rail-smoke.sh
+	cd .. && insurance-governor/scripts/ig-rail-smoke.sh
+
+ig-design-partner-package:
+	cd .. && python3 insurance-governor/scripts/generate_design_partner_attestation.py
+
+ig-claim-gate-load:
+	cd .. && python3 -m pytest insurance-governor/tests/load/test_claim_gate_production.py -q
 
 bind-authority-demo:
 	curl -sf http://localhost:8104/healthz

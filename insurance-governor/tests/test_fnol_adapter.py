@@ -64,3 +64,40 @@ def test_unsupported_vendor_raises():
         assert False, "expected ValueError"
     except ValueError as exc:
         assert "unsupported" in str(exc).lower()
+
+
+def test_acturis_uk_fnol():
+    fnol = normalize_fnol(
+        "acturis",
+        {
+            "notification": {
+                "claimReference": "ACT-UK-100",
+                "policyReference": "POL-MOTOR-UK-001",
+                "dateOfLoss": "2025-04-10",
+                "estimatedAmount": "6200.50",
+                "currencyCode": "GBP",
+                "notificationId": "act-evt-100",
+            }
+        },
+    )
+    assert fnol.vendor == "acturis"
+    assert fnol.currency == "GBP"
+    assert fnol.policy_number == "POL-MOTOR-UK-001"
+
+
+def test_ssp_uk_fnol():
+    fnol = normalize_fnol(
+        "ssp",
+        {
+            "claim": {
+                "claimNumber": "SSP-UK-200",
+                "policyNumber": "POL-MOTOR-UK-001",
+                "dateOfLoss": "2025-03-15",
+                "initialReserve": "3100",
+                "currency": "GBP",
+                "eventId": "ssp-evt-1",
+            }
+        },
+    )
+    assert fnol.vendor == "ssp"
+    assert fnol.claim_id == "SSP-UK-200"

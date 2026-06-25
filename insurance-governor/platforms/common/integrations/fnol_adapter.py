@@ -76,10 +76,46 @@ def from_majesco(payload: dict[str, Any]) -> NormalizedFnol:
     )
 
 
+def from_acturis(payload: dict[str, Any]) -> NormalizedFnol:
+    """Acturis (UK) claims notification webhook shape (simplified)."""
+    note = payload.get("notification", payload.get("claimNotification", payload))
+    return NormalizedFnol(
+        vendor="acturis",
+        claim_id=str(note.get("claimReference") or note.get("claimRef")),
+        policy_number=str(note.get("policyReference", "POL-MOTOR-UK-001")),
+        loss_date=_parse_date(str(note.get("dateOfLoss", note.get("lossDate", date.today().isoformat())))),
+        reported_amount=Decimal(str(note.get("estimatedAmount", note.get("reserveAmount", "0")))),
+        currency=str(note.get("currencyCode", "GBP")),
+        loss_type=str(note.get("perilType", "motor")),
+        claimant_id=str(note.get("policyholderId", "unknown")),
+        raw_vendor_id=str(note.get("notificationId", "")),
+        fraud_signals=list(note.get("fraudFlags", [])),
+    )
+
+
+def from_ssp(payload: dict[str, Any]) -> NormalizedFnol:
+    """SSP (UK) Open Claims / Pure cloud event shape (simplified)."""
+    event = payload.get("claim", payload.get("event", payload))
+    return NormalizedFnol(
+        vendor="ssp",
+        claim_id=str(event.get("claimNumber") or event.get("claimRef")),
+        policy_number=str(event.get("policyNumber", "POL-MOTOR-UK-001")),
+        loss_date=_parse_date(str(event.get("dateOfLoss", date.today().isoformat()))),
+        reported_amount=Decimal(str(event.get("initialReserve", event.get("amount", "0")))),
+        currency=str(event.get("currency", "GBP")),
+        loss_type=str(event.get("claimType", "motor")),
+        claimant_id=str(event.get("insuredPartyId", "unknown")),
+        raw_vendor_id=str(event.get("eventId", "")),
+        fraud_signals=list(event.get("referralFlags", [])),
+    )
+
+
 _ADAPTERS = {
     "guidewire": from_guidewire,
     "snapsheet": from_snapsheet,
     "majesco": from_majesco,
+    "acturis": from_acturis,
+    "ssp": from_ssp,
 }
 
 

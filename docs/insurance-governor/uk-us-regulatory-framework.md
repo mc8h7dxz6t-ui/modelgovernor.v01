@@ -68,8 +68,8 @@ Mesh rules are **jurisdiction-agnostic** — enforcement is on facet values, not
 | Guidewire ClaimCenter | US / UK | `fnol_adapter.from_guidewire` |
 | Snapsheet | US | `from_snapsheet` |
 | Majesco | US | `from_majesco` |
-
-UK expansion: Acturis, SSP, ICE InsureTech — adapter stubs follow same `NormalizedFnol` contract.
+| **Acturis** | UK | `from_acturis` |
+| **SSP (Open Claims / Pure)** | UK | `from_ssp` |
 
 ---
 

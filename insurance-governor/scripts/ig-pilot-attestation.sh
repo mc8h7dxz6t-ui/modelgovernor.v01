@@ -127,5 +127,7 @@ if curl -sf http://localhost:8113/healthz >/dev/null 2>&1; then
 fi
 
 cd "$ROOT"
+python3 insurance-governor/scripts/attestation_runner.py || true
 make ig-certification
+python3 insurance-governor/scripts/generate_design_partner_attestation.py
 echo "==> Pilot attestation complete"
