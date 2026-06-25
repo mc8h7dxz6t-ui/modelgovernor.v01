@@ -16,6 +16,10 @@ spec:
       labels:
         app.kubernetes.io/component: sidecar
         {{- include "fg.labels" . | nindent 8 }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics/prometheus"
+        prometheus.io/port: "8091"
     spec:
       serviceAccountName: {{ .Values.serviceAccount.name }}
       containers:

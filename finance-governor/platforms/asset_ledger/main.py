@@ -8,17 +8,24 @@ from decimal import Decimal
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-from .asset_registry import Asset, AssetRegistry
+from platforms.common.platform_observability import mount_platform_observability
+from platforms.common.platform_store import get_asset_store, reset_all_stores
+
+from .asset_registry import Asset
 from .depreciation_engine import compute_monthly_charge
 from .reg_table_sync import get_table
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="asset-ledger", version="0.1.0")
+app = FastAPI(title="asset-ledger", version="0.2.0")
+_store = get_asset_store()
 
-_registry = AssetRegistry()
-_events: list[dict] = []
-_charged_periods: set[tuple[str, str]] = set()
+mount_platform_observability(
+    app,
+    platform="asset_ledger",
+    ready_check=lambda: _store.ready(),
+    extra_health=lambda: {"assets": len(_store.list_assets())},
+)
 
 
 class AssetCreate(BaseModel):
@@ -35,38 +42,38 @@ class DepreciationRun(BaseModel):
     period: str
 
 
-@app.get("/healthz")
-def healthz() -> dict:
-    return {"status": "ok", "assets": len(_registry.list_all())}
-
-
 @app.post("/assets")
 def create_asset(body: AssetCreate) -> dict:
     cost = Decimal(body.acquisition_cost)
     book = Decimal(body.book_value) if body.book_value else cost
-    asset = Asset(
-        asset_id=body.asset_id,
-        description=body.description,
-        book_value=book,
-        acquisition_cost=cost,
-        method=body.method,
-        jurisdiction=body.jurisdiction,
-        useful_life_months=body.useful_life_months,
-    )
-    _registry.register(asset)
+    try:
+        _store.register_asset(
+            {
+                "asset_id": body.asset_id,
+                "description": body.description,
+                "acquisition_cost": str(cost),
+                "book_value": str(book),
+                "accumulated_depreciation": "0",
+                "method": body.method,
+                "jurisdiction": body.jurisdiction,
+                "useful_life_months": body.useful_life_months,
+            }
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {"asset_id": body.asset_id, "book_value": str(book)}
 
 
 @app.get("/assets/{asset_id}")
 def get_asset(asset_id: str) -> dict:
-    asset = _registry.get(asset_id)
+    asset = _store.get_asset(asset_id)
     if not asset:
         raise HTTPException(status_code=404, detail="asset not found")
     return {
-        "asset_id": asset.asset_id,
-        "book_value": str(asset.book_value),
-        "accumulated_depreciation": str(asset.accumulated_depreciation),
-        "jurisdiction": asset.jurisdiction,
+        "asset_id": asset["asset_id"],
+        "book_value": str(asset["book_value"]),
+        "accumulated_depreciation": str(asset["accumulated_depreciation"]),
+        "jurisdiction": asset["jurisdiction"],
     }
 
 
@@ -74,27 +81,40 @@ def get_asset(asset_id: str) -> dict:
 def run_depreciation(body: DepreciationRun) -> dict:
     table = get_table("US")
     results = []
-    for asset in _registry.list_all():
-        key = (asset.asset_id, body.period)
-        if key in _charged_periods:
-            continue
+    for row in _store.list_assets():
+        asset = Asset(
+            asset_id=row["asset_id"],
+            description=row["description"],
+            book_value=Decimal(str(row["book_value"])),
+            acquisition_cost=Decimal(str(row["acquisition_cost"])),
+            method=row["method"],
+            jurisdiction=row["jurisdiction"],
+            useful_life_months=int(row["useful_life_months"]),
+            accumulated_depreciation=Decimal(str(row["accumulated_depreciation"])),
+        )
         tbl = get_table(asset.jurisdiction)
         charge = compute_monthly_charge(asset, tbl)
         if charge <= 0:
             continue
-        row = _registry.apply_depreciation(asset.asset_id, charge, period=body.period)
-        _charged_periods.add(key)
-        row["reg_table_version"] = tbl.version
-        _events.append(row)
-        crystal_id = _crystallize_depreciation(asset.asset_id, body.period, row, tbl.version)
-        row["crystal_id"] = crystal_id
-        results.append(row)
+        crystal_id = None
+        charge_row = _store.apply_charge(
+            asset_id=asset.asset_id,
+            period=body.period,
+            charge=str(charge),
+            reg_table_version=tbl.version,
+            crystal_id=None,
+        )
+        if not charge_row:
+            continue
+        crystal_id = _crystallize_depreciation(asset.asset_id, body.period, charge_row, tbl.version)
+        charge_row["crystal_id"] = crystal_id
+        results.append(charge_row)
     return {"period": body.period, "charges": results, "reg_table_version": table.version}
 
 
 @app.get("/events")
 def list_events(limit: int = 20) -> list:
-    return list(reversed(_events[-limit:]))
+    return _store.list_events(limit)
 
 
 def _crystallize_depreciation(asset_id: str, period: str, row: dict, table_version: str) -> str | None:
@@ -120,3 +140,7 @@ def _crystallize_depreciation(asset_id: str, period: str, row: dict, table_versi
     except Exception as exc:
         logger.warning("spine crystallize failed: %s", exc)
         return None
+
+
+def reset_state() -> None:
+    reset_all_stores()

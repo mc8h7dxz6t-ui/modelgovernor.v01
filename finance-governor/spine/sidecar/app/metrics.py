@@ -1,5 +1,7 @@
+"""Finance Governor sidecar — invariant counters with Prometheus export."""
 from __future__ import annotations
 
+import json
 import threading
 from typing import Dict
 
@@ -25,7 +27,12 @@ _COUNTER_NAMES = (
     "decision_chain_anchor_s3_failed_total",
     "drift_enforced_total",
     "drift_tolerated_total",
+    "guardrail_degraded_total",
+    "provider_circuit_open_total",
+    "attribution_identity_mismatch_total",
 )
+
+_registered = False
 
 
 class InvariantCounters:
@@ -41,9 +48,38 @@ class InvariantCounters:
         with self._lock:
             return dict(self._counters)
 
+    def to_json(self) -> str:
+        return json.dumps(self.snapshot(), sort_keys=True)
+
+
+class InvariantCounterCollector:
+    def __init__(self, counters: InvariantCounters) -> None:
+        self._counters = counters
+
+    def collect(self):
+        from prometheus_client.core import CounterMetricFamily
+
+        metric = CounterMetricFamily(
+            "fg_invariant_events_total",
+            "Finance Governor spine invariant counters.",
+            labels=["event"],
+        )
+        for name, value in self._counters.snapshot().items():
+            metric.add_metric([name], float(value))
+        yield metric
+
 
 _counters = InvariantCounters()
 
 
 def get_counters() -> InvariantCounters:
+    global _registered
+    if not _registered:
+        try:
+            from prometheus_client import REGISTRY
+
+            REGISTRY.register(InvariantCounterCollector(_counters))
+            _registered = True
+        except (ImportError, ValueError):
+            pass
     return _counters

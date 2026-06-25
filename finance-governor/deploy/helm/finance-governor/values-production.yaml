@@ -52,3 +52,10 @@ governanceCanary:
 
 prometheusRules:
   enabled: true
+
+podDisruptionBudget:
+  enabled: true
+  sidecar:
+    minAvailable: 2
+  gateway:
+    minAvailable: 1

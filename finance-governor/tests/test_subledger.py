@@ -8,15 +8,14 @@ from fastapi.testclient import TestClient
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from platforms.subledger_sync.main import app, _matched, _pending, _reporter
+from platforms.subledger_sync.main import app, reset_state
 
 
 @pytest.fixture(autouse=True)
-def reset_state():
-    _pending.clear()
-    _matched.clear()
-    _reporter._items.clear()
+def reset_state_fixture():
+    reset_state()
     yield
+    reset_state()
 
 
 @pytest.fixture()
