@@ -1,0 +1,10 @@
+name: spatial_twin
+display_name: SpatialTwin
+default_policy_id: spatial-property-us
+default_risk_tier: high
+port: 8107
+required_facet_keys:
+  - claim_id
+  - point_cloud_hash
+commit_decisions:
+  - APPROVED

@@ -1,11 +1,15 @@
 .PHONY: demo-up demo-down demo-reset demo-smoke demo-drift-lock demo-status demo-ledger demo-events \
 	demo-gold-up demo-gold demo-gold-reliability demo-gold-down demo-gold-reset demo-gold-diagnose \
-	demo-all-platforms demo-all-platforms-live demo-all-platforms-manifests demo-all-platforms-proof \
+	demo-all demo-all-platforms demo-all-platforms-live demo-all-platforms-manifests demo-all-platforms-proof \
 	demo-prereqs demo-prereqs-install proof-test load-test \
 	fg-spine-up fg-stack-up fg-spine-down fg-stack-down fg-spine-test fg-spine-smoke \
 	crystal-demo algofreeze-demo wirematch-demo fg-certification \
 	fg-demo-up fg-demo-down fg-demo-gold fg-integration-test fg-load-smoke \
-	fg-prod-setup fg-aws-anchor-bucket fg-helm-template fg-helm-install
+	fg-prod-setup fg-aws-anchor-bucket fg-helm-template fg-helm-install fg-examiner-evidence \
+	ig-spine-up ig-stack-up ig-spine-down ig-stack-down ig-spine-test ig-spine-smoke \
+	claim-gate-demo ig-demo ig-certification ig-load-test ig-ha-up ig-pilot-attestation \
+	ig-cluster-attestation ig-rail-smoke ig-design-partner-package ig-claim-gate-load \
+	ig-full-rehearsal ig-embedded-rehearsal
 
 demo-prereqs:
 	./scripts/install-demo-prereqs.sh --check-only
@@ -30,6 +34,9 @@ demo-gold-reset:
 
 demo-gold-diagnose:
 	./scripts/demo-gold-diagnose.sh
+
+demo-all:
+	./scripts/demo-all.sh
 
 demo-up:
 	./scripts/demo-up.sh
@@ -118,3 +125,73 @@ fg-helm-template:
 
 fg-helm-install:
 	$(MAKE) -C finance-governor fg-helm-install
+
+fg-examiner-evidence:
+	$(MAKE) -C finance-governor fg-examiner-evidence
+
+# Insurance Governor spine (sibling to ModelGovernor / Finance Governor)
+ig-spine-up:
+	$(MAKE) -C insurance-governor ig-spine-up
+
+ig-stack-up:
+	$(MAKE) -C insurance-governor ig-stack-up
+
+ig-spine-down:
+	$(MAKE) -C insurance-governor ig-spine-down
+
+ig-stack-down:
+	$(MAKE) -C insurance-governor ig-stack-down
+
+ig-spine-test:
+	$(MAKE) -C insurance-governor ig-spine-test
+
+ig-spine-smoke:
+	$(MAKE) -C insurance-governor ig-spine-smoke
+
+claim-gate-demo:
+	$(MAKE) -C insurance-governor claim-gate-demo
+
+ig-demo:
+	$(MAKE) -C insurance-governor ig-demo
+
+ig-certification:
+	$(MAKE) -C insurance-governor ig-certification
+
+ig-load-test:
+	$(MAKE) -C insurance-governor ig-load-test
+
+ig-ha-up:
+	$(MAKE) -C insurance-governor ig-ha-up
+
+ig-pilot-attestation:
+	$(MAKE) -C insurance-governor ig-pilot-attestation
+
+ig-cluster-attestation:
+	$(MAKE) -C insurance-governor ig-cluster-attestation
+
+ig-rail-smoke:
+	$(MAKE) -C insurance-governor ig-rail-smoke
+
+ig-design-partner-package:
+	$(MAKE) -C insurance-governor ig-design-partner-package
+
+ig-claim-gate-load:
+	$(MAKE) -C insurance-governor ig-claim-gate-load
+
+ig-full-rehearsal:
+	$(MAKE) -C insurance-governor ig-full-rehearsal
+
+ig-embedded-rehearsal:
+	$(MAKE) -C insurance-governor ig-embedded-rehearsal
+
+demo-all-platforms:
+	./scripts/demo-all-platforms.sh
+
+demo-all-platforms-live:
+	./scripts/demo-all-platforms.sh --live-only
+
+demo-all-platforms-manifests:
+	./scripts/demo-all-platforms.sh --manifests-only
+
+demo-all-platforms-proof:
+	./scripts/demo-all-platforms.sh --with-proof

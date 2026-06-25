@@ -2,7 +2,7 @@
 # Institutional++ reliability & robustness steps (sourced by demo-gold.sh).
 set -euo pipefail
 
-step "7/11  Idempotency — safe replay without double-spend"
+step "7/12  Idempotency — safe replay without double-spend"
 IDEM_KEY="gold-idem-$(date +%s)"
 IDEM_TRACE="trace-idem"
 curl -fsS -X POST "http://localhost:8081/reserve" \
@@ -20,7 +20,7 @@ curl -fsS "http://localhost:8081/metrics" -H "x-internal-token: $TOKEN" \
   | grep -E "reserve_idempotent_replay_total" | head -3 || true
 echo "  Sales point: append-only ledger + idempotent lifecycle — retries never double-charge"
 
-step "8/11  Provider circuit breaker — storm protection"
+step "8/12  Provider circuit breaker — storm protection"
 clear_provider_circuit "gpt-4o-mini"
 open_provider_circuit "gpt-4o-mini"
 CB_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "http://localhost:8081/reserve" \
@@ -32,7 +32,7 @@ curl -fsS "http://localhost:8081/metrics" -H "x-internal-token: $TOKEN" \
 clear_provider_circuit "gpt-4o-mini"
 echo "  Sales point: per-provider circuit breaker + local fallback when Redis degrades"
 
-step "9/11  Redis guardrail degradation — bounded local fallback"
+step "9/12  Redis guardrail degradation — bounded local fallback"
 ensure_redis_up
 compose stop redis >/dev/null 2>&1
 sleep 2
@@ -49,7 +49,7 @@ curl -fsS "http://localhost:8081/metrics" -H "x-internal-token: $TOKEN" \
 ensure_redis_up
 echo "  Sales point: symmetric degradation — guardrails + circuit breakers never bypass Postgres truth"
 
-step "10/11  Drift enforcement — over-settle locks wallet deterministically"
+step "10/12  Drift enforcement — over-settle locks wallet deterministically"
 DRIFT_KEY="gold-drift-$(date +%s)"
 DRIFT_PROVIDER="provider-$DRIFT_KEY"
 curl -fsS -X POST "http://localhost:8081/reserve" \
@@ -68,7 +68,7 @@ curl -fsS "http://localhost:8081/metrics" -H "x-internal-token: $TOKEN" \
   | grep -E "drift_enforced_total" | head -3 || true
 echo "  Sales point: micro-cent drift tolerance — breach auto-locks wallet, no silent overspend"
 
-step "11/11  Reconciler leadership + privileged admin audit + ledger trail"
+step "11/12  Reconciler leadership + privileged admin audit + ledger trail"
 RECON=$(curl -fsS "http://localhost:8082/readyz")
 echo "$RECON" | python3 -m json.tool 2>/dev/null || echo "$RECON"
 echo ""

@@ -1,0 +1,423 @@
+# Default values — use values-production.yaml or values-staging.yaml for overlays.
+
+global:
+  namespace: insurancegovernor
+  labels:
+    app.kubernetes.io/part-of: insurancegovernor
+    app.kubernetes.io/managed-by: helm
+
+nameOverride: ""
+fullnameOverride: ""
+
+images:
+  sidecar:
+    repository: insurancegovernor/sidecar
+    tag: latest
+    pullPolicy: IfNotPresent
+  reconciler:
+    repository: insurancegovernor/reconciler
+    tag: latest
+    pullPolicy: IfNotPresent
+  gateway:
+    repository: insurancegovernor/gateway
+    tag: latest
+    pullPolicy: IfNotPresent
+  claimGate:
+    repository: insurancegovernor/claim-gate
+    tag: latest
+    pullPolicy: IfNotPresent
+  bindAuthority:
+    repository: insurancegovernor/bind-authority
+    tag: latest
+    pullPolicy: IfNotPresent
+  parametricOracle:
+    repository: insurancegovernor/parametric-oracle
+    tag: latest
+    pullPolicy: IfNotPresent
+  zkClaimAudit:
+    repository: insurancegovernor/zk-claim-audit
+    tag: latest
+    pullPolicy: IfNotPresent
+  spatialTwin:
+    repository: insurancegovernor/spatial-twin
+    tag: latest
+    pullPolicy: IfNotPresent
+  batteryLiability:
+    repository: insurancegovernor/battery-liability
+    tag: latest
+    pullPolicy: IfNotPresent
+  subrogationGraph:
+    repository: insurancegovernor/subrogation-graph
+    tag: latest
+    pullPolicy: IfNotPresent
+  indemnityPayGate:
+    repository: insurancegovernor/indemnity-pay-gate
+    tag: latest
+    pullPolicy: IfNotPresent
+  modelRiskFreeze:
+    repository: insurancegovernor/model-risk-freeze
+    tag: latest
+    pullPolicy: IfNotPresent
+  underwritingGovern:
+    repository: insurancegovernor/underwriting-govern
+    tag: latest
+    pullPolicy: IfNotPresent
+  reserveReconcile:
+    repository: insurancegovernor/reserve-reconcile
+    tag: latest
+    pullPolicy: IfNotPresent
+  postgres:
+    repository: postgres
+    tag: "16"
+    pullPolicy: IfNotPresent
+  redis:
+    repository: redis
+    tag: 7-alpine
+    pullPolicy: IfNotPresent
+  pgbouncer:
+    repository: edoburu/pgbouncer
+    tag: 1.22.1-p0
+    pullPolicy: IfNotPresent
+  otelCollector:
+    repository: otel/opentelemetry-collector
+    tag: "0.103.0"
+    pullPolicy: IfNotPresent
+  migrate:
+    repository: python
+    tag: 3.12-slim
+    pullPolicy: IfNotPresent
+
+secrets:
+  # Set true only for local/dev; production should use externalSecrets.
+  create: false
+  name: insurancegovernor-secrets
+  databaseUrl: postgresql+psycopg://postgres:CHANGE_ME@pgbouncer:6432/insurancegovernor
+  databaseUrlDirect: postgresql+psycopg://postgres:CHANGE_ME@postgres:5432/insurancegovernor
+  postgresPassword: CHANGE_ME
+  redisUrl: redis://redis:6379/0
+  sidecarInternalTokens: CHANGE_ME
+  claimAnchorS3Bucket: ""
+
+externalSecrets:
+  enabled: false
+  secretStoreRef:
+    name: cluster-secret-store
+    kind: ClusterSecretStore
+  remoteRefs:
+    databaseUrl: insurancegovernor/database-url
+    databaseUrlDirect: insurancegovernor/database-url-direct
+    redisUrl: insurancegovernor/redis-url
+    sidecarInternalTokens: insurancegovernor/sidecar-internal-tokens
+    postgresPassword: insurancegovernor/postgres-password
+    openaiApiKey: insurancegovernor/openai-api-key
+    anthropicApiKey: insurancegovernor/anthropic-api-key
+    pgbouncerUserlist: insurancegovernor/pgbouncer-userlist
+    oidcIssuerUrl: insurancegovernor/oidc-issuer-url
+    oidcAudience: insurancegovernor/oidc-audience
+    claimAnchorS3Bucket: insurancegovernor/claim-anchor-s3-bucket
+
+postgres:
+  enabled: true
+  replicas: 1
+  database: insurancegovernor
+  user: postgres
+  storage:
+    emptyDir: true
+
+pgbouncer:
+  enabled: true
+  replicas: 2
+  poolMode: transaction
+  maxClientConn: 500
+  defaultPoolSize: 20
+
+redis:
+  enabled: true
+  replicas: 1
+  sentinel:
+    enabled: false
+    masterName: mymaster
+    replicas: 3
+
+sidecar:
+  replicas: 3
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilization: 70
+  pdb:
+    enabled: true
+    minAvailable: 2
+  otel:
+    endpoint: http://otel-collector:4318
+    serviceName: insurancegovernor-sidecar
+
+gateway:
+  enabled: true
+  replicas: 2
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+
+# Plug-and-play platform workloads — add entry + image to deploy any platform
+platforms:
+  claim_gate:
+    enabled: true
+    name: claim_gate
+    imageKey: claimGate
+    port: 8103
+    replicas: 2
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+  bind_authority:
+    enabled: true
+    name: bind_authority
+    imageKey: bindAuthority
+    port: 8104
+    replicas: 2
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+  parametric_oracle:
+    enabled: true
+    name: parametric_oracle
+    imageKey: parametricOracle
+    port: 8105
+    replicas: 2
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+  zk_claim_audit:
+    enabled: true
+    name: zk_claim_audit
+    imageKey: zkClaimAudit
+    port: 8106
+    replicas: 2
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+  spatial_twin:
+    enabled: true
+    name: spatial_twin
+    imageKey: spatialTwin
+    port: 8107
+    replicas: 2
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+  battery_liability:
+    enabled: true
+    name: battery_liability
+    imageKey: batteryLiability
+    port: 8108
+    replicas: 2
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+  subrogation_graph:
+    enabled: true
+    name: subrogation_graph
+    imageKey: subrogationGraph
+    port: 8109
+    replicas: 2
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+  indemnity_pay_gate:
+    enabled: true
+    name: indemnity_pay_gate
+    imageKey: indemnityPayGate
+    port: 8110
+    replicas: 2
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+  model_risk_freeze:
+    enabled: true
+    name: model_risk_freeze
+    imageKey: modelRiskFreeze
+    port: 8111
+    replicas: 2
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+  underwriting_govern:
+    enabled: true
+    name: underwriting_govern
+    imageKey: underwritingGovern
+    port: 8112
+    replicas: 2
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+  reserve_reconcile:
+    enabled: true
+    name: reserve_reconcile
+    imageKey: reserveReconcile
+    port: 8113
+    replicas: 2
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+
+reconciler:
+  enabled: true
+  replicas: 2
+  sweepIntervalSeconds: 30
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+migrations:
+  enabled: true
+  argocd:
+    preSyncHook: true
+
+otelCollector:
+  enabled: true
+
+monitoring:
+  prometheusRules:
+    enabled: true
+  grafanaDashboard:
+    enabled: true
+  sidecarPodMonitor:
+    enabled: true
+  reconcilerPodMonitor:
+    enabled: true
+
+syntheticProbe:
+  enabled: true
+  schedule: "*/5 * * * *"
+
+ledgerChainVerify:
+  enabled: true
+  schedule: "0 * * * *"
+
+ledgerChainAnchor:
+  enabled: true
+  schedule: "15 * * * *"
+
+governanceCanary:
+  enabled: true
+  schedule: "*/10 * * * *"
+
+networkPolicy:
+  enabled: true
+
+config:
+  commitTtlSeconds: "300"
+  driftAbsoluteTolerance: "0.500000"
+  driftRatioTolerance: "0.050000"
+  dbPoolSize: "3"
+  dbMaxOverflow: "2"
+  dbPoolTimeoutSeconds: "5"
+  dbPoolRecycleSeconds: "900"
+  guardrailsEnabled: "true"
+  rateLimitPerMinute: "120"
+  maxClaimDepth: "50"
+  maxAccountInflight: "10"
+  circuitBreakerEnabled: "true"
+  circuitBreakerFailureThreshold: "5"
+  circuitBreakerWindowSeconds: "60"
+  circuitBreakerOpenSeconds: "30"
+  fallbackGlobalTokensPerSecond: "20"
+  fallbackTokenBucketCapacity: "40"
+  fallbackRateLimitPerMinute: "60"
+  fallbackMaxClaimDepth: "50"
+  fallbackMaxAccountInflight: "5"
+  oidcEnabled: "false"
+  oidcAllowInternalTokenFallback: "true"
+  oidcViewerRoles: "viewer,insurancegovernor-viewer"
+  oidcClaimsAdminRoles: "claims-admin,insurancegovernor-claims-admin"
+  oidcIssuerUrl: ""
+  oidcAudience: ""
+  claimAnchorS3Prefix: "claim-anchors"
+  claimAnchorS3ObjectLockEnabled: "false"
+  claimAnchorS3ObjectLockMode: "GOVERNANCE"
+  claimAnchorS3RetentionDays: "3650"
+  claimAnchorS3Region: ""
+  platformRegistryEnforce: "true"
+
+# Live integrations — set in values-production.yaml for enterprise
+integrations:
+  paymentRailMode: stub          # stub | fednow | clearinghouse
+  oracleFeedMode: mock           # mock | live
+  oracleFeedSource: usgs-feed
+  fednowApiUrl: ""
+  clearinghouseApiUrl: ""
+  oracleFeedUrl: ""
+
+enterprise:
+  istio:
+    enabled: false
+    mtlsMode: STRICT
+    egress:
+      bankRails:
+        - api.fednowgateway.frb.org
+        - api.tchclearing.example.com
+      oracleFeeds:
+        - earthquake.usgs.gov
+        - api.chain.link
+        - api.weather.gov

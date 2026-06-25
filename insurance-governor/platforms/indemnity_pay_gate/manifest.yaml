@@ -1,0 +1,10 @@
+name: indemnity_pay_gate
+display_name: IndemnityPayGate
+default_policy_id: crime-indemnity-us
+default_risk_tier: critical
+port: 8110
+required_facet_keys:
+  - payment_id
+  - indemnity_decision
+commit_decisions:
+  - APPROVED

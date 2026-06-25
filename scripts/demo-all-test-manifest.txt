@@ -1,0 +1,5 @@
+# ModelGovernor make demo-all — structural certification test manifest
+# Target: 134 tests passed (94 core + 40 structural loop contracts)
+tests/
+tests/programs/
+tests/structural/

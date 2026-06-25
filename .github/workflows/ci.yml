@@ -261,3 +261,233 @@ jobs:
           docker build -f sidecar/Dockerfile -t modelgovernor/sidecar:ci .
           docker build -f reconciler/Dockerfile -t modelgovernor/reconciler:ci .
           docker build -f gateway/Dockerfile -t modelgovernor/gateway:ci .
+
+  ig-test-tier1:
+    name: IG Tier 1 — SQLite spine tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install IG sidecar dependencies
+        run: pip install -r insurance-governor/spine/sidecar/requirements.txt pytest httpx
+      - name: Tier 1 insurance governor tests
+        run: pip install pyyaml && make ig-spine-test
+
+  ig-test-tier2:
+    name: IG Tier 2 — Postgres vigorous
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: ig_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install -r insurance-governor/spine/sidecar/requirements.txt
+          pip install -r insurance-governor/spine/reconciler/requirements.txt
+          pip install pytest
+      - name: Apply IG migrations
+        env:
+          PGPASSWORD: postgres
+        run: |
+          for f in insurance-governor/migrations/*.sql; do
+            psql -h localhost -U postgres -d ig_test -f "$f"
+          done
+      - name: Tier 2 Postgres tests
+        env:
+          POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5432/ig_test
+        run: |
+          PYTHONPATH=insurance-governor/spine/sidecar pytest \
+            insurance-governor/tests/test_postgres_vigorous.py \
+            insurance-governor/tests/test_postgres_reliability.py \
+            insurance-governor/tests/test_migration_invariants.py \
+            insurance-governor/tests/test_reconciler_leader_election.py \
+            -q
+
+  ig-validate-migrations:
+    name: IG migration invariant definitions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify IG migration bundle
+        run: PYTHONPATH=insurance-governor/spine/sidecar pytest insurance-governor/tests/test_migration_invariants.py -q
+
+  ig-test-tier3:
+    name: IG Tier 3 — Load harness
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r insurance-governor/spine/sidecar/requirements.txt pytest
+      - name: Load harness
+        env:
+          LOAD_WORKERS: 8
+          LOAD_OPS_PER_WORKER: 5
+        run: make ig-load-test
+
+      - name: Validate zero invariant violations in load report
+        run: |
+          python3 - <<'EOF'
+          import json
+          from pathlib import Path
+          reports = sorted(Path("insurance-governor/tests/load/load/reports").glob("crystallize_commit_*.json"))
+          if not reports:
+              raise SystemExit("No IG load report artifact generated")
+          report = json.loads(reports[-1].read_text())
+          violations = int(report.get("invariant_violations", 0))
+          if violations:
+              raise SystemExit(f"invariant_violations={violations}")
+          print(f"Validated: {reports[-1]}")
+          EOF
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ig-load-harness-report
+          path: insurance-governor/tests/load/load/reports/crystallize_commit_*.json
+          if-no-files-found: error
+
+  ig-validate-helm:
+    name: IG Helm chart lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - name: Helm lint insurancegovernor
+        run: helm lint deploy/helm/insurancegovernor -f deploy/helm/insurancegovernor/values-production.yaml
+      - name: Helm template production values
+        run: |
+          helm template insurancegovernor deploy/helm/insurancegovernor \
+            -f deploy/helm/insurancegovernor/values-production.yaml \
+            --namespace insurancegovernor > /tmp/ig-helm-production.yaml
+          wc -l /tmp/ig-helm-production.yaml
+
+  ig-build-images:
+    name: IG container image build gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build IG spine images
+        run: |
+          docker build -f insurance-governor/spine/sidecar/Dockerfile -t insurancegovernor/sidecar:ci .
+          docker build -f insurance-governor/spine/reconciler/Dockerfile -t insurancegovernor/reconciler:ci .
+          docker build -f insurance-governor/spine/gateway/Dockerfile -t insurancegovernor/gateway:ci .
+          docker build -f insurance-governor/platforms/claim_gate/Dockerfile -t insurancegovernor/claim-gate:ci .
+          docker build -f insurance-governor/platforms/bind_authority/Dockerfile -t insurancegovernor/bind-authority:ci .
+          docker build -f insurance-governor/platforms/parametric_oracle/Dockerfile -t insurancegovernor/parametric-oracle:ci .
+          docker build -f insurance-governor/platforms/zk_claim_audit/Dockerfile -t insurancegovernor/zk-claim-audit:ci .
+          docker build -f insurance-governor/platforms/spatial_twin/Dockerfile -t insurancegovernor/spatial-twin:ci .
+          docker build -f insurance-governor/platforms/battery_liability/Dockerfile -t insurancegovernor/battery-liability:ci .
+          docker build -f insurance-governor/platforms/subrogation_graph/Dockerfile -t insurancegovernor/subrogation-graph:ci .
+          docker build -f insurance-governor/platforms/indemnity_pay_gate/Dockerfile -t insurancegovernor/indemnity-pay-gate:ci .
+          docker build -f insurance-governor/platforms/model_risk_freeze/Dockerfile -t insurancegovernor/model-risk-freeze:ci .
+          docker build -f insurance-governor/platforms/underwriting_govern/Dockerfile -t insurancegovernor/underwriting-govern:ci .
+          docker build -f insurance-governor/platforms/reserve_reconcile/Dockerfile -t insurancegovernor/reserve-reconcile:ci .
+
+  ig-test-tier4-chaos:
+    name: IG Tier 4 — Toxiproxy chaos (claim ops)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r insurance-governor/spine/sidecar/requirements.txt
+          pip install pytest requests
+
+      - name: Start IG toxiproxy chaos stack
+        run: |
+          docker compose -f insurance-governor/docker-compose.chaos.yml up -d --wait ig-postgres-chaos toxiproxy
+          docker compose -f insurance-governor/docker-compose.chaos.yml run --rm toxiproxy-config
+
+      - name: Tier 4 toxiproxy claim ops tests
+        env:
+          POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5436/ig_chaos
+          TOXIPROXY_API: http://localhost:8475
+        run: PYTHONPATH=insurance-governor/spine/sidecar pytest insurance-governor/tests/chaos/test_toxiproxy_claim_ops.py -q
+
+      - name: Tear down chaos stack
+        if: always()
+        run: docker compose -f insurance-governor/docker-compose.chaos.yml down -v
+
+  ig-enterprise-rehearsal-gate:
+    name: IG Enterprise — rehearsal gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install -r insurance-governor/spine/sidecar/requirements.txt
+          pip install -r insurance-governor/platforms/requirements.txt
+          pip install pytest httpx
+      - name: Migration invariants (0009 bundle)
+        run: PYTHONPATH=insurance-governor/spine/sidecar pytest insurance-governor/tests/test_migration_invariants.py -q
+      - name: FNOL + write-back unit tests
+        env:
+          PYTHONPATH: insurance-governor
+        run: |
+          pytest insurance-governor/tests/test_fnol_adapter.py \
+            insurance-governor/tests/test_fnol_writeback.py \
+            insurance-governor/tests/test_bank_rail_sandbox.py -q
+      - name: Data room publish script rejects stub attestation
+        run: |
+          mkdir -p artifacts/reliability/insurance-governor
+          echo '{"probes_note":"stub","certification":true}' > artifacts/reliability/insurance-governor/cluster_attestation.json
+          if python3 insurance-governor/scripts/publish_data_room.py; then
+            echo "expected publish to fail on stub attestation"
+            exit 1
+          fi
+      - name: Data room publish script accepts live-shaped attestation
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          probes = [{"name": f"p{i}", "status": "pass"} for i in range(8)]
+          data = {
+            "generated_at": "2026-01-01T00:00:00+00:00",
+            "attestation_type": "cluster",
+            "environment": "ci-mock",
+            "probes_total": 8,
+            "probes_passed": 8,
+            "artifact_sha256": "b" * 64,
+            "probes": probes,
+            "certification": True,
+          }
+          root = Path("artifacts/reliability/insurance-governor")
+          root.mkdir(parents=True, exist_ok=True)
+          (root / "cluster_attestation.json").write_text(json.dumps(data, indent=2))
+          (root / "latest_attestation.json").write_text('{"tier":"L4","valid":true}')
+          PY
+          python3 insurance-governor/scripts/publish_data_room.py
+          test -f docs/insurance-governor/data-room/published/manifest.json
+          python3 -c "import json; m=json.load(open('docs/insurance-governor/data-room/published/manifest.json')); assert m.get('probes_passed')==8"
