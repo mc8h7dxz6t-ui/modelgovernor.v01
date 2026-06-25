@@ -34,4 +34,11 @@ def test_wirematch_evaluate_postgres(postgres_engine, monkeypatch):
         },
     )
     assert r.status_code == 200
-    assert r.json()["operation_id"] == "pg-wire-2"
+    body = r.json()
+    assert body["wire_id"] == "pg-wire-2"
+    assert body["decision"] in ("APPROVED", "HELD")
+
+    from platforms.common.platform_store import list_platform_events
+
+    events = list_platform_events("wire_match", limit=5)
+    assert any(e["operation_id"] == "pg-wire-2" for e in events)
