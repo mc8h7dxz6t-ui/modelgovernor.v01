@@ -36,16 +36,44 @@ Production topology for carriers and MGAs selling **loss control**, not workflow
   ClaimGate (8103)                          ZkClaimAudit (8106)
   BindAuthority (8104)                      SpatialTwin (8107)
   ParametricOracle (8105)                   BatteryLiability (8108)
-                                            SubrogationGraph (8109)
+  ModelRiskFreeze (8111)                    SubrogationGraph (8109)
+  IndemnityPayGate (8110)                   UnderwritingGovern (8112)
+                                            ReserveReconcile (8113)
 ```
+
+---
+
+## The moat: Warranty Enforcement Engine
+
+Cross-platform mesh rules block commits when policy warranties are breached at runtime.
+
+| Parent | Blocks | Line |
+|--------|--------|------|
+| ModelRiskFreeze `FROZEN` | ClaimGate, IndemnityPayGate | E&O / Cyber |
+| ClaimGate `REFERRED` | IndemnityPayGate | Crime / SIU |
+| UnderwritingGovern `VIOLATION` | BindAuthority | D&O |
+| ReserveReconcile `DRIFT` | ClaimGate, IndemnityPayGate | Solvency |
+
+See [warranty-enforcement-engine.md](../insurance-governor/warranty-enforcement-engine.md).
 
 ---
 
 ## Domain wedges (product depth)
 
+### Loss-control wedges (lead with these in financial lines)
+
+| Wedge | Port | Finance analogue | Insurer hook |
+|-------|------|------------------|--------------|
+| **ModelRiskFreeze** | 8111 | AlgoFreeze | E&O / Cyber catastrophe prevention |
+| **IndemnityPayGate** | 8110 | WireMatch | Crime deductible reduction |
+| **UnderwritingGovern** | 8112 | CreditGovern | D&O / Consumer Duty compliance |
+| **ReserveReconcile** | 8113 | SubledgerSync | Chief Actuary reserve confidence |
+
+### Claims & specialty wedges
+
 | Wedge | Port | Capability | Buyer hook |
 |---|---|---|---|
-| **ClaimGate** | 8103 | Policy rules, deductibles, SIU referral, ACH payment-rail stub, FNOL ingest | "Governed payout before money moves" |
+| **ClaimGate** | 8103 | Policy rules, deductibles, SIU referral, ACH payment-rail stub, FNOL ingest | Indemnity frequency & severity |
 | **BindAuthority** | 8104 | Premium/limit bind gate | Underwriting modernization |
 | **ParametricOracle** | 8105 | Oracle attestation + `/trigger/feed` (HTTP/Chainlink-style) | Cat/parametric triggers |
 | **ZkClaimAudit** | 8106 | SHA-256 fact commitments + selective disclosure proofs | Examiner-grade audit story |
