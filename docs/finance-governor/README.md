@@ -36,6 +36,8 @@ Financial institutions lose millions annually to preventable failures — human 
 
 | Document | Purpose |
 |----------|---------|
+| [desirability.md](desirability.md) | **Why buyers want it** — ROI, personas, GTM, bundle ACV |
+| [institutional-gold-standard.md](institutional-gold-standard.md) | **Industry++ reliability** — SLOs, invariants, testing, regulatory mapping |
 | [platform-model.md](platform-model.md) | Standalone vs spine-connected deployment |
 | [code-driven-fixes.md](code-driven-fixes.md) | Four deep-dive problems + code fixes |
 | [market-gaps.md](market-gaps.md) | Underserved finance domains and wedge products |
@@ -45,6 +47,7 @@ Financial institutions lose millions annually to preventable failures — human 
 | [roadmap.md](roadmap.md) | Phased build plan and success criteria |
 | [capability-matrix.md](capability-matrix.md) | Institutional++ checklist for RFPs |
 | [spine-port-map.md](spine-port-map.md) | ModelGovernor → Finance Governor file ports |
+| [quality-bar.md](quality-bar.md) | Merge gate and platform checklist |
 
 ## Relationship to ModelGovernor
 

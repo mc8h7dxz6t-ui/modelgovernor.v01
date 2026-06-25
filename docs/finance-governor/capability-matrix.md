@@ -2,6 +2,17 @@
 
 Use in RFPs, model risk questionnaires, and regulatory diligence. Status reflects **target** at Phase 3 unless noted.
 
+**Deep dives:** [desirability](desirability.md) · [institutional gold standard](institutional-gold-standard.md)
+
+## Certification levels
+
+| Level | Requirements |
+|-------|--------------|
+| **L1 Platform Ready** | Standalone demo + Tier 1–2 tests |
+| **L2 Institutional** | + diagnostic mode, invariants, metrics |
+| **L3 Institutional++** | + hash chain, SLO alerts, load tests |
+| **L4 Gold** | + chaos harness, K8s HA, S3 anchor, OIDC |
+
 | Capability | Status | Phase 1 Demo | Phase 3 Production |
 |------------|--------|--------------|-------------------|
 | Reserve-before-inference governance | 🎯 | `make fg-demo-gold` | Gateway + sidecar |
@@ -49,6 +60,19 @@ Legend: 🎯 Phase 1 target | 📋 Planned phase
 | **Transparency** | Hash chain, verify API, explanation binding, external anchor, lineage |
 
 ---
+
+## Pre-revenue valuation framing
+
+Finance Governor inherits ModelGovernor's **proven institutional++ engineering** and applies it to **larger TAM** (all of regulated finance vs LLM spend only).
+
+| Asset | Pre-revenue worth driver |
+|-------|--------------------------|
+| ModelGovernor spine (ported) | $900K–$1.6M replacement cost (proven) |
+| Five platform specs + domain schema | $400K–$800K |
+| Demo-ready standalone paths (when built) | $300K–$600K each at maturity |
+| **Finance Governor bundle (design + spine IP)** | **$5M–$10M** fair value at full scaffold |
+
+See [desirability.md](desirability.md) for buyer ROI and bundle ACV targets.
 
 ## Competitive positioning
 
