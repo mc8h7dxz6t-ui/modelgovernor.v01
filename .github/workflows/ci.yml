@@ -261,3 +261,117 @@ jobs:
           docker build -f sidecar/Dockerfile -t modelgovernor/sidecar:ci .
           docker build -f reconciler/Dockerfile -t modelgovernor/reconciler:ci .
           docker build -f gateway/Dockerfile -t modelgovernor/gateway:ci .
+
+  ig-test-tier1:
+    name: IG Tier 1 — SQLite spine tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install IG sidecar dependencies
+        run: pip install -r insurance-governor/spine/sidecar/requirements.txt pytest httpx
+      - name: Tier 1 insurance governor tests
+        run: make ig-spine-test
+
+  ig-test-tier2:
+    name: IG Tier 2 — Postgres vigorous
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: ig_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r insurance-governor/spine/sidecar/requirements.txt pytest
+      - name: Apply IG migrations
+        env:
+          PGPASSWORD: postgres
+        run: |
+          for f in insurance-governor/migrations/*.sql; do
+            psql -h localhost -U postgres -d ig_test -f "$f"
+          done
+      - name: Tier 2 Postgres tests
+        env:
+          POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5432/ig_test
+        run: PYTHONPATH=insurance-governor/spine/sidecar pytest insurance-governor/tests/test_postgres_vigorous.py -q
+
+  ig-test-tier3:
+    name: IG Tier 3 — Load harness
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r insurance-governor/spine/sidecar/requirements.txt pytest
+      - name: Load harness
+        run: make ig-load-test
+
+  ig-validate-helm:
+    name: IG Helm chart lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - name: Helm lint insurancegovernor
+        run: helm lint deploy/helm/insurancegovernor
+
+  ig-build-images:
+    name: IG container image build gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build IG spine images
+        run: |
+          docker build -f insurance-governor/spine/sidecar/Dockerfile -t insurancegovernor/sidecar:ci .
+          docker build -f insurance-governor/spine/reconciler/Dockerfile -t insurancegovernor/reconciler:ci .
+          docker build -f insurance-governor/spine/gateway/Dockerfile -t insurancegovernor/gateway:ci .
+          docker build -f insurance-governor/platforms/claim_gate/Dockerfile -t insurancegovernor/claim-gate:ci .
+
+  ig-test-tier4-chaos:
+    name: IG Tier 4 — Toxiproxy chaos (claim ops)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r insurance-governor/spine/sidecar/requirements.txt
+          pip install pytest requests
+
+      - name: Start IG toxiproxy chaos stack
+        run: |
+          docker compose -f insurance-governor/docker-compose.chaos.yml up -d --wait ig-postgres-chaos toxiproxy
+          docker compose -f insurance-governor/docker-compose.chaos.yml run --rm toxiproxy-config
+
+      - name: Tier 4 toxiproxy claim ops tests
+        env:
+          POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5436/ig_chaos
+          TOXIPROXY_API: http://localhost:8475
+        run: PYTHONPATH=insurance-governor/spine/sidecar pytest insurance-governor/tests/chaos/test_toxiproxy_claim_ops.py -q
+
+      - name: Tear down chaos stack
+        if: always()
+        run: docker compose -f insurance-governor/docker-compose.chaos.yml down -v

@@ -1,9 +1,16 @@
-from fastapi import Header, HTTPException, status
+"""Backward-compatible auth entrypoint — delegates to OIDC-aware RBAC."""
+from __future__ import annotations
 
-from .config import get_settings
+from .auth_oidc import (
+    AuthContext,
+    require_claims_admin,
+    require_internal_auth,
+    resolve_auth_context,
+)
 
-
-def require_internal_auth(x_internal_token: str | None = Header(default=None, alias="x-internal-token")) -> None:
-    tokens = {t.strip() for t in get_settings().ig_internal_tokens.split(",") if t.strip()}
-    if not x_internal_token or x_internal_token not in tokens:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="unauthorized")
+__all__ = [
+    "AuthContext",
+    "require_claims_admin",
+    "require_internal_auth",
+    "resolve_auth_context",
+]

@@ -1,0 +1,21 @@
+groups:
+  - name: insurancegovernor-invariants
+    rules:
+      - alert: InsuranceGovernorClaimChainVerificationFailed
+        expr: increase(insurancegovernor_claim_chain_verification_failed_total[5m]) > 0
+        labels:
+          severity: critical
+        annotations:
+          summary: Claim chain verification failed
+      - alert: InsuranceGovernorNegativeBalance
+        expr: increase(insurancegovernor_negative_balance_detected_total[5m]) > 0
+        labels:
+          severity: critical
+        annotations:
+          summary: Negative reserve balance detected
+      - alert: InsuranceGovernorClaimAuditViolation
+        expr: increase(insurancegovernor_claim_audit_violation_total[5m]) > 0
+        labels:
+          severity: critical
+        annotations:
+          summary: Post-sweep claim_ops audit violation

@@ -10,8 +10,8 @@ from .schemas import CommitRequest, CommitResponse
 router = APIRouter(tags=["commit"])
 
 
-@router.post("/commit", response_model=CommitResponse, dependencies=[Depends(require_internal_auth)])
-def commit(request: CommitRequest) -> CommitResponse:
+@router.post("/commit", response_model=CommitResponse)
+def commit(request: CommitRequest, _: None = Depends(require_internal_auth)) -> CommitResponse:
     if get_settings().diagnostic_mode_blocks_writes and is_diagnostic_mode():
         raise HTTPException(status_code=503, detail="diagnostic mode: writes halted")
     try:

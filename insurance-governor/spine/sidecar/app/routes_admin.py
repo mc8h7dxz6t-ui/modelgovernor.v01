@@ -2,17 +2,20 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from sqlalchemy import text
 
-from .auth import require_internal_auth
+from .admin_audit import record_admin_action
+from .auth import AuthContext, require_claims_admin, require_internal_auth
+from .claim_anchor import anchor_verified_chain_head
 from .claim_seal import head_hash, verify_claim_chain
 from .db import get_db_session
 from .diagnostic_mode import clear_diagnostic_mode, diagnostic_snapshot
+from .guardrails import get_guardrails
 from .metrics import get_counters
 
 router = APIRouter(tags=["admin"], prefix="/internal")
 
 
 @router.get("/crystals/{crystal_id}")
-def get_crystal(crystal_id: str, _: None = Depends(require_internal_auth)) -> dict:
+def get_crystal(crystal_id: str, _: AuthContext = Depends(require_internal_auth)) -> dict:
     with get_db_session() as session:
         row = session.execute(
             text("SELECT * FROM governance_crystals WHERE crystal_id = :c"),
@@ -24,7 +27,7 @@ def get_crystal(crystal_id: str, _: None = Depends(require_internal_auth)) -> di
 
 
 @router.get("/crystals/{crystal_id}/reconstruct")
-def reconstruct_crystal(crystal_id: str, _: None = Depends(require_internal_auth)) -> dict:
+def reconstruct_crystal(crystal_id: str, _: AuthContext = Depends(require_internal_auth)) -> dict:
     with get_db_session() as session:
         crystal = session.execute(
             text("SELECT * FROM governance_crystals WHERE crystal_id = :c"),
@@ -49,7 +52,7 @@ def reconstruct_crystal(crystal_id: str, _: None = Depends(require_internal_auth
 
 
 @router.get("/claims/verify-chain")
-def verify_chain(_: None = Depends(require_internal_auth)) -> dict:
+def verify_chain(_: AuthContext = Depends(require_internal_auth)) -> dict:
     with get_db_session() as session:
         result = verify_claim_chain(session)
         if not result.valid:
@@ -58,19 +61,34 @@ def verify_chain(_: None = Depends(require_internal_auth)) -> dict:
         return result.to_dict()
 
 
+@router.post("/claims/anchor-head")
+def anchor_head(ctx: AuthContext = Depends(require_claims_admin)) -> dict:
+    with get_db_session() as session:
+        try:
+            result = anchor_verified_chain_head(session, source="api")
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        record_admin_action(session, ctx=ctx, action="ANCHOR_HEAD", resource="claim_chain", details=result)
+        return result
+
+
 @router.get("/diagnostic/status")
-def diagnostic_status(_: None = Depends(require_internal_auth)) -> dict:
-    return diagnostic_snapshot()
+def diagnostic_status(_: AuthContext = Depends(require_internal_auth)) -> dict:
+    snap = diagnostic_snapshot()
+    snap["guardrails"] = get_guardrails().redis_status()
+    return snap
 
 
 @router.post("/diagnostic/clear")
-def diagnostic_clear(_: None = Depends(require_internal_auth)) -> dict:
+def diagnostic_clear(ctx: AuthContext = Depends(require_claims_admin)) -> dict:
     clear_diagnostic_mode()
+    with get_db_session() as session:
+        record_admin_action(session, ctx=ctx, action="DIAGNOSTIC_CLEAR", resource="cluster")
     return {"cleared": True}
 
 
 @router.get("/events/recent")
-def recent_events(limit: int = 20, _: None = Depends(require_internal_auth)) -> list:
+def recent_events(limit: int = 20, _: AuthContext = Depends(require_internal_auth)) -> list:
     with get_db_session() as session:
         rows = session.execute(
             text(
@@ -82,5 +100,5 @@ def recent_events(limit: int = 20, _: None = Depends(require_internal_auth)) -> 
 
 
 @router.get("/metrics")
-def internal_metrics(_: None = Depends(require_internal_auth)) -> dict:
+def internal_metrics(_: AuthContext = Depends(require_internal_auth)) -> dict:
     return get_counters().snapshot()

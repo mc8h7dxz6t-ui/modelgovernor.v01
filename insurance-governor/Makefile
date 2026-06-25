@@ -1,4 +1,4 @@
-.PHONY: ig-spine-up ig-spine-down ig-stack-up ig-stack-down ig-spine-test ig-spine-smoke claim-gate-demo ig-demo
+.PHONY: ig-spine-up ig-spine-down ig-stack-up ig-stack-down ig-spine-test ig-spine-smoke claim-gate-demo ig-demo ig-certification ig-load-test ig-chaos-test
 
 ig-spine-up:
 	docker compose -f docker-compose.spine.yml up -d --build
@@ -41,3 +41,15 @@ claim-gate-demo:
 	@echo "\nclaim-gate-demo OK"
 
 ig-demo: ig-spine-smoke claim-gate-demo
+
+ig-load-test:
+	cd .. && python3 -m pytest insurance-governor/tests/load/test_ig_load_harness.py -q
+
+ig-certification:
+	cd .. && python3 insurance-governor/scripts/generate_invariant_report.py
+
+ig-chaos-test:
+	cd .. && POSTGRES_TEST_URL=postgresql+psycopg://postgres:postgres@localhost:5436/ig_chaos \
+	  TOXIPROXY_API=http://localhost:8475 \
+	  PYTHONPATH=insurance-governor/spine/sidecar \
+	  python3 -m pytest insurance-governor/tests/chaos/test_toxiproxy_claim_ops.py -q

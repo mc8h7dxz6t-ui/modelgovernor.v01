@@ -108,3 +108,27 @@ INSERT INTO coverage_policy_registry (
 
 INSERT INTO reserve_ledgers (account_id, ledger_type, currency, balance, active)
 VALUES ('carrier-default', 'case', 'USD', 100000000, 1);
+
+CREATE TABLE claim_chain_anchors (
+    anchor_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    head_hash CHAR(64) NOT NULL,
+    sealed_count INTEGER NOT NULL,
+    total_events INTEGER NOT NULL,
+    source VARCHAR(64) NOT NULL DEFAULT 'cronjob',
+    recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX claim_chain_anchors_one_per_head ON claim_chain_anchors (head_hash);
+
+CREATE TABLE admin_audit_log (
+    audit_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    actor_subject TEXT NOT NULL,
+    actor_method VARCHAR(32) NOT NULL,
+    actor_roles TEXT,
+    action VARCHAR(128) NOT NULL,
+    resource VARCHAR(255) NOT NULL,
+    details TEXT NOT NULL DEFAULT '{}',
+    prev_hash CHAR(64),
+    row_hash CHAR(64),
+    recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

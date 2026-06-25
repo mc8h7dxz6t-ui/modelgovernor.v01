@@ -18,8 +18,43 @@ class Settings(BaseSettings):
     redis_connect_timeout_seconds: float = 0.5
     redis_socket_timeout_seconds: float = 0.5
     otel_service_name: str = "insurancegovernor-sidecar"
+    guardrails_enabled: bool = True
+    rate_limit_per_minute: int = 120
+    max_claim_depth: int = 50
+    max_account_inflight: int = 10
+    fallback_max_claim_depth: int = 50
+    fallback_max_account_inflight: int = 5
+    fallback_rate_limit_per_minute: int = 60
+    fallback_global_tokens_per_second: float = 20.0
+    fallback_token_bucket_capacity: float = 40.0
+    oidc_enabled: bool = False
+    oidc_issuer_url: str | None = None
+    oidc_audience: str | None = None
+    oidc_jwks_url: str | None = None
+    oidc_algorithms: str = "RS256"
+    oidc_allow_internal_token_fallback: bool = True
+    oidc_internal_token_is_admin: bool = True
+    oidc_viewer_roles: str = "viewer,insurancegovernor-viewer"
+    oidc_claims_admin_roles: str = "claims-admin,insurancegovernor-claims-admin"
+    claim_anchor_webhook_url: str | None = None
+    claim_anchor_s3_bucket: str | None = None
+    claim_anchor_s3_prefix: str = "claim-anchors"
+    claim_anchor_s3_region: str | None = None
+    claim_anchor_s3_endpoint_url: str | None = None
+    claim_anchor_s3_object_lock_enabled: bool = False
+    claim_anchor_s3_object_lock_mode: str = "GOVERNANCE"
+    claim_anchor_s3_retention_days: int = 3650
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    def oidc_algorithms_list(self) -> list[str]:
+        return [p.strip() for p in self.oidc_algorithms.split(",") if p.strip()]
+
+    def oidc_viewer_roles_list(self) -> list[str]:
+        return [p.strip().lower() for p in self.oidc_viewer_roles.split(",") if p.strip()]
+
+    def oidc_claims_admin_roles_list(self) -> list[str]:
+        return [p.strip().lower() for p in self.oidc_claims_admin_roles.split(",") if p.strip()]
 
 
 _settings: Settings | None = None

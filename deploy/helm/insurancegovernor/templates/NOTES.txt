@@ -1,0 +1,19 @@
+InsuranceGovernor {{ .Chart.AppVersion }} deployed to namespace {{ include "insurancegovernor.namespace" . }}.
+
+Endpoints:
+  Gateway:    http://gateway.{{ include "insurancegovernor.namespace" . }}.svc:8100/governed/dispatch
+  Sidecar:    http://sidecar.{{ include "insurancegovernor.namespace" . }}.svc:8101/readyz
+  Reconciler: http://reconciler.{{ include "insurancegovernor.namespace" . }}.svc:8102/healthz
+  Metrics:    http://sidecar.{{ include "insurancegovernor.namespace" . }}.svc:8101/metrics/prometheus
+
+Secrets:
+{{- if .Values.externalSecrets.enabled }}
+  ExternalSecret '{{ include "insurancegovernor.secretName" . }}' will sync from your secret store.
+{{- else if .Values.secrets.create }}
+  Dev secret '{{ include "insurancegovernor.secretName" . }}' created from values — rotate before production.
+{{- else }}
+  Ensure secret '{{ include "insurancegovernor.secretName" . }}' exists before workloads become Ready.
+{{- end }}
+
+GitOps:
+  ArgoCD Application examples live in deploy/argocd/

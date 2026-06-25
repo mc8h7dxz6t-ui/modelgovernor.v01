@@ -1,49 +1,59 @@
 # Institutional++ Gold Standard — Insurance Governor
 
-Testable requirements inherited from ModelGovernor, applied per platform and on the optional spine.
+## Certification levels
 
-## Definition
+| Level | Status | Requirements |
+|-------|--------|--------------|
+| **L1 Platform** | Done | Standalone ClaimGate, SpineAdapter local mode |
+| **L2 Institutional** | Done | Diagnostic mode, claim_ops probes, CCP |
+| **L3 Institutional++** | Done | Hash chain verify, anchor table, guardrails + fallback |
+| **L4 Gold** | Done | 4-tier CI, Helm chart, load harness, Prometheus rules |
 
-**Institutional++** = controls satisfying engineering, operations, and compliance audiences simultaneously.
+## L4 Gold checklist (implemented)
 
-## Platform baseline (every extractable platform)
+### Data plane
+- [x] Append-only `claim_events` with hash chain on all paths (including sweeps)
+- [x] `claim_ops.assert_claim_ops_invariants()` — 7 probes
+- [x] Thread-safe `append_claim_event` for concurrent sealing
+- [x] `GET /internal/claims/verify-chain`
+- [x] `POST /internal/claims/anchor-head` + `claim_chain_anchors` migration
 
-| Control | Verification |
-|---------|--------------|
-| Pre-execution gate | No payout/bind without policy check |
-| Append-only events | `platform_events` or spine `claim_events` |
-| Idempotency | Replay test on operation_id |
-| Exact decimal | `Decimal` / `NUMERIC(24,12)` |
-| `/healthz`, `/readyz` | K8s probes |
-| Standalone boot | Single compose command |
-| Diagnostic mode | Writes 503 when spine in incident |
+### Degradation
+- [x] Redis guardrails + symmetric local fallback (`guardrails.py`, `fallback_limiter.py`)
+- [x] Reconciler halts sweeps in diagnostic mode
+- [x] Diagnostic write halt on crystallize/commit
 
-## Spine extensions (optional)
+### Security
+- [x] OIDC JWT + RBAC scaffold (`auth_oidc.py`)
+- [x] Admin audit log on privileged actions (`admin_audit.py`)
+- [x] Claims-admin gate on diagnostic clear and anchor
 
-| Control | Insurance Governor implementation |
-|---------|-----------------------------------|
-| Hash-chained events | `claim_seal.py` on all paths including sweeps |
-| Verify chain API | `GET /internal/claims/verify-chain` |
-| claim_ops probes | 7 invariant classes, zero error budget |
-| Reconciler halt | Sweeps skip when diagnostic mode active |
-| CCP | `platforms/common/crystal.py` |
+### Observability
+- [x] `/metrics/prometheus` RED metrics
+- [x] Prometheus P1 rules in `deploy/helm/insurancegovernor/files/prometheus-rules.yaml`
+- [x] Governance canary (Helm) hits `/internal/claims/verify-chain`
 
-## Zero error budget signals
+### Testing pyramid
+- [x] Tier 1: `make ig-spine-test` (14 tests)
+- [x] Tier 2: `test_postgres_vigorous.py` (CI `ig-test-tier2`)
+- [x] Tier 3: `tests/load/test_ig_load_harness.py` (CI `ig-test-tier3`)
+- [x] Tier 4: Toxiproxy chaos (`docker-compose.chaos.yml`, `tests/chaos/test_toxiproxy_claim_ops.py`, CI `ig-test-tier4-chaos`)
 
-| Counter | Meaning |
-|---------|---------|
-| `surprise_commit_blocked_total` | Commit without valid crystal |
-| `crystal_fingerprint_mismatch_total` | Facet drift at commit |
-| `negative_balance_detected_total` | Reserve ledger breach |
-| `duplicate_commit_anomaly_total` | Double payout attempt |
-| `stranded_without_hold_total` | STRANDED without STRANDED_HOLD event |
-| `claim_chain_verification_failed_total` | Tamper detected |
+### Deploy
+- [x] `deploy/helm/insurancegovernor/` — forked from ModelGovernor with IG ports/migrations
+- [x] CI: `ig-test-tier1` through `ig-test-tier4-chaos`, `ig-validate-helm`, `ig-build-images`
 
 ## Certification commands
 
 ```bash
-make ig-spine-test          # Tier 1 SQLite integration
-make ig-spine-smoke         # Live stack smoke (requires compose up)
+make ig-spine-test        # Tier 1
+make ig-load-test         # Tier 3
+make ig-certification     # Tier 1 + load + artifact report
+make ig-chaos-test        # Tier 4 (requires chaos compose up)
+helm lint deploy/helm/insurancegovernor
 ```
 
-Tier 2–4 (Postgres vigorous, load, chaos) — target parity with ModelGovernor CI; see `docs/reliability-testing.md`.
+## Remaining for production hardening (post-L4)
+- S3 Object Lock anchor in production overlay (config present, enable per env)
+- PgBouncer + Redis Sentinel HA rehearsal compose for IG
+- ArgoCD Application manifest for `insurancegovernor` namespace

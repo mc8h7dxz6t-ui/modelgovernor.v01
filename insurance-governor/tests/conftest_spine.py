@@ -40,6 +40,11 @@ def spine_db(monkeypatch):
     )
     monkeypatch.setattr("app.config.get_settings", lambda: test_settings)
     override_settings(test_settings)
+    monkeypatch.setattr("app.config.get_settings", lambda: test_settings)
     override_engine(engine)
+    from app.guardrails import reset_guardrails
+
+    reset_guardrails()
     yield engine
+    reset_guardrails()
     override_engine(create_engine("sqlite+pysqlite:///:memory:", poolclass=StaticPool))
