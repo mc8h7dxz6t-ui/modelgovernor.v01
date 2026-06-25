@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: fg-gateway
+  namespace: {{ include "fg.namespace" . }}
+  labels:
+    {{- include "fg.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+spec:
+  type: {{ .Values.service.gateway.type }}
+  selector:
+    app.kubernetes.io/component: gateway
+  ports:
+    - name: http
+      port: {{ .Values.service.gateway.port }}
+      targetPort: 8090
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fg-sidecar
+  namespace: {{ include "fg.namespace" . }}
+  labels:
+    {{- include "fg.labels" . | nindent 4 }}
+    app.kubernetes.io/component: sidecar
+spec:
+  type: {{ .Values.service.sidecar.type }}
+  selector:
+    app.kubernetes.io/component: sidecar
+  ports:
+    - name: http
+      port: {{ .Values.service.sidecar.port }}
+      targetPort: 8091

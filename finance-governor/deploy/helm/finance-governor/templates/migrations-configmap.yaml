@@ -1,0 +1,14 @@
+{{- if .Values.migrations.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fg-migrations
+  namespace: {{ include "fg.namespace" . }}
+  labels:
+    {{- include "fg.labels" . | nindent 4 }}
+data:
+{{- range $path, $content := .Files.Glob "files/migrations/*.sql" }}
+  {{ base $path }}: |
+{{ $content | toString | indent 4 }}
+{{- end }}
+{{- end }}

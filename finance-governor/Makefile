@@ -58,6 +58,27 @@ fg-spine-smoke:
 fg-load-smoke:
 	python3 scripts/fg_load_smoke.py
 
+fg-prod-setup:
+	chmod +x scripts/*.sh
+	./scripts/fg-prod-setup.sh
+
+fg-aws-anchor-bucket:
+	chmod +x scripts/*.sh
+	./scripts/fg-aws-anchor-bucket.sh
+
+fg-helm-template:
+	helm template fg ./deploy/helm/finance-governor \
+	  -f ./deploy/helm/finance-governor/values-production.yaml \
+	  --set secrets.create=true \
+	  --set oidc.issuerUrl=https://idp.example.com/realms/fg \
+	  --set oidc.audience=finance-governor \
+	  --set s3Anchor.bucket=fg-anchor-demo \
+	  --set postgres.password=postgres
+
+fg-helm-install:
+	chmod +x scripts/*.sh
+	./scripts/fg-helm-install.sh
+
 wirematch-demo:
 	@echo "==> WireMatch health"
 	curl -sf http://localhost:8093/healthz
