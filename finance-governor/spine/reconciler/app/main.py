@@ -56,9 +56,14 @@ def run_loop() -> None:
                     if not leader:
                         time.sleep(settings.reconciler_interval_seconds)
                         continue
-                    swept = sweep_expired_horizons(session)
-                    if swept:
-                        logger.info("swept %d horizon rows", swept)
+                    from app.diagnostic_mode import is_diagnostic_mode
+
+                    if is_diagnostic_mode():
+                        logger.warning("diagnostic mode active — skipping horizon sweep")
+                    else:
+                        swept = sweep_expired_horizons(session)
+                        if swept:
+                            logger.info("swept %d horizon rows", swept)
                     _run_audits(session)
         except Exception:
             logger.exception("reconciler loop error")

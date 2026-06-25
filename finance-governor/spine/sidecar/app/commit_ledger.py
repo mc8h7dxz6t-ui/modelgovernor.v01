@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from .config import Settings
 from .currency import quantize_money
-from .decision_seal import GENESIS_HASH, compute_row_hash, head_hash
+from .decision_seal import append_decision_event
 from .metrics import get_counters
 
 # Import shared CCP from platforms/common
@@ -22,6 +22,7 @@ _FG_ROOT = Path(__file__).resolve().parents[3]
 if str(_FG_ROOT) not in sys.path:
     sys.path.insert(0, str(_FG_ROOT))
 from platforms.common.crystal import (  # noqa: E402
+    canonical_fingerprint,
     is_horizon_expired,
     seal_crystal,
     should_strand_on_expiry,
@@ -75,61 +76,6 @@ def _ts_param(session: Session, value: datetime) -> str | datetime:
     return value
 
 
-def _append_event(
-    session: Session,
-    *,
-    operation_id: str,
-    crystal_id: str | None,
-    account_id: str,
-    event_type: str,
-    exposure_delta: Decimal,
-    metadata: dict[str, Any],
-) -> None:
-    prev = head_hash(session) or GENESIS_HASH
-    now = _utcnow()
-    row =     meta_sql = ":meta" if session.bind.dialect.name == "sqlite" else ":meta::jsonb"
-    session.execute(
-        text(
-            f"""
-            INSERT INTO decision_events (
-                operation_id, crystal_id, account_id, event_type,
-                exposure_delta, metadata, prev_hash, row_hash, recorded_at
-            ) VALUES (
-                :operation_id, :crystal_id, :account_id, :event_type,
-                :exposure_delta, {meta_sql}, :prev_hash, :placeholder, :recorded_at
-            )
-            RETURNING event_id
-            """
-        ),
-        {
-            "operation_id": operation_id,
-            "crystal_id": crystal_id,
-            "account_id": account_id,
-            "event_type": event_type,
-            "exposure_delta": _money_param(exposure_delta),
-            "meta": json.dumps(metadata),
-            "prev_hash": prev,
-            "placeholder": prev,
-            "recorded_at": now.isoformat() if session.bind.dialect.name == "sqlite" else now,
-        },
-    ).scalar_one()
-    rh = compute_row_hash(
-        event_id=row,
-        operation_id=operation_id,
-        crystal_id=crystal_id,
-        account_id=account_id,
-        event_type=event_type,
-        exposure_delta=str(quantize_money(exposure_delta)),
-        metadata=metadata,
-        prev_hash=prev,
-        recorded_at=now.isoformat(),
-    )
-    session.execute(
-        text("UPDATE decision_events SET row_hash = :rh WHERE event_id = :eid"),
-        {"rh": rh, "eid": row},
-    )
-
-
 def _check_mesh_block(session: Session, platform: str, facets: dict[str, Any]) -> None:
     rows = session.execute(
         text(
@@ -177,18 +123,27 @@ def crystallize_operation(
 ) -> CrystallizeResult:
     existing = session.execute(
         text(
-            "SELECT crystal_id, terminal_state FROM governance_crystals WHERE platform = :p AND operation_id = :o"
+            """
+            SELECT crystal_id, request_fingerprint, horizon_expires_at
+            FROM governance_crystals WHERE platform = :p AND operation_id = :o
+            """
         ),
         {"p": platform, "o": operation_id},
-    ).first()
+    ).mappings().first()
     if existing:
-        get_counters().increment("crystallize_success_total")
-        cid = existing[0]
-        horizon = session.execute(
-            text("SELECT horizon_expires_at FROM governance_crystals WHERE crystal_id = :c"),
-            {"c": cid},
-        ).scalar_one()
-        return CrystallizeResult(crystal_id=cid, operation_id=operation_id, status="REPLAY", horizon_expires_at=horizon)
+        fp = canonical_fingerprint(platform, operation_id, facets)
+        if fp != existing["request_fingerprint"]:
+            raise ConflictError("fingerprint mismatch on crystallize replay")
+        get_counters().increment("crystallize_idempotent_replay_total")
+        horizon = existing["horizon_expires_at"]
+        if isinstance(horizon, str):
+            horizon = datetime.fromisoformat(horizon.replace("Z", "+00:00"))
+        return CrystallizeResult(
+            crystal_id=existing["crystal_id"],
+            operation_id=operation_id,
+            status="REPLAY",
+            horizon_expires_at=horizon,
+        )
 
     horizon_ms = None
     if policy_id:
@@ -299,7 +254,7 @@ def crystallize_operation(
             "exp": _ts_param(session, expires_at),
         },
     )
-    _append_event(
+    append_decision_event(
         session,
         operation_id=operation_id,
         crystal_id=crystal.crystal_id,
@@ -408,7 +363,7 @@ def commit_operation(
         text("UPDATE governance_crystals SET terminal_state = 'COMMITTED' WHERE crystal_id = :cid"),
         {"cid": crystal_id},
     )
-    _append_event(
+    append_decision_event(
         session,
         operation_id=row["operation_id"],
         crystal_id=crystal_id,
