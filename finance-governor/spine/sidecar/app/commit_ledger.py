@@ -122,6 +122,13 @@ def crystallize_operation(
     reserved_exposure: Decimal = Decimal("0"),
     parent_crystal_id: str | None = None,
 ) -> CrystallizeResult:
+    from .platform_registry import assert_platform_allowed, validate_platform_facets
+
+    record = assert_platform_allowed(session, platform)
+    validate_platform_facets(session, platform, facets)
+    if policy_id is None and record.default_policy_id:
+        policy_id = record.default_policy_id
+
     existing = session.execute(
         text(
             """
@@ -388,3 +395,79 @@ def commit_operation(
     session.commit()
     get_counters().increment("commit_success_total")
     return CommitResult(operation_id=row["operation_id"], crystal_id=crystal_id, status="COMMITTED")
+
+
+@dataclass(frozen=True)
+class AdjudicateResult:
+    operation_id: str
+    crystal_id: str
+    status: str
+
+
+def adjudicate_operation(
+    session: Session,
+    *,
+    crystal_id: str,
+    action: str,
+    reason: str = "manual_adjudicate",
+) -> AdjudicateResult:
+    if action != "strand":
+        raise SurpriseCommitBlockedError(f"unsupported adjudicate action: {action}")
+
+    lock = "" if session.bind.dialect.name == "sqlite" else " FOR UPDATE"
+    row = session.execute(
+        text(
+            f"""
+            SELECT c.crystal_id, c.operation_id, c.terminal_state,
+                   e.account_id, e.reserved_exposure, e.status
+            FROM governance_crystals c
+            JOIN commit_escrow_ledger e ON e.crystal_id = c.crystal_id
+            WHERE c.crystal_id = :cid
+            {lock}
+            """
+        ),
+        {"cid": crystal_id},
+    ).mappings().first()
+    if not row:
+        raise SurpriseCommitBlockedError("unknown crystal")
+    if row["terminal_state"]:
+        return AdjudicateResult(operation_id=row["operation_id"], crystal_id=crystal_id, status="REPLAY")
+
+    reserved = quantize_money(row["reserved_exposure"])
+    if reserved > 0:
+        session.execute(
+            text(
+                """
+                UPDATE account_ledgers SET balance = balance + :amt, updated_at = :now
+                WHERE account_id = :a AND ledger_type = 'exposure' AND currency = 'USD'
+                """
+            ),
+            {"amt": _money_param(reserved), "now": _ts_param(session, _utcnow()), "a": row["account_id"]},
+        )
+
+    session.execute(
+        text("UPDATE governance_crystals SET terminal_state = 'STRANDED' WHERE crystal_id = :cid"),
+        {"cid": crystal_id},
+    )
+    session.execute(
+        text(
+            """
+            UPDATE commit_escrow_ledger
+            SET status = 'STRANDED', terminal_reason = :reason
+            WHERE crystal_id = :cid
+            """
+        ),
+        {"cid": crystal_id, "reason": reason[:255]},
+    )
+    append_decision_event(
+        session,
+        operation_id=row["operation_id"],
+        crystal_id=crystal_id,
+        account_id=row["account_id"],
+        event_type="STRANDED_HOLD",
+        exposure_delta=Decimal("0"),
+        metadata={"reason": reason, "source": "adjudicate"},
+    )
+    session.commit()
+    get_counters().increment("crystal_manual_strand_total")
+    return AdjudicateResult(operation_id=row["operation_id"], crystal_id=crystal_id, status="STRANDED")

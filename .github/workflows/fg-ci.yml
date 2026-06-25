@@ -139,6 +139,23 @@ jobs:
       - run: make fg-helm-enterprise
       - run: python3 -m pytest tests/test_l4_helm_enterprise.py tests/test_l4_certification.py -q
 
+  fg-platform-conformance:
+    name: FG Platform SDK conformance
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: finance-governor
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: |
+          pip install -r platforms/requirements.txt
+          pip install -r spine/sidecar/requirements.txt
+          pip install pytest
+      - run: make fg-platform-conformance
+
   fg-kustomize-enterprise:
     name: FG L4 Kustomize enterprise gate
     runs-on: ubuntu-latest

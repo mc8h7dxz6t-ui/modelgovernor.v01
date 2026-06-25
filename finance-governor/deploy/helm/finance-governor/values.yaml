@@ -103,6 +103,7 @@ enterprise:
 platforms:
   enabled: false
   spineEnabled: true
+  fleet: []
   wirematch:
     enabled: true
     replicas: 1

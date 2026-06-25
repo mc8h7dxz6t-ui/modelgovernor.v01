@@ -69,7 +69,7 @@ Platforms opt into the **Finance Governor spine** (`finance-governor/spine/`) â€
 
 Full spec: [spine.md](spine.md)
 
-Platforms implement `platforms/common/spine_adapter.py`:
+Platforms implement the **Platform SDK** (`platforms/common/platform_sdk.py`) and `SpineAdapter`:
 
 ```python
 # finance-governor/platforms/common/spine_adapter.py
@@ -79,6 +79,8 @@ class SpineAdapter:
     def commit(self, outcome: CommitOutcome) -> None: ...
     def strand(self, crystal_id: str, reason: str) -> None: ...
 ```
+
+Full guide: [platform-sdk.md](../../finance-governor/docs/platform-sdk.md)
 
 | Spine call | Platform use |
 |------------|--------------|
