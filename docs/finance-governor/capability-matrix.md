@@ -10,9 +10,9 @@ Use in RFPs, model risk questionnaires, and regulatory diligence. Status reflect
 |-------|--------------|--------|
 | **L1 Platform Ready** | Standalone demo + Tier 1–2 tests | `make fg-spine-test` |
 | **L2 Institutional** | + diagnostic mode, invariants, metrics | `make fg-certification` tier 1–2 |
-| **L3 Institutional++** | + hash chain, SLO alerts, Postgres, chaos | `make fg-certification` + `fg-platform-conformance` |
-| **L4 Gold** | + K8s HA, PgBouncer, Sentinel, GitOps | `make fg-certification-l4` |
-| **L5 Industry Leading** | + live rails, RDS, Istio all workloads, FG-ECP attestation | `make fg-certification-external` |
+| **L3 Institutional++** | + hash chain, SLO alerts, Postgres, chaos, reconciler sweeps | `make fg-certification` |
+| **L4 Gold** | + K8s HA, PgBouncer, Sentinel, GitOps, synthetic probes | `make fg-certification-l4` |
+| **L5 Industry Leading** | + live rails, RDS, Istio all workloads, FG-ECP full attestation | `make fg-certification-external-full` |
 
 Legend: ✅ Implemented · 🔌 Deploy-time config · 📄 Documented operator step
 
@@ -29,8 +29,8 @@ Legend: ✅ Implemented · 🔌 Deploy-time config · 📄 Documented operator s
 | Append-only decision events + idempotent lifecycle | ✅ | Step 7 demo | Postgres |
 | Per-desk atomic exposure caps | ✅ | Auto | Sidecar |
 | Exposure drift enforcement + account lockout | ✅ | `test_exposure_drift.py` | Sidecar |
-| Leader-elected reconciler (expiry/stranded) | ✅ | Demo step 11 | 2+ replicas |
-| High-risk never silent-expire | ✅ | Policy + reconciler tests | Reconciler + policy |
+| Leader-elected reconciler (expiry/stranded) | ✅ | `test_horizon_sweeper.py` + demo step 11 | 2+ replicas + PDB |
+| High-risk never silent-expire | ✅ | `test_horizon_sweeper.py` + `test_commit_invariants.py` | Reconciler + policy |
 | Redis guardrails + local fallback | ✅ | Auto | Sidecar |
 | Inference rail circuit breaker | ✅ | `rail_circuit_open_total` | CreditGovern + sidecar attempts |
 | Diagnostic mode (no poison pill) | ✅ | `test_diagnostic_mode.py` | Redis / API flag |
@@ -54,11 +54,18 @@ Legend: ✅ Implemented · 🔌 Deploy-time config · 📄 Documented operator s
 | Istio sidecar injection (all workloads) | ✅ | L5 Helm annotations | `istio.enabled: true` |
 | Prometheus SLOs + burn-rate alerts | ✅ | `/metrics/prometheus` | `PrometheusRule` |
 | Governance + platform canary CronJobs | ✅ | Helm templates | K8s CronJob |
+| Synthetic spine canary (gateway/sidecar/reconciler) | ✅ | `reliability-cronjobs.yaml` | `fg-synthetic-canary` |
+| AlgoFreeze version + WireMatch golden probes | ✅ | Helm reliability cronjobs | K8s CronJob |
+| PodDisruptionBudget (sidecar, gateway, reconciler, pgbouncer, platforms) | ✅ | `test_l4_extended_pdb_coverage` | `values-enterprise.yaml` |
+| Reconciler / PgBouncer liveness probes | ✅ | L4 Helm enterprise gate | Enterprise chart |
+| Examiner evidence pack (FG-ECP L5) | ✅ | `make fg-examiner-evidence` | Attestation JSON |
 | GitOps (ArgoCD + Helm) | ✅ | `deploy/argocd/` | Application manifest |
-| 4-tier CI (unit → Postgres → load → chaos) | ✅ | `.github/workflows/fg-ci.yml` | GitHub Actions |
 | Platform SDK plug-and-play | ✅ | `make fg-platform-conformance` | `platform_sdk.py` |
-| External vendor certification (FG-ECP) | ✅ | `make fg-certification-external` | Attestation JSON + SHA256 |
-| 100+ automated tests | ✅ | `pytest tests/` | CI |
+| External vendor certification (FG-ECP) | ✅ | `make fg-certification-external-full` | Attestation JSON + SHA256 |
+| 4-tier CI (unit → Postgres → load → chaos) + L4 gate | ✅ | `.github/workflows/fg-ci.yml` | GitHub Actions |
+| CCP surprise-budget behavioral tests | ✅ | `test_commit_invariants.py` | Invariant counters |
+| Offline load smoke (12 lifecycle ops) | ✅ | `test_load_smoke_offline.py` | CI Tier 3 |
+| 120+ automated tests | ✅ | `pytest tests/` | CI |
 
 ---
 

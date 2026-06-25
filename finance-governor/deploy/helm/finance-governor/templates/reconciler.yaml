@@ -45,3 +45,9 @@ spec:
               path: /healthz
               port: 8092
             initialDelaySeconds: 8
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8092
+            initialDelaySeconds: 15
+            periodSeconds: 20

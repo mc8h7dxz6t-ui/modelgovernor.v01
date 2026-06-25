@@ -77,10 +77,12 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install dependencies
-        run: pip install httpx
-      - name: Load smoke script (offline graceful)
         run: |
-          python3 scripts/fg_load_smoke.py && echo "load smoke OK" || echo "load smoke skipped (spine not running)"
+          pip install -r platforms/requirements.txt
+          pip install -r spine/sidecar/requirements.txt
+          pip install pytest
+      - name: Tier 3 offline load smoke
+        run: python3 -m pytest tests/test_load_smoke_offline.py tests/test_horizon_sweeper.py tests/test_commit_invariants.py -q
 
   fg-tier4:
     name: FG Tier 4 — Toxiproxy chaos
@@ -194,3 +196,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: make fg-kustomize-enterprise
+
+  fg-certification-l4:
+    name: FG L4 Gold certification gate
+    runs-on: ubuntu-latest
+    needs: [fg-tier1, fg-tier2, fg-tier3, fg-tier4, fg-helm-enterprise, fg-kustomize-enterprise, fg-platform-conformance]
+    defaults:
+      run:
+        working-directory: finance-governor
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: azure/setup-helm@v4
+      - name: Install dependencies
+        run: |
+          pip install -r platforms/requirements.txt
+          pip install -r spine/sidecar/requirements.txt
+          pip install pytest pyyaml
+      - run: make fg-certification-l4-ci
+      - run: make fg-examiner-evidence

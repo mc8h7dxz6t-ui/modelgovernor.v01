@@ -85,6 +85,18 @@ def test_l4_platform_canary_cronjob(enterprise_docs):
     assert "fg-platform-canary" in names
 
 
+def test_l4_reliability_cronjobs(enterprise_docs):
+    names = [d["metadata"]["name"] for d in enterprise_docs if d.get("kind") == "CronJob"]
+    for job in ("fg-synthetic-canary", "fg-algofreeze-version-probe", "fg-wirematch-golden-probe"):
+        assert job in names
+
+
+def test_l4_extended_pdb_coverage(enterprise_docs):
+    names = [d["metadata"]["name"] for d in enterprise_docs if d.get("kind") == "PodDisruptionBudget"]
+    for pdb in ("fg-reconciler-pdb", "fg-pgbouncer-pdb", "fg-platforms-pdb"):
+        assert pdb in names
+
+
 def test_l4_no_simple_redis_when_sentinel(enterprise_docs):
     names = [d["metadata"]["name"] for d in enterprise_docs if d.get("metadata")]
     assert "fg-redis" not in names

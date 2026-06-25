@@ -169,6 +169,27 @@ podDisruptionBudget:
     minAvailable: 2
   gateway:
     minAvailable: 1
+  reconciler:
+    enabled: false
+    minAvailable: 1
+  pgbouncer:
+    enabled: false
+    minAvailable: 1
+  platforms:
+    enabled: false
+    minAvailable: 1
+
+syntheticCanary:
+  enabled: false
+  schedule: "*/10 * * * *"
+
+algofreezeVersionProbe:
+  enabled: false
+  schedule: "*/15 * * * *"
+
+wirematchGoldenProbe:
+  enabled: false
+  schedule: "*/15 * * * *"
 
 service:
   gateway:

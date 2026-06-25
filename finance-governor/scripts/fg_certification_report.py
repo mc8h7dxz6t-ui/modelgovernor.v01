@@ -12,11 +12,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACTS = ROOT / "artifacts" / "certification"
+REPO = ROOT.parent
 
 
 def _git_commit() -> str:
     try:
-        return subprocess.check_output(["git", "rev-parse", "HEAD"], text=True, cwd=ROOT.parent).strip()
+        return subprocess.check_output(["git", "rev-parse", "HEAD"], text=True, cwd=REPO).strip()
     except Exception:
         return "unknown"
 
@@ -30,7 +31,7 @@ def _run(cmd: list[str], cwd: Path) -> tuple[bool, str]:
 
 
 def _file_exists(rel: str) -> bool:
-    return (ROOT / rel).is_file() or (ROOT.parent / rel).is_file()
+    return (ROOT / rel).is_file() or (REPO / rel).is_file()
 
 
 def build_checks(level: str, *, quick: bool = False) -> dict[str, dict]:
@@ -38,16 +39,43 @@ def build_checks(level: str, *, quick: bool = False) -> dict[str, dict]:
         "platform_sdk_doc": {"pass": _file_exists("docs/platform-sdk.md"), "evidence": "docs/platform-sdk.md"},
         "partner_checklist": {"pass": _file_exists("certification/partner-checklist.md"), "evidence": "certification/partner-checklist.md"},
         "program_manifest": {"pass": _file_exists("certification/program.yaml"), "evidence": "certification/program.yaml"},
+        "institutional_gold_standard": {
+            "pass": _file_exists("docs/finance-governor/institutional-gold-standard.md"),
+            "evidence": "docs/finance-governor/institutional-gold-standard.md",
+        },
         "platform_conformance": {"pass": False, "evidence": "make fg-platform-conformance"},
         "unit_tests": {"pass": False, "evidence": "pytest tests/ --ignore=integration"},
+        "reconciler_reliability_tests": {"pass": False, "evidence": "horizon sweeper + commit invariants"},
         "inference_rail_module": {"pass": _file_exists("platforms/credit_govern/inference_rail.py"), "evidence": "inference_rail.py"},
         "values_rds_overlay": {"pass": _file_exists("deploy/helm/finance-governor/values-rds.yaml"), "evidence": "values-rds.yaml"},
         "istio_helm_helper": {"pass": "fg.istioPodAnnotations" in (ROOT / "deploy/helm/finance-governor/templates/_helpers.tpl").read_text()},
         "l4_certification_doc": {"pass": _file_exists("docs/l4-certification.md"), "evidence": "l4-certification.md"},
+        "gitops_argocd": {
+            "pass": _file_exists("deploy/argocd/application-production.yaml"),
+            "evidence": "deploy/argocd/application-production.yaml",
+        },
+        "soc2_evidence_pack": {
+            "pass": _file_exists("docs/finance-governor/soc2-evidence-pack.md"),
+            "evidence": "docs/finance-governor/soc2-evidence-pack.md",
+        },
+        "examiner_evidence_pack": {"pass": False, "evidence": "scripts/fg_examiner_evidence_pack.py"},
     }
 
     ok, _ = _run(["make", "fg-platform-conformance"], ROOT)
     checks["platform_conformance"]["pass"] = ok
+
+    reliability_cmd = [
+        "python3",
+        "-m",
+        "pytest",
+        "tests/test_horizon_sweeper.py",
+        "tests/test_reconciler_leader.py",
+        "tests/test_commit_invariants.py",
+        "tests/test_load_smoke_offline.py",
+        "-q",
+    ]
+    ok, _ = _run(reliability_cmd, ROOT)
+    checks["reconciler_reliability_tests"]["pass"] = ok
 
     if quick:
         checks["unit_tests"]["pass"] = _file_exists("tests/test_platform_sdk.py")
@@ -57,6 +85,9 @@ def build_checks(level: str, *, quick: bool = False) -> dict[str, dict]:
             ROOT,
         )
         checks["unit_tests"]["pass"] = ok
+
+    ok, _ = _run(["python3", "scripts/fg_examiner_evidence_pack.py"], ROOT)
+    checks["examiner_evidence_pack"]["pass"] = ok
 
     if level in {"L4", "L5"}:
         ok, _ = _run(
@@ -77,6 +108,15 @@ def build_checks(level: str, *, quick: bool = False) -> dict[str, dict]:
             ROOT,
         )
         checks["helm_enterprise_render"] = {"pass": ok, "evidence": "helm template enterprise"}
+
+        ok, _ = _run(
+            ["python3", "-m", "pytest", "tests/test_l4_helm_enterprise.py", "tests/test_l4_certification.py", "-q"],
+            ROOT,
+        )
+        checks["l4_helm_tests"] = {"pass": ok, "evidence": "L4 Helm enterprise pytest gate"}
+
+        ok, _ = _run(["make", "fg-kustomize-enterprise"], ROOT)
+        checks["kustomize_enterprise"] = {"pass": ok, "evidence": "kustomize build enterprise overlay"}
 
     if level == "L5":
         ok, out = _run(
@@ -107,6 +147,10 @@ def build_checks(level: str, *, quick: bool = False) -> dict[str, dict]:
         checks["istio_injection_annotations"] = {
             "pass": ok and "sidecar.istio.io/inject" in out,
             "evidence": "enterprise istio annotations on workloads",
+        }
+        checks["reliability_cronjobs"] = {
+            "pass": ok and "fg-synthetic-canary" in out and "fg-wirematch-golden-probe" in out,
+            "evidence": "synthetic + platform golden probes",
         }
 
     return checks
