@@ -1,7 +1,8 @@
 .PHONY: cg-spine-up cg-spine-down cg-spine-test cg-spine-smoke cg-spine-logs \
 	cg-stack-up cg-stack-down threat-crystal-demo cg-security-demo identity-gate-demo \
 	egress-lock-demo witness-bridge-demo lineage-ingest-demo cg-deploy-dry-run \
-	cg-postgres-test cg-proof-test cg-load-test cg-invariant-report
+	cg-postgres-test cg-proof-test cg-load-test cg-invariant-report cg-chaos-test \
+	cg-property-test
 
 cg-spine-up:
 	docker compose up -d --build
@@ -17,7 +18,17 @@ cg-spine-logs:
 	docker compose logs -f
 
 cg-spine-test:
-	python3 -m pytest tests/ -q --ignore=tests/load/
+	python3 -m pytest tests/ -q --ignore=tests/load/ --ignore=tests/chaos/
+
+cg-property-test:
+	python3 -m pytest tests/test_property_security_chain.py -q
+
+cg-chaos-test:
+	@docker compose -f docker-compose.chaos.yml up -d --wait cg-postgres-chaos cg-toxiproxy 2>/dev/null || true
+	@docker compose -f docker-compose.chaos.yml run --rm cg-toxiproxy-config 2>/dev/null || true
+	CG_CHAOS_POSTGRES_URL=postgresql+psycopg://postgres:postgres@localhost:5446/cg_chaos \
+	TOXIPROXY_API=http://localhost:8475 \
+	  python3 -m pytest tests/chaos/ -q
 
 cg-load-test:
 	CG_LOAD_TEST=1 python3 -m pytest tests/load/ -v -s
@@ -89,5 +100,5 @@ cg-postgres-test:
 	CG_POSTGRES_TEST_URL=postgresql+psycopg://postgres:postgres@localhost:5444/cg_test \
 	  python3 -m pytest tests/integration/ -q
 
-cg-proof-test: cg-spine-test cg-postgres-test cg-invariant-report cg-deploy-dry-run
-	@echo "cg-proof-test OK — institutional++ tiers 1–3, invariant report, deploy dry-run"
+cg-proof-test: cg-spine-test cg-property-test cg-postgres-test cg-invariant-report cg-deploy-dry-run
+	@echo "cg-proof-test OK — institutional++ tiers 1–3, property, invariant report, deploy dry-run"
