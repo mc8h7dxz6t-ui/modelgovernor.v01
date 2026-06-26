@@ -3,39 +3,51 @@
 **As-of:** institutional++ packaging across ModelGovernor, Finance Governor, Cybersecurity Governor.  
 **Use:** investor decks, enterprise RFPs, first-call leave-behinds.
 
+> **Read first:** [HONEST-SCOPE.md](HONEST-SCOPE.md) — canonical readiness tiers (L0–L4), what is shipped vs demo vs delisted.  
+> This is **not** twelve independent production-hardened products. It is **one spine pattern**, three governors, and a bounded wedge set.
+
 ---
 
 ## Sale readiness verdict
 
-| Motion | Ready? | Proof |
-|--------|--------|-------|
-| **Demo / first call (Mode A — single VPC)** | **Yes** | `make demo-gold`, `make cg-security-demo`, `make algofreeze-demo` |
-| **Paid pilot (Mode B — customer VPC)** | **Yes** (MG + CG + FG spine + 2 FG wedges) | K8s overlays, ESO, 45–57+ tests per spine |
-| **Production institutional++** | **Yes with wiring** | Secrets, IdP, optional S3 anchor — `PLUG-AND-PLAY.md` |
-| **Design-partner SKUs** | **Roadmap** | FG: SubledgerSync, AssetLedger, CreditGovern (spec/schema) |
+| Motion | Ready? | What’s included | Proof |
+|--------|--------|-----------------|-------|
+| **Demo / first call (Mode A)** | **Yes** | MG demo, CG security demo, 2 FG wedges | `make demo-gold`, `make cg-security-demo`, `make algofreeze-demo` |
+| **Paid pilot (Mode B)** | **Yes** | MG + CG spines; FG spine + AlgoFreeze + WireMatch | K8s overlays, ESO, Postgres CI, 55–69+ tests per spine |
+| **Production institutional++** | **With wiring** | Postgres + Redis/Sentinel + IdP + optional S3 anchor | `PLUG-AND-PLAY.md` — **not SQLite in prod** |
+| **Design-partner only** | **FG L1 wedges** | SubledgerSync, AssetLedger, CreditGovern | Spec + partial tests — no standalone production claim |
+| **Do not sell** | **L0 delisted** | MG-HEALTH, MG-ADGUARD, MG-WEBHOOK-MESH standalone | See [HONEST-SCOPE.md](HONEST-SCOPE.md) |
 
-**Cyber wedges:** six shipped (`CG-IDENTITYGATE` … `CG-CONTENTGUARD`).
-
-**Mode A rule:** Almost every “concern” in diligence is **config, buyer credential, or SOW** — not missing spine IP. See [Deployment concern matrix](#deployment-concern-matrix) below.
+**Shipped today (L4):** CG spine + **six** cyber wedges (`CG-IDENTITYGATE` … `CG-CONTENTGUARD`).  
+**Pilot-ready (L3):** MG spine + deployment overlays; FG spine.  
+**Demo-ready (L2):** `FG-ALGOFREEZE`, `FG-WIREMATCH`; MG Mode A demo.
 
 ---
 
-## Deployment concern matrix
+## Readiness tiers (summary)
 
-How buyer objections map to **Single VPC pilot (A)** vs **Multi-instance production (B)**.
+| Tier | Count (approx.) | Examples |
+|------|-----------------|----------|
+| **L4 Shipped** | 7 | CG spine + 6 platforms |
+| **L3 Pilot-ready** | 5 | MG spine, FG spine, MG staging/prod overlays |
+| **L2 Demo-ready** | 4 | MG demo, FG AlgoFreeze/WireMatch, drift/spend features inside MG |
+| **L1 Spec** | 3 | FG SubledgerSync, AssetLedger, CreditGovern |
+| **L0 Delisted** | 4+ | Health, Ad Guard, webhook mesh standalone, corp proxy-risk |
 
-| # | Concern | Mode A (single VPC) | Mode B (multi-instance) | Real blocker? |
-|---|---------|---------------------|-------------------------|---------------|
-| 2 | **Proxy** — Redis | ✅ Works | Needs `INST_REDIS_URL` / Sentinel | **No** — config |
-| 3 | **Alt-Data** — buyer feeds | ✅ Demo feed | Custom feed = mapping SOW | **Inherent** to alt-data business, not spine |
-| 4 | **AI Kit** — live LLM | ✅ Stub/trace | `--live-llm` + buyer API key | **No** — buyer credential |
-| 5 | **Webhook Mesh** — delivery | ✅ Background queue | Redis for durable delivery | **No** — config |
-| 6 | **Ad Guard** — Redis | ✅ Single instance | Redis multi-instance | **No** — config |
-| 7 | **Health** — hospital BAA | ✅ Ingest/serve/export | Signed BAA + ward go-live | **Legal/process** — template ≠ signed BAA |
-| 9 | **Drift Gate** — rolling state | ✅ File-backed state | `INST_REDIS_URL` for shared rolling | **No** — config |
-| 11 | **Spend Guard** — CI depth | ✅ CLI + gateway rigorous | K8s/Postgres compose = north star | **No for A**; compose optional |
+Full matrix: [HONEST-SCOPE.md](HONEST-SCOPE.md).
 
-**Sales line:** *“Nothing in this matrix blocks a pilot. Mode B is Redis URL, Sentinel, and your signatures — not a rebuild.”*
+---
+
+## Deployment notes (sellable paths only)
+
+| Concern | Mode A (demo VPC) | Mode B (pilot VPC) | Blocker? |
+|---------|-------------------|--------------------|----------|
+| **MG reserve/settle** | Docker + **Postgres** | Postgres + Redis/Sentinel | Config / credentials |
+| **CG authorize/commit** | Docker + Postgres | HA sidecar + Postgres | Config / IdP |
+| **FG wire / algo gate** | Demo stack | Postgres + spine wiring | Integration SOW |
+| **Alt-data / webhooks / health** | — | — | **Not standalone SKUs** (delisted or SOW-only) |
+
+**Sales line:** *“We sell one wedge or one spine — Postgres in your VPC — not a twelve-product suite.”*
 
 ---
 
@@ -139,36 +151,36 @@ How buyer objections map to **Single VPC pilot (A)** vs **Multi-instance product
 
 ## Finance Governor wedges (5)
 
-### `FG-ALGOFREEZE` ✅ Demo-ready
+### `FG-ALGOFREEZE` — **L2** demo-ready
 - **Does:** Version guard + feed heartbeat → proxy freeze before EMS/exchange egress.
 - **vs:** Exchange kill switch — **deploy SHA vs approved registry**; vs surveillance — **pre-egress**, not post-trade.
 - **Tech edge:** `FROZEN` = zero egress hard invariant; sub-100ms target; freeze events hash-chained.
 - **ROI narrative:** Knight-class ($440M) prevention.
 
-### `FG-WIREMATCH` ✅ Demo-ready
+### `FG-WIREMATCH` — **L2** demo-ready
 - **Does:** Semantic beneficiary match + `Decimal`-only amounts → HELD/REJECTED before rail.
 - **vs:** SWIFT schema tools — **intent matching**; vs AML screening — **fat-finger class**, not sanctions.
 - **Tech edge:** No float path; spine `reserve` → `settle` on funds; golden record version pinned in crystal.
 - **ROI narrative:** Citigroup-class ($900M) prevention.
 
-### `FG-SUBLEDGERSYNC` 📋 Design-partner
+### `FG-SUBLEDGERSYNC` — **L1** design-partner
 - **Does:** Intercompany match-at-clear with immutable FX snapshot hash.
 - **vs:** BlackLine — **event-driven at clear**, not month-end batch.
 - **Tech edge:** FX rate hash on every match; spine group invariant (zero orphans after sweep).
 
-### `FG-ASSETLEDGER` 📋 Design-partner
+### `FG-ASSETLEDGER` — **L1** design-partner
 - **Does:** Regulation-version-pinned daily depreciation + append-only charges.
 - **vs:** SAP FA module — **examiner-friendly chain**, not batch surprise.
 - **Tech edge:** `reg_table_version` in every charge; book value invariant.
 
-### `FG-CREDITGOVERN` 📋 Design-partner
+### `FG-CREDITGOVERN` — **L1** design-partner
 - **Does:** Reserve exposure → score → settle; fair-lending evidence binding.
 - **vs:** ValidMind — **sub-second runtime enforcement**; vs Arthur/Fiddler — **pre-score reserve**, not post drift alert.
 - **Tech edge:** ModelGovernor-proven reserve/settle/strand ported to credit exposure.
 
 ---
 
-## Cybersecurity Governor wedges (6)
+## Cybersecurity Governor wedges (6) — **all L4 shipped**
 
 ### `CG-IDENTITYGATE` ✅ Shipped
 - **Does:** `POST /session/arm` — device fingerprint + IP binding; hijack → STRANDED.
@@ -204,20 +216,21 @@ How buyer objections map to **Single VPC pilot (A)** vs **Multi-instance product
 
 ---
 
-# Extended catalog (concern matrix products)
+# Extended catalog — not separate products
 
-These share the **same spine pattern**; Mode A sale-ready per matrix above.
+**Do not sell these as standalone SKUs.** They are either **features of MG-SPINE**, **L1 demos**, or **delisted**.
 
-| # | Code (suggested) | Role | Tech edge vs market |
-|---|------------------|------|---------------------|
-| 2 | `MG-PROXY` / Spend routing | LLM proxy + governance | Reserve-before-dispatch (see MG-SPINE) |
-| 3 | `MG-ALTDATA` | Alternative data feeds | Crystal-bound ingest + demo feed; custom = SOW |
-| 4 | `MG-AIKIT` | AI dev kit / trace | Stub/trace default; live = buyer key — same ledger semantics |
-| 5 | `MG-WEBHOOK-MESH` | Durable webhook delivery | Redis streams queue; vs raw HTTP — **retry + spine audit** |
-| 6 | `MG-ADGUARD` | Ad / content guard | Policy gate before publish; Redis-backed state |
-| 7 | `MG-HEALTH` | Healthcare ingest/export | BAA template + ingest/serve; **signed BAA = buyer legal** |
-| 9 | `MG-DRIFTGATE` | Model/output drift | Rolling window + lockout; shared Redis for multi-instance |
-| 11 | `MG-SPENDGUARD` | Spend enforcement | Same as ModelGovernor core — drift + wallet lockout |
+| Code | Status | Reality |
+|------|--------|---------|
+| `MG-PROXY` / `MG-SPENDGUARD` | **MG-SPINE** | Reserve-before-dispatch — same engine, not a second product |
+| `MG-DRIFTGATE` | **MG-SPINE** | Demo step 10 — wallet lockout on drift |
+| `MG-AIKIT` | L2 | Stub/trace path inside MG; not a separate codebase |
+| `MG-ALTDATA` | L1 | Demo feed only; production = mapping SOW |
+| `MG-WEBHOOK-MESH` | **L0 delisted** | Partner relay (Svix/Hookdeck); spine audit optional |
+| `MG-ADGUARD` | **L0 delisted** | Liability / not production |
+| `MG-HEALTH` | **L0 delisted** | No DTAC/FDA path — do not pitch hospitals |
+
+Details: [HONEST-SCOPE.md](HONEST-SCOPE.md).
 
 ---
 
@@ -292,4 +305,4 @@ make wirematch-demo         # Finance wedge
 make demo-all-platforms     # Full MG SKU story
 ```
 
-Related: [plug-and-play.md](../plug-and-play.md) · [cyber-governor/PLUG-AND-PLAY.md](../../cyber-governor/PLUG-AND-PLAY.md) · [competitive-landscape.md](../finance-governor/competitive-landscape.md)
+Related: [HONEST-SCOPE.md](HONEST-SCOPE.md) · [plug-and-play.md](../plug-and-play.md) · [cyber-governor/PLUG-AND-PLAY.md](../../cyber-governor/PLUG-AND-PLAY.md) · [competitive-landscape.md](../finance-governor/competitive-landscape.md)
