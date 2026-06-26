@@ -54,7 +54,7 @@ def record_admin_action(
 
     payload_details = details or {}
     actor_roles = ",".join(sorted(ctx.roles))
-    meta_sql = ":meta" if session.bind.dialect.name == "sqlite" else ":meta::jsonb"
+    meta_sql = ":meta" if session.bind.dialect.name == "sqlite" else "CAST(:meta AS jsonb)"
     row = session.execute(
         text(
             f"""

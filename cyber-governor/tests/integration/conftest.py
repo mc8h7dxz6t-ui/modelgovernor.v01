@@ -36,11 +36,23 @@ def pg_engine() -> Engine:
 
 
 @pytest.fixture()
+def pg_settings(pg_engine, monkeypatch):
+    from app.config import Settings, get_settings
+
+    test_settings = Settings(
+        database_url=str(pg_engine.url),
+        redis_url="redis://localhost:6390/0",
+        cg_internal_tokens="test-token",
+        oidc_enabled=False,
+    )
+    get_settings.cache_clear()
+    monkeypatch.setattr("app.config.get_settings", lambda: test_settings)
+    monkeypatch.setattr("app.auth_oidc.get_settings", lambda: test_settings)
+    return test_settings
+
+
+@pytest.fixture()
 def clean_cg_tables(pg_engine: Engine):
     reset_cg_tables(pg_engine)
     yield
 
-
-@pytest.fixture()
-def pg_settings(pg_engine):
-    return cg_settings(str(pg_engine.url))

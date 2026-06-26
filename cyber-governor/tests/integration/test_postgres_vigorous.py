@@ -40,6 +40,7 @@ class TestPostgresHappyPath:
             cg_internal_tokens="test-token",
         )
         monkeypatch.setattr("app.config.get_settings", lambda: test_settings)
+        monkeypatch.setattr("app.auth_oidc.get_settings", lambda: test_settings)
 
         client = TestClient(app)
         headers = {"x-internal-token": "test-token"}
@@ -222,14 +223,14 @@ class TestPostgresLineage:
         from app.main import app
 
         override_engine(pg_engine)
-        monkeypatch.setattr(
-            "app.config.get_settings",
-            lambda: Settings(
-                database_url=str(pg_engine.url),
-                redis_url="redis://localhost:6390/0",
-                cg_internal_tokens="test-token",
-            ),
+        test_settings = Settings(
+            database_url=str(pg_engine.url),
+            redis_url="redis://localhost:6390/0",
+            cg_internal_tokens="test-token",
+            oidc_enabled=False,
         )
+        monkeypatch.setattr("app.config.get_settings", lambda: test_settings)
+        monkeypatch.setattr("app.auth_oidc.get_settings", lambda: test_settings)
         client = TestClient(app)
         headers = {"x-internal-token": "test-token"}
         r = client.post(
