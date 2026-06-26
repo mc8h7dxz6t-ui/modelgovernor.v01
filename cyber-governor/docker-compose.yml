@@ -1,6 +1,12 @@
 # Cybersecurity Governor — spine stack
 # Build context: repository root (parent of cyber-governor/)
 
+x-cg-health: &cg-health
+  interval: 5s
+  timeout: 5s
+  retries: 12
+  start_period: 40s
+
 services:
   cg-postgres:
     image: postgres:16
@@ -14,6 +20,8 @@ services:
       - cg_postgres_data:/var/lib/postgresql/data
       - ./migrations/0001_cg_spine_init.sql:/docker-entrypoint-initdb.d/0001_init.sql:ro
       - ./migrations/0002_security_anchors_lineage.sql:/docker-entrypoint-initdb.d/0002_init.sql:ro
+      - ./migrations/0003_invariant_constraints.sql:/docker-entrypoint-initdb.d/0003_init.sql:ro
+      - ./migrations/0004_admin_audit_log.sql:/docker-entrypoint-initdb.d/0004_init.sql:ro
       - ./migrations/0005_posture_content_platforms.sql:/docker-entrypoint-initdb.d/0005_init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d cybersecuritygovernor"]
@@ -41,6 +49,13 @@ services:
         condition: service_healthy
       cg-redis:
         condition: service_started
+    healthcheck:
+      <<: *cg-health
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8101/readyz', timeout=2)\"",
+        ]
 
   cg-reconciler:
     build:
@@ -68,7 +83,15 @@ services:
     ports:
       - "8100:8100"
     depends_on:
-      - cg-sidecar
+      cg-sidecar:
+        condition: service_healthy
+    healthcheck:
+      <<: *cg-health
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8100/healthz', timeout=2)\"",
+        ]
 
   cg-identity-gate:
     build:
@@ -82,7 +105,14 @@ services:
       - "8103:8103"
     depends_on:
       cg-sidecar:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      <<: *cg-health
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8103/healthz', timeout=2)\"",
+        ]
 
   cg-egress-lock:
     build:
@@ -96,7 +126,14 @@ services:
       - "8104:8104"
     depends_on:
       cg-sidecar:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      <<: *cg-health
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8104/healthz', timeout=2)\"",
+        ]
 
   cg-witness-bridge:
     build:
@@ -110,7 +147,14 @@ services:
       - "8105:8105"
     depends_on:
       cg-sidecar:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      <<: *cg-health
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8105/healthz', timeout=2)\"",
+        ]
 
   cg-lineage-ingest:
     build:
@@ -124,7 +168,14 @@ services:
       - "8106:8106"
     depends_on:
       cg-sidecar:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      <<: *cg-health
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8106/healthz', timeout=2)\"",
+        ]
 
   cg-posture-reconcile:
     build:
@@ -138,7 +189,14 @@ services:
       - "8107:8107"
     depends_on:
       cg-sidecar:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      <<: *cg-health
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8107/healthz', timeout=2)\"",
+        ]
 
   cg-content-guard:
     build:
@@ -152,7 +210,14 @@ services:
       - "8108:8108"
     depends_on:
       cg-sidecar:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      <<: *cg-health
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8108/healthz', timeout=2)\"",
+        ]
 
 volumes:
   cg_postgres_data:

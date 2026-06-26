@@ -1,10 +1,8 @@
 FROM python:3.12-slim
 WORKDIR /app/cyber-governor
-ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONPATH=/app/cyber-governor
 COPY cyber-governor/platforms/requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
 COPY cyber-governor /app/cyber-governor
-ENV PYTHONPATH=/app/cyber-governor
-WORKDIR /app/cyber-governor/platforms/posture_reconcile
 EXPOSE 8107
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8107"]
+CMD ["uvicorn", "platforms.posture_reconcile.main:app", "--host", "0.0.0.0", "--port", "8107"]

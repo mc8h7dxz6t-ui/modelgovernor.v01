@@ -6,7 +6,7 @@
 	crystal-demo algofreeze-demo wirematch-demo fg-certification \
 	fg-demo-up fg-demo-down fg-demo-gold fg-integration-test fg-load-smoke \
 	fg-prod-setup fg-aws-anchor-bucket fg-helm-template fg-helm-install \
-	cg-spine-up cg-stack-up cg-spine-down cg-stack-down cg-spine-test cg-spine-smoke \
+	cg-spine-up cg-stack-up cg-spine-down cg-stack-down cg-stack-reset cg-spine-test cg-spine-smoke \
 	threat-crystal-demo identity-gate-demo egress-lock-demo witness-bridge-demo \
 	cg-security-demo lineage-ingest-demo posture-reconcile-demo content-guard-demo \
 	cg-bootstrap cg-prod-bootstrap \
@@ -136,6 +136,9 @@ cg-spine-down:
 
 cg-stack-down:
 	$(MAKE) -C cyber-governor cg-stack-down
+
+cg-stack-reset:
+	$(MAKE) -C cyber-governor cg-stack-reset
 
 cg-spine-test:
 	$(MAKE) -C cyber-governor cg-spine-test

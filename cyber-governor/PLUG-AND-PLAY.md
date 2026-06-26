@@ -29,6 +29,13 @@ make cg-stack-up && make cg-security-demo
 
 `make cg-security-demo` **auto-starts** the stack if it is not already running (first build may take ~2 min).
 
+If platforms fail to become healthy (common after a partial or stale run):
+
+```bash
+make cg-stack-reset    # docker compose down -v, rebuild, wait for all 6 platforms
+make cg-security-demo
+```
+
 **Talk track:** [CYBER-SALES-DEMO.md](../CYBER-SALES-DEMO.md)
 
 **Verify quality gate:**

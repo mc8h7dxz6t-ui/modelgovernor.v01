@@ -1,5 +1,5 @@
 .PHONY: cg-spine-up cg-spine-down cg-spine-test cg-spine-smoke cg-spine-logs \
-	cg-stack-up cg-stack-down threat-crystal-demo cg-security-demo identity-gate-demo \
+	cg-stack-up cg-stack-down cg-stack-reset threat-crystal-demo cg-security-demo identity-gate-demo \
 	egress-lock-demo witness-bridge-demo lineage-ingest-demo posture-reconcile-demo \
 	content-guard-demo cg-deploy-dry-run cg-demo-prereq \
 	cg-postgres-test cg-proof-test cg-load-test cg-invariant-report cg-chaos-test \
@@ -14,6 +14,10 @@ cg-spine-down:
 	docker compose down
 
 cg-stack-down: cg-spine-down
+
+cg-stack-reset:
+	chmod +x scripts/cg-stack-reset.sh
+	./scripts/cg-stack-reset.sh
 
 cg-spine-logs:
 	docker compose logs -f
