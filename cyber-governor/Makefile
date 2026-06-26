@@ -38,14 +38,10 @@ cg-test-deps-check:
 	  exit 1; \
 	}
 
-cg-spine-test: cg-test-deps-check
+cg-spine-test: cg-test-deps
 	python3 -m pytest tests/ -q --ignore=tests/load/ --ignore=tests/chaos/
 
-cg-property-test: cg-test-deps-check
-	@python3 -c "import hypothesis" 2>/dev/null || { \
-	  echo "ERROR: hypothesis not installed. Run: make cg-test-deps"; \
-	  exit 1; \
-	}
+cg-property-test: cg-test-deps
 	python3 -m pytest tests/test_property_security_chain.py -q
 
 cg-chaos-test:
@@ -151,7 +147,7 @@ cg-deploy-dry-run:
 	  kustomize build --load-restrictor LoadRestrictionsNone deploy/overlays/production/ | kubectl apply --dry-run=client -f - || \
 	  echo "kubectl/kustomize not installed — skipping dry-run"
 
-cg-postgres-test: cg-test-deps-check
+cg-postgres-test: cg-test-deps
 	@docker compose -f docker-compose.test.yml up -d --wait 2>/dev/null || true
 	CG_POSTGRES_TEST_URL=postgresql+psycopg://postgres:postgres@localhost:5444/cg_test \
 	  python3 -m pytest tests/integration/ -q
