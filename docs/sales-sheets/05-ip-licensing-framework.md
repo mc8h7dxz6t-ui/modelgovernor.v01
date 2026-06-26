@@ -1,6 +1,8 @@
 # IP Licensing Framework — SKU Matrix
 
-**Purpose:** Structure intellectual-property grants for acquirers, Tier-1 carriers, MGAs, and VPC perpetual buyers. Aligns with the three governors and twelve commercial module SKUs.
+**Purpose:** Structure intellectual-property grants for acquirers, Tier-1 carriers, MGAs, and VPC perpetual buyers. Aligns with the **four governors** and twelve commercial module SKUs.
+
+**Governors:** ModelGovernor · Finance Governor · Insurance Governor · **Cybersecurity Governor**
 
 **Status:** Pre-revenue asset sale / design-partner template — legal counsel must finalize grant language.
 
@@ -11,7 +13,7 @@
 | Layer | Assets | Protection | Notes |
 |-------|--------|------------|-------|
 | **Core spine** | Reserve-before-commit ledger, hash-chained events, reconciler leader election, crystal mesh | Trade secret + copyright | Shared pattern across MG / FG / IG |
-| **Governor platforms** | ModelGovernor, Finance Governor, Insurance Governor (11 IG wedges) | Copyright + documentation |
+| **Governor platforms** | ModelGovernor, Finance Governor, Insurance Governor, **Cybersecurity Governor** (6 enforcement wedges) | Copyright + documentation |
 | **Commercial modules** | Twelve VPC SKUs (see §3) | Per-module copyright |
 | **Operations IP** | Helm charts, Kustomize overlays, CI certification tiers, attestation runners | Copyright |
 | **Brand** | ModelGovernor™, governor product names (as used in docs) | Trademark (register separately) |

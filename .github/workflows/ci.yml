@@ -508,3 +508,191 @@ jobs:
           python3 insurance-governor/scripts/publish_data_room.py
           test -f docs/insurance-governor/data-room/published/manifest.json
           python3 -c "import json; m=json.load(open('docs/insurance-governor/data-room/published/manifest.json')); assert m.get('probes_passed')==8"
+
+  cg-test-tier1:
+    name: CG Tier 1 — SQLite spine tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install CG sidecar dependencies
+        run: pip install -r cybersecurity-governor/spine/sidecar/requirements.txt pytest httpx pyyaml
+      - name: Tier 1 cybersecurity governor tests
+        run: make cg-spine-test
+
+  cg-test-tier2:
+    name: CG Tier 2 — Postgres vigorous
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: cg_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install -r cybersecurity-governor/spine/sidecar/requirements.txt
+          pip install -r cybersecurity-governor/spine/reconciler/requirements.txt
+          pip install pytest
+      - name: Apply CG migrations
+        env:
+          PGPASSWORD: postgres
+        run: |
+          for f in cybersecurity-governor/migrations/*.sql; do
+            psql -h localhost -U postgres -d cg_test -f "$f"
+          done
+      - name: Tier 2 Postgres tests
+        env:
+          POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5432/cg_test
+        run: |
+          PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor pytest \
+            cybersecurity-governor/tests/test_postgres_vigorous.py \
+            cybersecurity-governor/tests/test_postgres_reliability.py \
+            cybersecurity-governor/tests/test_migration_invariants.py \
+            cybersecurity-governor/tests/test_reconciler_leader_election.py \
+            -q
+
+  cg-validate-migrations:
+    name: CG migration invariant definitions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify CG migration bundle
+        run: PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor pytest cybersecurity-governor/tests/test_migration_invariants.py -q
+
+  cg-test-tier3:
+    name: CG Tier 3 — Load harness
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r cybersecurity-governor/spine/sidecar/requirements.txt pytest
+      - name: Load harness
+        env:
+          LOAD_WORKERS: 8
+          LOAD_OPS_PER_WORKER: 5
+        run: make cg-load-test
+
+      - name: Validate zero invariant violations in load report
+        run: |
+          python3 - <<'EOF'
+          import json
+          from pathlib import Path
+          reports = sorted(Path("cybersecurity-governor/tests/load/reports").glob("crystallize_commit_*.json"))
+          if not reports:
+              raise SystemExit("No CG load report artifact generated")
+          report = json.loads(reports[-1].read_text())
+          violations = int(report.get("invariant_violations", 0))
+          if violations:
+              raise SystemExit(f"invariant_violations={violations}")
+          print(f"Validated: {reports[-1]}")
+          EOF
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cg-load-harness-report
+          path: cybersecurity-governor/tests/load/reports/crystallize_commit_*.json
+          if-no-files-found: error
+
+  cg-validate-helm:
+    name: CG Helm chart lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - name: Helm lint cybersecuritygovernor
+        run: helm lint deploy/helm/cybersecuritygovernor -f deploy/helm/cybersecuritygovernor/values-production.yaml
+      - name: Helm template enterprise values
+        run: |
+          helm template cg deploy/helm/cybersecuritygovernor \
+            -f deploy/helm/cybersecuritygovernor/values-production.yaml \
+            -f deploy/helm/cybersecuritygovernor/values-enterprise.yaml \
+            --set secrets.create=true \
+            --namespace cybersecuritygovernor > /tmp/cg-helm-enterprise.yaml
+          wc -l /tmp/cg-helm-enterprise.yaml
+
+  cg-certification-l4:
+    name: CG L4 Gold — enterprise certification CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: azure/setup-helm@v4
+      - name: Install dependencies
+        run: |
+          pip install -r cybersecurity-governor/spine/sidecar/requirements.txt
+          pip install -r cybersecurity-governor/platforms/requirements.txt
+          pip install pytest pyyaml httpx
+      - name: L4 Gold CI gate
+        run: make cg-certification-l4-ci
+
+  cg-build-images:
+    name: CG container image build gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build CG spine and platform images
+        run: |
+          docker build -f cybersecurity-governor/spine/sidecar/Dockerfile -t cybersecuritygovernor/sidecar:ci .
+          docker build -f cybersecurity-governor/spine/reconciler/Dockerfile -t cybersecuritygovernor/reconciler:ci .
+          docker build -f cybersecurity-governor/spine/gateway/Dockerfile -t cybersecuritygovernor/gateway:ci .
+          docker build -f cybersecurity-governor/platforms/egress_govern/Dockerfile -t cybersecuritygovernor/egress-govern:ci .
+          docker build -f cybersecurity-governor/platforms/identity_govern/Dockerfile -t cybersecuritygovernor/identity-govern:ci .
+          docker build -f cybersecurity-governor/platforms/threat_proxy/Dockerfile -t cybersecuritygovernor/threat-proxy:ci .
+          docker build -f cybersecurity-governor/platforms/incident_response_gate/Dockerfile -t cybersecuritygovernor/incident-response-gate:ci .
+          docker build -f cybersecurity-governor/platforms/posture_reconcile/Dockerfile -t cybersecuritygovernor/posture-reconcile:ci .
+          docker build -f cybersecurity-governor/platforms/compliance_logger/Dockerfile -t cybersecuritygovernor/compliance-logger:ci .
+
+  cg-test-tier4-chaos:
+    name: CG Tier 4 — Toxiproxy chaos (security ops)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r cybersecurity-governor/spine/sidecar/requirements.txt
+          pip install pytest requests
+
+      - name: Start CG toxiproxy chaos stack
+        run: |
+          docker compose -f cybersecurity-governor/docker-compose.chaos.yml up -d --wait cg-postgres-chaos toxiproxy
+          docker compose -f cybersecurity-governor/docker-compose.chaos.yml run --rm toxiproxy-config
+
+      - name: Tier 4 toxiproxy security ops tests
+        env:
+          POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5436/cg_chaos
+          TOXIPROXY_API: http://localhost:8475
+        run: PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor pytest cybersecurity-governor/tests/chaos/test_toxiproxy_security_ops.py -q
+
+      - name: Tear down chaos stack
+        if: always()
+        run: docker compose -f cybersecurity-governor/docker-compose.chaos.yml down -v

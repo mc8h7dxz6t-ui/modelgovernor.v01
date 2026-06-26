@@ -1,16 +1,14 @@
 # Cybersecurity Governor — network chaos harness (Toxiproxy + Postgres).
 #
 # Usage:
-#   docker compose -f cybersecurity-governor/docker-compose.chaos.yml up -d --wait ig-postgres-chaos toxiproxy
+#   docker compose -f cybersecurity-governor/docker-compose.chaos.yml up -d --wait cg-postgres-chaos toxiproxy
 #   docker compose -f cybersecurity-governor/docker-compose.chaos.yml run --rm toxiproxy-config
 #   POSTGRES_TEST_URL=postgresql+psycopg://postgres:postgres@localhost:5436/cg_chaos \
 #     TOXIPROXY_API=http://localhost:8475 \
 #     pytest cybersecurity-governor/tests/chaos/test_toxiproxy_security_ops.py -q
-#
-# Toxiproxy API: http://localhost:8475
 
 services:
-  ig-postgres-chaos:
+  cg-postgres-chaos:
     image: postgres:16
     environment:
       POSTGRES_DB: cg_chaos
@@ -31,7 +29,7 @@ services:
       - "5436:5436"
     command: ["-host", "0.0.0.0"]
     depends_on:
-      ig-postgres-chaos:
+      cg-postgres-chaos:
         condition: service_healthy
 
   toxiproxy-config:
@@ -42,5 +40,5 @@ services:
     command:
       - |
         until curl -sf http://toxiproxy:8474/version; do sleep 1; done
-        curl -sf -X POST http://toxiproxy:8474/proxies -d '{"name":"postgres","listen":"0.0.0.0:5436","upstream":"ig-postgres-chaos:5432"}'
+        curl -sf -X POST http://toxiproxy:8474/proxies -d '{"name":"postgres","listen":"0.0.0.0:5436","upstream":"cg-postgres-chaos:5432"}'
         echo "toxiproxy postgres proxy ready on :5436"

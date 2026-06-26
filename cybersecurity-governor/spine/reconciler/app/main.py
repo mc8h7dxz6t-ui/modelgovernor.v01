@@ -27,9 +27,9 @@ def _run_audits(session) -> bool:
         assert_security_ops_invariants(session)
         return True
     except SecurityOpsInvariantError as exc:
-        get_counters().increment("claim_audit_violation_total")
+        get_counters().increment("security_audit_violation_total")
         enter_diagnostic_mode(component="reconciler", reason=str(exc))
-        logger.critical("ig spine audit failed: %s", exc)
+        logger.critical("cg spine audit failed: %s", exc)
         return False
 
 

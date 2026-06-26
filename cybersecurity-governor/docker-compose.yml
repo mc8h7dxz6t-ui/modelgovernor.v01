@@ -1,8 +1,8 @@
-# Cybersecurity Governor — spine + optional platforms
+# Cybersecurity Governor — spine + six enforcement platforms
 # Build context: repository root (parent of cybersecurity-governor/)
 
 services:
-  ig-postgres:
+  cg-postgres:
     image: postgres:16
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-cybersecuritygovernor}
@@ -15,232 +15,145 @@ services:
       - ./migrations/0001_cg_spine_init.sql:/docker-entrypoint-initdb.d/0001_init.sql:ro
       - ./migrations/0002_security_chain_anchors.sql:/docker-entrypoint-initdb.d/0002_anchors.sql:ro
       - ./migrations/0003_admin_audit_log.sql:/docker-entrypoint-initdb.d/0003_audit.sql:ro
-      - ./migrations/0004_platform_policies.sql:/docker-entrypoint-initdb.d/0004_platforms.sql:ro
-      - ./migrations/0005_platform_manifest.sql:/docker-entrypoint-initdb.d/0005_manifest.sql:ro
-      - ./migrations/0006_extended_platforms.sql:/docker-entrypoint-initdb.d/0006_extended.sql:ro
-      - ./migrations/0007_uk_us_warranty_mesh.sql:/docker-entrypoint-initdb.d/0007_mesh.sql:ro
-      - ./migrations/0008_production_state.sql:/docker-entrypoint-initdb.d/0008_state.sql:ro
-      - ./migrations/0009_gbp_ledger_uk.sql:/docker-entrypoint-initdb.d/0009_gbp.sql:ro
+      - ./migrations/0004_cg_platforms_mesh.sql:/docker-entrypoint-initdb.d/0004_mesh.sql:ro
+      - ./migrations/0005_cg_production_state.sql:/docker-entrypoint-initdb.d/0005_state.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d cybersecuritygovernor"]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  ig-redis:
+  cg-redis:
     image: redis:7
     ports:
       - "6381:6379"
 
-  ig-sidecar:
+  cg-sidecar:
     build:
       context: ..
       dockerfile: cybersecurity-governor/spine/sidecar/Dockerfile
     environment:
-      DATABASE_URL: postgresql+psycopg://postgres:postgres@ig-postgres:5432/cybersecuritygovernor
-      REDIS_URL: redis://ig-redis:6379/0
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@cg-postgres:5432/cybersecuritygovernor
+      REDIS_URL: redis://cg-redis:6379/0
       CG_INTERNAL_TOKENS: ${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}
     ports:
-      - "8101:8121"
+      - "8121:8121"
     depends_on:
-      ig-postgres:
+      cg-postgres:
         condition: service_healthy
-      ig-redis:
+      cg-redis:
         condition: service_started
 
-  ig-reconciler:
+  cg-reconciler:
     build:
       context: ..
       dockerfile: cybersecurity-governor/spine/reconciler/Dockerfile
     environment:
-      DATABASE_URL: postgresql+psycopg://postgres:postgres@ig-postgres:5432/cybersecuritygovernor
-      REDIS_URL: redis://ig-redis:6379/0
-      RECONCILER_HEALTH_PORT: 8102
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@cg-postgres:5432/cybersecuritygovernor
+      REDIS_URL: redis://cg-redis:6379/0
+      RECONCILER_HEALTH_PORT: 8122
     ports:
-      - "8102:8122"
+      - "8122:8122"
     depends_on:
-      ig-postgres:
+      cg-postgres:
         condition: service_healthy
-      ig-sidecar:
+      cg-sidecar:
         condition: service_started
 
-  ig-gateway:
+  cg-gateway:
     build:
       context: ..
       dockerfile: cybersecurity-governor/spine/gateway/Dockerfile
     environment:
-      CG_SIDECAR_URL: http://ig-sidecar:8121
+      CG_SIDECAR_URL: http://cg-sidecar:8121
       CG_INTERNAL_TOKEN: ${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}
     ports:
-      - "8100:8120"
+      - "8120:8120"
     depends_on:
-      - ig-sidecar
+      - cg-sidecar
 
-  ig-claim-gate:
+  cg-egress-govern:
     build:
       context: ..
-      dockerfile: cybersecurity-governor/platforms/claim_gate/Dockerfile
+      dockerfile: cybersecurity-governor/platforms/egress_govern/Dockerfile
     environment:
       CG_SPINE_ENABLED: ${CG_SPINE_ENABLED:-true}
-      CG_SIDECAR_URL: http://ig-sidecar:8121
+      CG_SIDECAR_URL: http://cg-sidecar:8121
       CG_INTERNAL_TOKEN: ${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}
-      CG_PLATFORM_DATABASE_URL: postgresql+psycopg://postgres:postgres@ig-postgres:5432/cybersecuritygovernor
-      PAYMENT_RAIL_MODE: ${PAYMENT_RAIL_MODE:-stub}
-      FEDNOW_API_URL: ${FEDNOW_API_URL:-}
-      CLEARINGHOUSE_API_URL: ${CLEARINGHOUSE_API_URL:-}
-      BANK_RAIL_API_TOKEN: ${BANK_RAIL_API_TOKEN:-}
     ports:
-      - "8103:8103"
+      - "8123:8123"
     depends_on:
-      ig-postgres:
-        condition: service_healthy
-      ig-sidecar:
+      cg-sidecar:
         condition: service_started
 
-  ig-bind-authority:
+  cg-identity-govern:
     build:
       context: ..
-      dockerfile: cybersecurity-governor/platforms/bind_authority/Dockerfile
+      dockerfile: cybersecurity-governor/platforms/identity_govern/Dockerfile
     environment:
       CG_SPINE_ENABLED: ${CG_SPINE_ENABLED:-true}
-      CG_SIDECAR_URL: http://ig-sidecar:8121
+      CG_SIDECAR_URL: http://cg-sidecar:8121
       CG_INTERNAL_TOKEN: ${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}
     ports:
-      - "8104:8104"
+      - "8124:8124"
     depends_on:
-      ig-sidecar:
+      cg-sidecar:
         condition: service_started
 
-  ig-parametric-oracle:
+  cg-threat-proxy:
     build:
       context: ..
-      dockerfile: cybersecurity-governor/platforms/parametric_oracle/Dockerfile
+      dockerfile: cybersecurity-governor/platforms/threat_proxy/Dockerfile
     environment:
       CG_SPINE_ENABLED: ${CG_SPINE_ENABLED:-true}
-      CG_SIDECAR_URL: http://ig-sidecar:8121
+      CG_SIDECAR_URL: http://cg-sidecar:8121
       CG_INTERNAL_TOKEN: ${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}
-      ORACLE_FEED_SOURCE: ${ORACLE_FEED_SOURCE:-usgs-feed}
-      ORACLE_FEED_MODE: ${ORACLE_FEED_MODE:-mock}
-      ORACLE_FEED_URL: ${ORACLE_FEED_URL:-}
-      ORACLE_FEED_API_KEY: ${ORACLE_FEED_API_KEY:-}
-      USGS_FEED_URL: ${USGS_FEED_URL:-}
     ports:
-      - "8105:8105"
+      - "8125:8125"
     depends_on:
-      ig-sidecar:
+      cg-sidecar:
         condition: service_started
 
-  ig-zk-claim-audit:
+  cg-incident-response-gate:
     build:
       context: ..
-      dockerfile: cybersecurity-governor/platforms/zk_claim_audit/Dockerfile
+      dockerfile: cybersecurity-governor/platforms/incident_response_gate/Dockerfile
     environment:
       CG_SPINE_ENABLED: ${CG_SPINE_ENABLED:-true}
-      CG_SIDECAR_URL: http://ig-sidecar:8121
+      CG_SIDECAR_URL: http://cg-sidecar:8121
       CG_INTERNAL_TOKEN: ${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}
-      CG_PLATFORM_DATABASE_URL: postgresql+psycopg://postgres:postgres@ig-postgres:5432/cybersecuritygovernor
     ports:
-      - "8106:8106"
+      - "8126:8126"
     depends_on:
-      ig-sidecar:
+      cg-sidecar:
         condition: service_started
 
-  ig-spatial-twin:
+  cg-posture-reconcile:
     build:
       context: ..
-      dockerfile: cybersecurity-governor/platforms/spatial_twin/Dockerfile
+      dockerfile: cybersecurity-governor/platforms/posture_reconcile/Dockerfile
     environment:
       CG_SPINE_ENABLED: ${CG_SPINE_ENABLED:-true}
-      CG_SIDECAR_URL: http://ig-sidecar:8121
+      CG_SIDECAR_URL: http://cg-sidecar:8121
       CG_INTERNAL_TOKEN: ${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}
     ports:
-      - "8107:8107"
+      - "8127:8127"
     depends_on:
-      ig-sidecar:
+      cg-sidecar:
         condition: service_started
 
-  ig-battery-liability:
+  cg-compliance-logger:
     build:
       context: ..
-      dockerfile: cybersecurity-governor/platforms/battery_liability/Dockerfile
+      dockerfile: cybersecurity-governor/platforms/compliance_logger/Dockerfile
     environment:
       CG_SPINE_ENABLED: ${CG_SPINE_ENABLED:-true}
-      CG_SIDECAR_URL: http://ig-sidecar:8121
+      CG_SIDECAR_URL: http://cg-sidecar:8121
       CG_INTERNAL_TOKEN: ${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}
     ports:
-      - "8108:8108"
+      - "8128:8128"
     depends_on:
-      ig-sidecar:
-        condition: service_started
-
-  ig-subrogation-graph:
-    build:
-      context: ..
-      dockerfile: cybersecurity-governor/platforms/subrogation_graph/Dockerfile
-    environment:
-      CG_SPINE_ENABLED: ${CG_SPINE_ENABLED:-true}
-      CG_SIDECAR_URL: http://ig-sidecar:8121
-      CG_INTERNAL_TOKEN: ${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}
-    ports:
-      - "8109:8109"
-    depends_on:
-      ig-sidecar:
-        condition: service_started
-
-  ig-indemnity-pay-gate:
-    build:
-      context: ..
-      dockerfile: cybersecurity-governor/platforms/indemnity_pay_gate/Dockerfile
-    environment:
-      CG_SPINE_ENABLED: ${CG_SPINE_ENABLED:-true}
-      CG_SIDECAR_URL: http://ig-sidecar:8121
-      CG_INTERNAL_TOKEN: ${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}
-    ports:
-      - "8110:8110"
-    depends_on:
-      ig-sidecar:
-        condition: service_started
-
-  ig-model-risk-freeze:
-    build:
-      context: ..
-      dockerfile: cybersecurity-governor/platforms/model_risk_freeze/Dockerfile
-    environment:
-      CG_SPINE_ENABLED: ${CG_SPINE_ENABLED:-true}
-      CG_SIDECAR_URL: http://ig-sidecar:8121
-      CG_INTERNAL_TOKEN: ${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}
-    ports:
-      - "8111:8111"
-    depends_on:
-      ig-sidecar:
-        condition: service_started
-
-  ig-underwriting-govern:
-    build:
-      context: ..
-      dockerfile: cybersecurity-governor/platforms/underwriting_govern/Dockerfile
-    environment:
-      CG_SPINE_ENABLED: ${CG_SPINE_ENABLED:-true}
-      CG_SIDECAR_URL: http://ig-sidecar:8121
-      CG_INTERNAL_TOKEN: ${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}
-    ports:
-      - "8112:8112"
-    depends_on:
-      ig-sidecar:
-        condition: service_started
-
-  ig-reserve-reconcile:
-    build:
-      context: ..
-      dockerfile: cybersecurity-governor/platforms/reserve_reconcile/Dockerfile
-    environment:
-      CG_SPINE_ENABLED: ${CG_SPINE_ENABLED:-true}
-      CG_SIDECAR_URL: http://ig-sidecar:8121
-      CG_INTERNAL_TOKEN: ${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}
-    ports:
-      - "8113:8113"
-    depends_on:
-      ig-sidecar:
+      cg-sidecar:
         condition: service_started
 
 volumes:

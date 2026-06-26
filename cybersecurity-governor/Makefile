@@ -13,7 +13,10 @@ cg-stack-down:
 	docker compose down
 
 cg-spine-test:
-	cd .. && python3 -m pytest cybersecurity-governor/tests/ -q
+	cd .. && PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor python3 -m pytest \
+	  cybersecurity-governor/tests/ -q \
+	  --ignore=cybersecurity-governor/tests/chaos \
+	  --ignore=cybersecurity-governor/tests/load
 
 cg-spine-smoke:
 	@echo "==> cg-sidecar health"
@@ -96,11 +99,11 @@ cg-certification-l4:
 	@echo "cg-certification-l4 complete (L4 Gold)"
 
 cg-platform-conformance:
-	cd .. && PYTHONPATH=cybersecurity-governor/spine/sidecar python3 -m pytest \
+	cd .. && PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor python3 -m pytest \
 	  cybersecurity-governor/tests/test_platform_sdk.py \
 	  cybersecurity-governor/tests/test_platform_invariant_counters.py \
-	  cybersecurity-governor/tests/test_headline_wedges.py \
-	  cybersecurity-governor/tests/test_loss_control_wedges.py -q
+	  cybersecurity-governor/tests/test_cyber_platforms.py \
+	  cybersecurity-governor/tests/test_security_mesh.py -q
 
 cg-chaos-test:
 	cd .. && POSTGRES_TEST_URL=postgresql+psycopg://postgres:postgres@localhost:5436/cg_chaos \
@@ -109,7 +112,7 @@ cg-chaos-test:
 	  python3 -m pytest cybersecurity-governor/tests/chaos/test_toxiproxy_security_ops.py -q
 
 cg-ha-up:
-	docker compose -f docker-compose.ha.yml up -d --build --scale ig-sidecar=2 --scale ig-reconciler=2
+	docker compose -f docker-compose.ha.yml up -d --build --scale cg-sidecar=2 --scale cg-reconciler=2
 
 cg-ha-down:
 	docker compose -f docker-compose.ha.yml down
@@ -145,12 +148,3 @@ cg-embedded-rehearsal:
 	  (make cg-certification || true) && \
 	  python3 cybersecurity-governor/scripts/generate_design_partner_attestation.py && \
 	  python3 cybersecurity-governor/scripts/publish_data_room.py
-
-bind-authority-demo:
-	curl -sf http://localhost:8104/healthz
-	curl -sf -X POST http://localhost:8104/bind/evaluate \
-	  -H 'content-type: application/json' \
-	  -d '{"application_id":"demo-bind-1","premium":"10000.00","limit":"500000.00"}'
-
-parametric-oracle-demo:
-	curl -sf http://localhost:8105/healthz

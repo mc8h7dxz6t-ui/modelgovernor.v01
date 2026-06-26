@@ -35,3 +35,7 @@ def test_chaos_test_exists():
 
 def test_operations_runbook_exists():
     assert (REPO / "docs/cybersecurity-governor/operations-runbook.md").is_file()
+
+
+def test_l4_security_anchor_bucket_exists():
+    assert (REPO / "deploy/infra/aws/security-anchor-bucket.yaml").is_file()

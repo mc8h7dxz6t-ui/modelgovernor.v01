@@ -22,57 +22,45 @@ def main() -> int:
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
     env = {
         **os.environ,
-        "PYTHONPATH": f"{ROOT.parent}/cybersecurity-governor/spine/sidecar:{ROOT.parent}/cybersecurity-governor",
+        "PYTHONPATH": (
+            f"{ROOT.parent}/cybersecurity-governor/spine/sidecar:"
+            f"{ROOT.parent}/cybersecurity-governor/tests:"
+            f"{ROOT.parent}/cybersecurity-governor"
+        ),
     }
     tier1 = _run(
-        [sys.executable, "-m", "pytest", "cybersecurity-governor/tests/", "-q", "--ignore=cybersecurity-governor/tests/load"],
-        env,
-    )
-    load = _run(
         [
             sys.executable,
             "-m",
             "pytest",
-            "cybersecurity-governor/tests/load/test_cg_load_harness.py",
-            "cybersecurity-governor/tests/load/test_claim_gate_production.py",
+            "cybersecurity-governor/tests/",
             "-q",
+            "--ignore=cybersecurity-governor/tests/chaos",
+            "--ignore=cybersecurity-governor/tests/load",
         ],
         env,
     )
-    platform_tests = [
-        "cybersecurity-governor/tests/test_claim_gate.py",
-        "cybersecurity-governor/tests/test_claim_gate_deep.py",
-        "cybersecurity-governor/tests/test_fnol_adapter.py",
-        "cybersecurity-governor/tests/test_fnol_writeback.py",
-        "cybersecurity-governor/tests/test_bind_authority.py",
-        "cybersecurity-governor/tests/test_parametric_oracle.py",
-        "cybersecurity-governor/tests/test_oracle_feed.py",
-        "cybersecurity-governor/tests/test_zk_claim_audit.py",
-        "cybersecurity-governor/tests/test_headline_wedges.py",
-        "cybersecurity-governor/tests/test_loss_control_wedges.py",
-        "cybersecurity-governor/tests/test_mesh_warranty.py",
-        "cybersecurity-governor/tests/test_production_integrations.py",
-        "cybersecurity-governor/tests/test_bank_rail_sandbox.py",
-    ]
-    platforms = _run(
-        [sys.executable, "-m", "pytest", *platform_tests, "-q"],
+    load = _run(
+        [sys.executable, "-m", "pytest", "cybersecurity-governor/tests/load/test_cg_load_harness.py", "-q"],
         env,
     )
+    platform_tests = [
+        "cybersecurity-governor/tests/test_cyber_platforms.py",
+        "cybersecurity-governor/tests/test_security_mesh.py",
+        "cybersecurity-governor/tests/test_platform_invariant_counters.py",
+        "cybersecurity-governor/tests/test_platform_sdk.py",
+    ]
+    platforms = _run([sys.executable, "-m", "pytest", *platform_tests, "-q"], env)
     report = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "certification_level": "L4_GOLD",
         "platforms": [
-            "claim_gate",
-            "bind_authority",
-            "parametric_oracle",
-            "zk_claim_audit",
-            "spatial_twin",
-            "battery_liability",
-            "subrogation_graph",
-            "indemnity_pay_gate",
-            "model_risk_freeze",
-            "underwriting_govern",
-            "reserve_reconcile",
+            "egress_govern",
+            "identity_govern",
+            "threat_proxy",
+            "incident_response_gate",
+            "posture_reconcile",
+            "compliance_logger",
         ],
         "tier1_exit_code": tier1.returncode,
         "tier1_summary": tier1.stdout.strip().splitlines()[-1] if tier1.stdout else "",
@@ -88,20 +76,23 @@ def main() -> int:
             "oidc_rbac": True,
             "circuit_breaker": True,
             "synthetic_canaries": True,
+            "security_enforcement_mesh_rules": 7,
         },
         "commercial": {
-            "claim_gate_depth": "policy_rules+siu+payment_rail+fnol",
-            "core_integrations": ["guidewire", "snapsheet", "majesco", "acturis", "ssp"],
-            "headline_wedges": ["zk_claim_audit", "spatial_twin", "battery_liability", "subrogation_graph"],
-            "loss_control_wedges": ["indemnity_pay_gate", "model_risk_freeze", "underwriting_govern", "reserve_reconcile"],
-            "warranty_mesh_rules": 6,
-            "jurisdictions": ["US", "UK"],
-            "production_state": "postgres_payment_idempotency+claim_commitments",
-            "live_integrations": "bank_rail+oracle_providers+istio_mtls",
-            "oracle_feed": "http_mock_and_ORACLE_FEED_URL",
-            "sales_sheet": "docs/sales-sheets/cybersecurity-governor-production.md",
-            "design_partner_doc": "docs/cybersecurity-governor/design-partner-attestation.md",
-            "data_room_redacted": "docs/cybersecurity-governor/data-room/design-partner-attestation-redacted.md",
+            "enforcement_wedges": [
+                "egress_govern",
+                "threat_proxy",
+                "posture_reconcile",
+                "identity_govern",
+                "incident_response_gate",
+                "compliance_logger",
+            ],
+            "security_mesh_rules": 7,
+            "jurisdictions": ["US"],
+            "production_state": "security_action_idempotency+siem_export_cache",
+            "live_integrations": "siem_export+threat_intel+istio_mtls",
+            "capability_matrix": "docs/cybersecurity-governor/capability-matrix.md",
+            "security_mesh_doc": "docs/cybersecurity-governor/security-enforcement-mesh.md",
         },
     }
     ts = int(datetime.now(timezone.utc).timestamp())
@@ -111,7 +102,6 @@ def main() -> int:
     out.write_text(payload)
     latest.write_text(payload)
 
-    # Augment live cluster attestation with certification hash (never create stubs)
     cluster_path = ARTIFACTS / "cluster_attestation.json"
     cert_hash = hashlib.sha256(payload.encode()).hexdigest()
     if cluster_path.is_file():

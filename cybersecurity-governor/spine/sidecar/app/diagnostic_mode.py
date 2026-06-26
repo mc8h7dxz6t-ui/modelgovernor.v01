@@ -31,7 +31,7 @@ def enter_diagnostic_mode(*, component: str, reason: str) -> None:
         first = not _local["active"]
         _local.update(active=True, component=component, reason=reason)
         if first:
-            get_counters().increment("claim_audit_diagnostic_entered_total")
+            get_counters().increment("security_audit_diagnostic_entered_total")
             logger.critical("DIAGNOSTIC MODE component=%s reason=%s", component, reason)
     client = _redis_client()
     if client:

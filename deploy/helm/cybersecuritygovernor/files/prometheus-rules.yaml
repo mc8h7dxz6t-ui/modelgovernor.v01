@@ -54,26 +54,26 @@ spec:
 
     - name: cybersecuritygovernor.invariants
       rules:
-        - alert: CybersecurityGovernorClaimChainVerificationFailed
+        - alert: CybersecurityGovernorSecurityChainVerificationFailed
           expr: increase(cybersecuritygovernor_security_chain_verification_failed_total[5m]) > 0
           labels:
             severity: critical
           annotations:
-            summary: Claim chain verification failed
+            summary: Security chain verification failed
 
         - alert: CybersecurityGovernorNegativeBalance
           expr: increase(cybersecuritygovernor_negative_balance_detected_total[5m]) > 0
           labels:
             severity: critical
           annotations:
-            summary: Negative reserve balance detected
+            summary: Negative security budget balance detected
 
-        - alert: CybersecurityGovernorClaimAuditViolation
-          expr: increase(cybersecuritygovernor_claim_audit_violation_total[5m]) > 0
+        - alert: CybersecurityGovernorSecurityAuditViolation
+          expr: increase(cybersecuritygovernor_security_audit_violation_total[5m]) > 0
           labels:
             severity: critical
           annotations:
-            summary: Post-sweep claim_ops audit violation
+            summary: Post-sweep security_ops audit violation
 
         - alert: CybersecurityGovernorGuardrailDegraded
           expr: increase(cybersecuritygovernor_guardrail_degraded_total[5m]) > 10
@@ -99,13 +99,13 @@ spec:
           annotations:
             summary: Redis dependency circuit open — crystallize fail-closed
 
-        - alert: CybersecurityGovernorClaimAnchorS3Failed
+        - alert: CybersecurityGovernorSecurityAnchorS3Failed
           expr: increase(cybersecuritygovernor_security_chain_anchor_s3_failed_total[5m]) > 0
           for: 5m
           labels:
             severity: warning
           annotations:
-            summary: S3 Object Lock claim anchor upload failed
+            summary: S3 Object Lock security anchor upload failed
 
         - alert: CybersecurityGovernorSyntheticCanaryMissing
           expr: absent(up{job="cybersecuritygovernor-sidecar"}) == 1

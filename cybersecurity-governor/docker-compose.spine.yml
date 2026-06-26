@@ -2,7 +2,7 @@
 # Usage: docker compose -f docker-compose.spine.yml up --build
 
 services:
-  ig-postgres:
+  cg-postgres:
     image: postgres:16
     environment:
       POSTGRES_DB: cybersecuritygovernor
@@ -12,53 +12,56 @@ services:
       - "5434:5432"
     volumes:
       - ./migrations/0001_cg_spine_init.sql:/docker-entrypoint-initdb.d/0001_init.sql:ro
+      - ./migrations/0002_security_chain_anchors.sql:/docker-entrypoint-initdb.d/0002_anchors.sql:ro
+      - ./migrations/0003_admin_audit_log.sql:/docker-entrypoint-initdb.d/0003_audit.sql:ro
+      - ./migrations/0004_cg_platforms_mesh.sql:/docker-entrypoint-initdb.d/0004_mesh.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d cybersecuritygovernor"]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  ig-redis:
+  cg-redis:
     image: redis:7
     ports:
       - "6381:6379"
 
-  ig-sidecar:
+  cg-sidecar:
     build:
       context: ..
       dockerfile: cybersecurity-governor/spine/sidecar/Dockerfile
     environment:
-      DATABASE_URL: postgresql+psycopg://postgres:postgres@ig-postgres:5432/cybersecuritygovernor
-      REDIS_URL: redis://ig-redis:6379/0
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@cg-postgres:5432/cybersecuritygovernor
+      REDIS_URL: redis://cg-redis:6379/0
       CG_INTERNAL_TOKENS: dev-cg-spine-token-change-me
     ports:
-      - "8101:8121"
+      - "8121:8121"
     depends_on:
-      ig-postgres:
+      cg-postgres:
         condition: service_healthy
 
-  ig-reconciler:
+  cg-reconciler:
     build:
       context: ..
       dockerfile: cybersecurity-governor/spine/reconciler/Dockerfile
     environment:
-      DATABASE_URL: postgresql+psycopg://postgres:postgres@ig-postgres:5432/cybersecuritygovernor
-      REDIS_URL: redis://ig-redis:6379/0
-      RECONCILER_HEALTH_PORT: 8102
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@cg-postgres:5432/cybersecuritygovernor
+      REDIS_URL: redis://cg-redis:6379/0
+      RECONCILER_HEALTH_PORT: 8122
     ports:
-      - "8102:8122"
+      - "8122:8122"
     depends_on:
-      ig-postgres:
+      cg-postgres:
         condition: service_healthy
 
-  ig-gateway:
+  cg-gateway:
     build:
       context: ..
       dockerfile: cybersecurity-governor/spine/gateway/Dockerfile
     environment:
-      CG_SIDECAR_URL: http://ig-sidecar:8121
+      CG_SIDECAR_URL: http://cg-sidecar:8121
       CG_INTERNAL_TOKEN: dev-cg-spine-token-change-me
     ports:
-      - "8100:8120"
+      - "8120:8120"
     depends_on:
-      - ig-sidecar
+      - cg-sidecar
