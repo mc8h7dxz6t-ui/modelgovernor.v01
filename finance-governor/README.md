@@ -76,15 +76,16 @@ make fg-spine-test         # pytest (unit/chaos; requires fg-test-deps)
 make crystal-demo          # quick CCP walkthrough
 ```
 
-**Local tests** need Python packages (CI installs these automatically):
+**Local tests** (with venv activated, deps install into that venv automatically on first run):
 
 ```bash
 cd finance-governor
-make fg-test-deps          # installs spine + pytest/hypothesis/httpx
+python3.12 -m venv .venv && source .venv/bin/activate   # recommended: match CI
+make fg-spine-test       # auto-runs fg-test-deps if pytest/fastapi missing
+# or explicitly:
+make fg-test-deps
 make fg-spine-test
 ```
-
-Use **Python 3.12** to match CI (`python3.12 -m venv .venv && source .venv/bin/activate`).
 
 All tooling lives under `finance-governor/` — **no ModelGovernor runtime dependency**.
 

@@ -87,15 +87,16 @@ make egress-lock-demo
 make witness-bridge-demo
 ```
 
-**Local tests** need Python packages (CI installs these automatically):
+**Local tests** (with venv activated, deps install into that venv automatically on first run):
 
 ```bash
 cd cyber-governor
-make cg-test-deps          # installs spine + pytest/hypothesis
+python3.12 -m venv .venv && source .venv/bin/activate   # recommended: match CI
+make cg-spine-test       # auto-runs cg-test-deps if pytest/fastapi missing
+# or explicitly:
+make cg-test-deps
 make cg-spine-test
 ```
-
-Use **Python 3.12** to match CI (`python3.12 -m venv .venv && source .venv/bin/activate`).
 
 ## Environment
 
