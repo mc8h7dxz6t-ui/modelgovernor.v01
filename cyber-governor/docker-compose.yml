@@ -1,0 +1,114 @@
+# Cybersecurity Governor — spine stack
+# Build context: repository root (parent of cyber-governor/)
+
+services:
+  cg-postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cybersecuritygovernor}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5443:5432"
+    volumes:
+      - cg_postgres_data:/var/lib/postgresql/data
+      - ./migrations/0001_cg_spine_init.sql:/docker-entrypoint-initdb.d/0001_init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d cybersecuritygovernor"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  cg-redis:
+    image: redis:7
+    ports:
+      - "6390:6379"
+
+  cg-sidecar:
+    build:
+      context: ..
+      dockerfile: cyber-governor/spine/sidecar/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@cg-postgres:5432/cybersecuritygovernor
+      REDIS_URL: redis://cg-redis:6379/0
+      CG_INTERNAL_TOKENS: ${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}
+    ports:
+      - "8101:8101"
+    depends_on:
+      cg-postgres:
+        condition: service_healthy
+      cg-redis:
+        condition: service_started
+
+  cg-reconciler:
+    build:
+      context: ..
+      dockerfile: cyber-governor/spine/reconciler/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@cg-postgres:5432/cybersecuritygovernor
+      REDIS_URL: redis://cg-redis:6379/0
+      RECONCILER_HEALTH_PORT: 8102
+    ports:
+      - "8102:8102"
+    depends_on:
+      cg-postgres:
+        condition: service_healthy
+      cg-sidecar:
+        condition: service_started
+
+  cg-gateway:
+    build:
+      context: ..
+      dockerfile: cyber-governor/spine/gateway/Dockerfile
+    environment:
+      CG_SIDECAR_URL: http://cg-sidecar:8101
+      CG_INTERNAL_TOKEN: ${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}
+    ports:
+      - "8100:8100"
+    depends_on:
+      - cg-sidecar
+
+  cg-identity-gate:
+    build:
+      context: ..
+      dockerfile: cyber-governor/platforms/identity_gate/Dockerfile
+    environment:
+      CG_SPINE_ENABLED: ${CG_SPINE_ENABLED:-true}
+      CG_SIDECAR_URL: http://cg-sidecar:8101
+      CG_INTERNAL_TOKEN: ${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}
+    ports:
+      - "8103:8103"
+    depends_on:
+      cg-sidecar:
+        condition: service_started
+
+  cg-egress-lock:
+    build:
+      context: ..
+      dockerfile: cyber-governor/platforms/egress_lock/Dockerfile
+    environment:
+      CG_SPINE_ENABLED: ${CG_SPINE_ENABLED:-true}
+      CG_SIDECAR_URL: http://cg-sidecar:8101
+      CG_INTERNAL_TOKEN: ${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}
+    ports:
+      - "8104:8104"
+    depends_on:
+      cg-sidecar:
+        condition: service_started
+
+  cg-witness-bridge:
+    build:
+      context: ..
+      dockerfile: cyber-governor/platforms/witness_bridge/Dockerfile
+    environment:
+      CG_SPINE_ENABLED: ${CG_SPINE_ENABLED:-true}
+      CG_SIDECAR_URL: http://cg-sidecar:8101
+      CG_INTERNAL_TOKEN: ${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}
+    ports:
+      - "8105:8105"
+    depends_on:
+      cg-sidecar:
+        condition: service_started
+
+volumes:
+  cg_postgres_data:

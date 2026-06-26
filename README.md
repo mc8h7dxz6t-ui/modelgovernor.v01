@@ -38,6 +38,26 @@ The **Finance Governor** ecosystem adapts this repository's institutional++ spin
 - [Code-driven finance fixes (deep dive)](docs/finance-governor/code-driven-fixes.md)
 - [Platform vision](docs/finance-governor/README.md)
 
+## Cybersecurity Governor (platform design)
+
+The **Cybersecurity Governor** ecosystem adapts the institutional++ spine for security operations — closing **The Shadow Gap** (time-skew, ephemeral erasure, log mutation) with the **Threat Crystal Protocol (TCP)**:
+
+| Platform | Problem |
+|----------|---------|
+| **IdentityGate** | Session hijack / token binding mismatch |
+| **EgressLock** | Ungoverned data exfiltration |
+| **WitnessBridge** | Log erasure / telemetry silence |
+
+- [Platform vision](docs/cyber-governor/README.md)
+- [Cybersecurity Governor spine](docs/cyber-governor/spine.md) — own gateway/sidecar/reconciler (`cyber-governor/`)
+- [Threat Crystal Protocol](docs/cyber-governor/threat-crystal-protocol.md)
+- [Integrations — Okta, CloudTrail, generic](docs/cyber-governor/integrations.md)
+- [Standalone vs spine deployment](docs/cyber-governor/platform-model.md)
+
+```bash
+make cg-stack-up && make cg-spine-test && make threat-crystal-demo
+```
+
 ## What this repository demonstrates
 
 - Reserve-before-dispatch governance semantics
@@ -207,6 +227,8 @@ tests/
     finance_governor/                # CreditGovern — credit decision wedge (design)
     finance_ops_finals/              # AI Finance Ops Finals for LLMs
     cost_attribution_accountability/ # AI Cost Attribution & Agent Accountability
+finance-governor/                    # Finance Governor spine + platforms
+cyber-governor/                      # Cybersecurity Governor spine + platforms
   integration/
     conftest.py         # Postgres session fixtures
     test_postgres_vigorous.py

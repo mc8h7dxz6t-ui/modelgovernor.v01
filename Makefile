@@ -3,7 +3,9 @@
 	demo-all-platforms demo-all-platforms-live demo-all-platforms-manifests demo-all-platforms-proof \
 	demo-prereqs demo-prereqs-install proof-test load-test \
 	fg-spine-up fg-stack-up fg-spine-down fg-stack-down fg-spine-test fg-spine-smoke \
-	crystal-demo algofreeze-demo wirematch-demo
+	crystal-demo algofreeze-demo wirematch-demo \
+	cg-spine-up cg-stack-up cg-spine-down cg-stack-down cg-spine-test cg-spine-smoke \
+	threat-crystal-demo identity-gate-demo egress-lock-demo witness-bridge-demo
 
 demo-prereqs:
 	./scripts/install-demo-prereqs.sh --check-only
@@ -86,3 +88,33 @@ algofreeze-demo:
 
 wirematch-demo:
 	$(MAKE) -C finance-governor wirematch-demo
+
+cg-spine-up:
+	$(MAKE) -C cyber-governor cg-spine-up
+
+cg-stack-up:
+	$(MAKE) -C cyber-governor cg-stack-up
+
+cg-spine-down:
+	$(MAKE) -C cyber-governor cg-spine-down
+
+cg-stack-down:
+	$(MAKE) -C cyber-governor cg-stack-down
+
+cg-spine-test:
+	$(MAKE) -C cyber-governor cg-spine-test
+
+cg-spine-smoke:
+	$(MAKE) -C cyber-governor cg-spine-smoke
+
+threat-crystal-demo:
+	$(MAKE) -C cyber-governor threat-crystal-demo
+
+identity-gate-demo:
+	$(MAKE) -C cyber-governor identity-gate-demo
+
+egress-lock-demo:
+	$(MAKE) -C cyber-governor egress-lock-demo
+
+witness-bridge-demo:
+	$(MAKE) -C cyber-governor witness-bridge-demo
