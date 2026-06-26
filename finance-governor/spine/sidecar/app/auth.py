@@ -1,11 +1,4 @@
-from __future__ import annotations
+"""Internal auth — delegates to Finance Governor OIDC RBAC layer."""
+from .auth_oidc import AuthContext, require_financial_admin, require_internal_auth
 
-from fastapi import Header, HTTPException, status
-
-from .config import get_settings
-
-
-def require_internal_auth(x_internal_token: str | None = Header(default=None, alias="x-internal-token")) -> None:
-    tokens = {t.strip() for t in get_settings().fg_internal_tokens.split(",") if t.strip()}
-    if not x_internal_token or x_internal_token not in tokens:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid internal token")
+__all__ = ["AuthContext", "require_financial_admin", "require_internal_auth"]

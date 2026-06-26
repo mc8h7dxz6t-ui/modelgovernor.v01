@@ -1,9 +1,11 @@
 from decimal import Decimal
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+import httpx
+from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
+from .auth_oidc import GatewayAuthContext, require_governed_auth
 from .config import get_settings
 from .governance import execute_governed_commit
 
@@ -27,7 +29,18 @@ def healthz() -> dict:
     return {"status": "ok"}
 
 
-@app.post("/governed/commit")
+@app.get("/readyz")
+def readyz() -> dict:
+    settings = get_settings()
+    try:
+        response = httpx.get(f"{settings.fg_sidecar_url.rstrip('/')}/readyz", timeout=2.0)
+        response.raise_for_status()
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=503, detail="sidecar unavailable") from exc
+    return {"status": "ready"}
+
+
+@app.post("/governed/commit", dependencies=[Depends(require_governed_auth)])
 def governed_commit(request: GovernedCommitRequest) -> dict:
     try:
         return execute_governed_commit(

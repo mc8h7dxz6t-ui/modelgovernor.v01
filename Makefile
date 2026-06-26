@@ -3,10 +3,13 @@
 	demo-all-platforms demo-all-platforms-live demo-all-platforms-manifests demo-all-platforms-proof \
 	demo-prereqs demo-prereqs-install proof-test load-test \
 	fg-spine-up fg-stack-up fg-spine-down fg-stack-down fg-spine-test fg-spine-smoke \
-	crystal-demo algofreeze-demo wirematch-demo \
+	crystal-demo algofreeze-demo wirematch-demo fg-certification \
+	fg-demo-up fg-demo-down fg-demo-gold fg-integration-test fg-load-smoke \
+	fg-prod-setup fg-aws-anchor-bucket fg-helm-template fg-helm-install \
 	cg-spine-up cg-stack-up cg-spine-down cg-stack-down cg-spine-test cg-spine-smoke \
 	threat-crystal-demo identity-gate-demo egress-lock-demo witness-bridge-demo \
-	cg-security-demo lineage-ingest-demo cg-bootstrap cg-prod-bootstrap
+	cg-security-demo lineage-ingest-demo cg-bootstrap cg-prod-bootstrap \
+	cg-postgres-test cg-proof-test cg-deploy-dry-run
 
 demo-prereqs:
 	./scripts/install-demo-prereqs.sh --check-only
@@ -90,6 +93,37 @@ algofreeze-demo:
 wirematch-demo:
 	$(MAKE) -C finance-governor wirematch-demo
 
+fg-certification:
+	$(MAKE) -C finance-governor fg-certification
+
+fg-demo-up:
+	$(MAKE) -C finance-governor fg-demo-up
+
+fg-demo-down:
+	$(MAKE) -C finance-governor fg-demo-down
+
+fg-demo-gold:
+	$(MAKE) -C finance-governor fg-demo-gold
+
+fg-integration-test:
+	$(MAKE) -C finance-governor fg-integration-test
+
+fg-load-smoke:
+	$(MAKE) -C finance-governor fg-load-smoke
+
+fg-prod-setup:
+	$(MAKE) -C finance-governor fg-prod-setup
+
+fg-aws-anchor-bucket:
+	$(MAKE) -C finance-governor fg-aws-anchor-bucket
+
+fg-helm-template:
+	$(MAKE) -C finance-governor fg-helm-template
+
+fg-helm-install:
+	$(MAKE) -C finance-governor fg-helm-install
+
+# Cybersecurity Governor spine
 cg-spine-up:
 	$(MAKE) -C cyber-governor cg-spine-up
 

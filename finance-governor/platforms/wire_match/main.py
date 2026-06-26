@@ -1,14 +1,18 @@
 """WireMatch gate API."""
 from __future__ import annotations
 
+import hashlib
+import logging
 import os
 from decimal import Decimal
 
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-from .semantic_matcher import GoldenRecord, evaluate_wire
+from .semantic_matcher import GOLDEN_RECORD_VERSION, GoldenRecord, evaluate_wire
 from .wire_schema import WireRequest
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="wirematch", version="0.1.0")
 
@@ -43,9 +47,11 @@ def evaluate(wire: WireRequest) -> EvaluateResponse:
     )
     facets = {
         "amount": wire.amount,
-        "currency": wire.currency,
-        "beneficiary_hash": wire.beneficiary_account,
-        "semantic_score": result.score,
+        "amount_quantum": wire.amount,
+        "currency": wire.currency.upper(),
+        "beneficiary_hash": hashlib.sha256(wire.beneficiary_account.encode()).hexdigest(),
+        "semantic_match_score": result.score,
+        "golden_record_version": GOLDEN_RECORD_VERSION,
     }
     crystal_id = _crystallize_if_spine(wire.wire_id, facets, approved=result.approved)
 
@@ -82,5 +88,6 @@ def _crystallize_if_spine(operation_id: str, facets: dict, *, approved: bool) ->
                 )
             )
         return crystal.crystal_id
-    except Exception:
+    except Exception as exc:
+        logger.warning("spine crystallize/commit failed operation=%s: %s", operation_id, exc)
         return None

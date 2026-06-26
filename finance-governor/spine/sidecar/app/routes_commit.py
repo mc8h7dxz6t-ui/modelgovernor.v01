@@ -18,6 +18,7 @@ def commit(request: CommitRequest) -> CommitResponse:
         with get_db_session() as session:
             result = commit_operation(
                 session,
+                get_settings(),
                 crystal_id=request.crystal_id,
                 facets=request.facets,
                 committed_exposure=request.committed_exposure,

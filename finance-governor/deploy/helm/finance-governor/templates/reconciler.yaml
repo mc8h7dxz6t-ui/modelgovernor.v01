@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fg-reconciler
+  namespace: {{ include "fg.namespace" . }}
+  labels:
+    {{- include "fg.labels" . | nindent 4 }}
+    app.kubernetes.io/component: reconciler
+spec:
+  replicas: {{ .Values.replicas.reconciler }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: reconciler
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: reconciler
+        {{- include "fg.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: reconciler
+          image: {{ .Values.image.reconciler }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 8092
+          env:
+            - name: POSTGRES_USER
+              value: {{ .Values.postgres.user | quote }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "fg.secretName" . }}
+                  key: postgres-password
+            - name: DATABASE_URL
+              value: postgresql+psycopg://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@fg-postgres:5432/{{ .Values.postgres.database }}
+            - name: REDIS_URL
+              value: redis://fg-redis:6379/0
+            - name: RECONCILER_HEALTH_PORT
+              value: "8092"
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8092
+            initialDelaySeconds: 8

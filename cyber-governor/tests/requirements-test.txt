@@ -1,4 +1,3 @@
-cyber-governor/tests/requirements-test.txt
 # Test-only dependencies (CI + local proof gates)
 pytest>=8.0
 hypothesis>=6.100

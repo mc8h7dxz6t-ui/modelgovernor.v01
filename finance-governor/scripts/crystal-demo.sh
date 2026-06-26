@@ -56,5 +56,9 @@ step 6 "Recent spine events"
 curl -sf -H "x-internal-token: $TOKEN" \
   "$SIDECAR/internal/events/recent?limit=5" | python3 -m json.tool
 
+step 7 "Decision chain verify (tamper-evident audit)"
+curl -sf -H "x-internal-token: $TOKEN" \
+  "$SIDECAR/internal/decisions/verify-chain" | python3 -m json.tool
+
 echo ""
 echo "crystal-demo complete — No commit without a Crystal."

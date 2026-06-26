@@ -13,6 +13,7 @@ services:
     volumes:
       - fg_postgres_data:/var/lib/postgresql/data
       - ./migrations/0001_fg_spine_init.sql:/docker-entrypoint-initdb.d/0001_init.sql:ro
+      - ./migrations/0002_fg_hardening.sql:/docker-entrypoint-initdb.d/0002_hardening.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d financegovernor"]
       interval: 5s
@@ -92,6 +93,48 @@ services:
       FG_INTERNAL_TOKEN: ${FG_INTERNAL_TOKENS:-dev-fg-spine-token-change-me}
     ports:
       - "8094:8094"
+    depends_on:
+      fg-sidecar:
+        condition: service_started
+
+  fg-subledger:
+    build:
+      context: ..
+      dockerfile: finance-governor/platforms/subledger_sync/Dockerfile
+    environment:
+      FG_SPINE_ENABLED: ${FG_SPINE_ENABLED:-true}
+      FG_SIDECAR_URL: http://fg-sidecar:8091
+      FG_INTERNAL_TOKEN: ${FG_INTERNAL_TOKENS:-dev-fg-spine-token-change-me}
+    ports:
+      - "8095:8095"
+    depends_on:
+      fg-sidecar:
+        condition: service_started
+
+  fg-assetledger:
+    build:
+      context: ..
+      dockerfile: finance-governor/platforms/asset_ledger/Dockerfile
+    environment:
+      FG_SPINE_ENABLED: ${FG_SPINE_ENABLED:-true}
+      FG_SIDECAR_URL: http://fg-sidecar:8091
+      FG_INTERNAL_TOKEN: ${FG_INTERNAL_TOKENS:-dev-fg-spine-token-change-me}
+    ports:
+      - "8096:8096"
+    depends_on:
+      fg-sidecar:
+        condition: service_started
+
+  fg-creditgovern:
+    build:
+      context: ..
+      dockerfile: finance-governor/platforms/credit_govern/Dockerfile
+    environment:
+      FG_SPINE_ENABLED: ${FG_SPINE_ENABLED:-true}
+      FG_SIDECAR_URL: http://fg-sidecar:8091
+      FG_INTERNAL_TOKEN: ${FG_INTERNAL_TOKENS:-dev-fg-spine-token-change-me}
+    ports:
+      - "8097:8097"
     depends_on:
       fg-sidecar:
         condition: service_started
