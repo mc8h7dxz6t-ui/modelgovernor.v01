@@ -14,6 +14,7 @@ services:
       - cg_postgres_data:/var/lib/postgresql/data
       - ./migrations/0001_cg_spine_init.sql:/docker-entrypoint-initdb.d/0001_init.sql:ro
       - ./migrations/0002_security_anchors_lineage.sql:/docker-entrypoint-initdb.d/0002_init.sql:ro
+      - ./migrations/0005_posture_content_platforms.sql:/docker-entrypoint-initdb.d/0005_init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d cybersecuritygovernor"]
       interval: 5s
@@ -121,6 +122,34 @@ services:
       CG_INTERNAL_TOKEN: ${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}
     ports:
       - "8106:8106"
+    depends_on:
+      cg-sidecar:
+        condition: service_started
+
+  cg-posture-reconcile:
+    build:
+      context: ..
+      dockerfile: cyber-governor/platforms/posture_reconcile/Dockerfile
+    environment:
+      CG_SPINE_ENABLED: ${CG_SPINE_ENABLED:-true}
+      CG_SIDECAR_URL: http://cg-sidecar:8101
+      CG_INTERNAL_TOKEN: ${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}
+    ports:
+      - "8107:8107"
+    depends_on:
+      cg-sidecar:
+        condition: service_started
+
+  cg-content-guard:
+    build:
+      context: ..
+      dockerfile: cyber-governor/platforms/content_guard/Dockerfile
+    environment:
+      CG_SPINE_ENABLED: ${CG_SPINE_ENABLED:-true}
+      CG_SIDECAR_URL: http://cg-sidecar:8101
+      CG_INTERNAL_TOKEN: ${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}
+    ports:
+      - "8108:8108"
     depends_on:
       cg-sidecar:
         condition: service_started

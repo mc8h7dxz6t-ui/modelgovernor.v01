@@ -8,7 +8,8 @@
 	fg-prod-setup fg-aws-anchor-bucket fg-helm-template fg-helm-install \
 	cg-spine-up cg-stack-up cg-spine-down cg-stack-down cg-spine-test cg-spine-smoke \
 	threat-crystal-demo identity-gate-demo egress-lock-demo witness-bridge-demo \
-	cg-security-demo lineage-ingest-demo cg-bootstrap cg-prod-bootstrap \
+	cg-security-demo lineage-ingest-demo posture-reconcile-demo content-guard-demo \
+	cg-bootstrap cg-prod-bootstrap \
 	cg-postgres-test cg-proof-test cg-deploy-dry-run
 
 demo-prereqs:
@@ -159,6 +160,12 @@ cg-security-demo:
 
 lineage-ingest-demo:
 	$(MAKE) -C cyber-governor lineage-ingest-demo
+
+posture-reconcile-demo:
+	$(MAKE) -C cyber-governor posture-reconcile-demo
+
+content-guard-demo:
+	$(MAKE) -C cyber-governor content-guard-demo
 
 cg-postgres-test:
 	$(MAKE) -C cyber-governor cg-postgres-test

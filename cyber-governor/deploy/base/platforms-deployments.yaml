@@ -177,3 +177,93 @@ spec:
   ports:
     - port: 8106
       targetPort: 8106
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cg-posture-reconcile
+  namespace: cybersecuritygovernor
+  labels:
+    app: cg-posture-reconcile
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cg-posture-reconcile
+  template:
+    metadata:
+      labels:
+        app: cg-posture-reconcile
+    spec:
+      containers:
+        - name: cg-posture-reconcile
+          image: cybersecuritygovernor/posture-reconcile:latest
+          ports:
+            - containerPort: 8107
+          env:
+            - name: CG_SPINE_ENABLED
+              value: "true"
+            - name: CG_SIDECAR_URL
+              value: "http://cg-sidecar:8101"
+            - name: CG_INTERNAL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cybersecuritygovernor-secrets
+                  key: cg-internal-tokens
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cg-posture-reconcile
+  namespace: cybersecuritygovernor
+spec:
+  selector:
+    app: cg-posture-reconcile
+  ports:
+    - port: 8107
+      targetPort: 8107
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cg-content-guard
+  namespace: cybersecuritygovernor
+  labels:
+    app: cg-content-guard
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cg-content-guard
+  template:
+    metadata:
+      labels:
+        app: cg-content-guard
+    spec:
+      containers:
+        - name: cg-content-guard
+          image: cybersecuritygovernor/content-guard:latest
+          ports:
+            - containerPort: 8108
+          env:
+            - name: CG_SPINE_ENABLED
+              value: "true"
+            - name: CG_SIDECAR_URL
+              value: "http://cg-sidecar:8101"
+            - name: CG_INTERNAL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cybersecuritygovernor-secrets
+                  key: cg-internal-tokens
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cg-content-guard
+  namespace: cybersecuritygovernor
+spec:
+  selector:
+    app: cg-content-guard
+  ports:
+    - port: 8108
+      targetPort: 8108

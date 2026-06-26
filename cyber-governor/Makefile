@@ -1,6 +1,7 @@
 .PHONY: cg-spine-up cg-spine-down cg-spine-test cg-spine-smoke cg-spine-logs \
 	cg-stack-up cg-stack-down threat-crystal-demo cg-security-demo identity-gate-demo \
-	egress-lock-demo witness-bridge-demo lineage-ingest-demo cg-deploy-dry-run \
+	egress-lock-demo witness-bridge-demo lineage-ingest-demo posture-reconcile-demo \
+	content-guard-demo cg-deploy-dry-run \
 	cg-postgres-test cg-proof-test cg-load-test cg-invariant-report cg-chaos-test \
 	cg-property-test cg-bootstrap cg-prod-bootstrap
 
@@ -98,6 +99,24 @@ lineage-ingest-demo:
 	  -H 'content-type: application/json' \
 	  -d '{"rule":"Terminal shell in container","priority":"Critical","output_fields":{"proc.name":"bash","user.name":"root"}}'
 	@echo "\nlineage-ingest-demo OK"
+
+posture-reconcile-demo:
+	@echo "==> PostureReconcile health"
+	curl -sf http://localhost:8107/healthz
+	@echo "\n==> critical posture drift STRANDED"
+	curl -sf -X POST http://localhost:8107/posture/evaluate \
+	  -H 'content-type: application/json' \
+	  -d '{"evaluation_id":"demo-pr-1","resource_id":"eks-dr","posture_score":72,"failed_controls":["public_s3_bucket"]}'
+	@echo "\nposture-reconcile-demo OK"
+
+content-guard-demo:
+	@echo "==> ContentGuard health"
+	curl -sf http://localhost:8108/healthz
+	@echo "\n==> API key leak BLOCKED"
+	curl -sf -X POST http://localhost:8108/content/evaluate \
+	  -H 'content-type: application/json' \
+	  -d '{"content_id":"demo-cg-1","principal_id":"alice@corp.example","text_body":"key sk-abcdefghijklmnopqrstuvwxyz123456","classification_hint":"restricted"}'
+	@echo "\ncontent-guard-demo OK"
 
 cg-deploy-dry-run:
 	@command -v kubectl >/dev/null && command -v kustomize >/dev/null && \

@@ -62,3 +62,41 @@ def test_mesh_blocks_egress_when_identity_stranded(client, spine_db):
     )
     assert blocked.status_code == 409
     assert "mesh" in blocked.json()["detail"].lower()
+
+
+def test_mesh_blocks_egress_when_posture_stranded(client, spine_db):
+    with spine_db.begin() as conn:
+        conn.execute(
+            text(
+                """
+                INSERT INTO threat_crystals (
+                    crystal_id, platform, operation_id, risk_tier, facets,
+                    request_fingerprint, crystal_hash, horizon_expires_at, terminal_state
+                ) VALUES (
+                    'tcrys_mesh_posture', 'posture_reconcile', 'post-1', 'high',
+                    :facets, 'fp', 'hashp', datetime('now', '+1 hour'), NULL
+                )
+                """
+            ),
+            {"facets": json.dumps({"posture_state": "STRANDED"})},
+        )
+
+    egress_facets = {"destination": "s3://corp", "byte_count": 100}
+    cr = client.post(
+        "/crystallize",
+        headers=HEADERS,
+        json={
+            "platform": "egress_lock",
+            "operation_id": "eg-posture-mesh-1",
+            "risk_tier": "critical",
+            "facets": egress_facets,
+        },
+    )
+    crystal_id = cr.json()["crystal_id"]
+    blocked = client.post(
+        "/commit",
+        headers=HEADERS,
+        json={"crystal_id": crystal_id, "facets": egress_facets, "outcome": "allowed"},
+    )
+    assert blocked.status_code == 409
+    assert "mesh" in blocked.json()["detail"].lower()

@@ -35,6 +35,8 @@ Use in RFPs, SOC 2 questionnaires, and CISO diligence.
 | DB invariant CHECK constraints | ✅ |
 | Toxiproxy chaos harness | ✅ |
 | Hypothesis property tests (hash chain) | ✅ |
+| PostureReconcile (CNAPP/K8s baseline gate) | ✅ |
+| ContentGuard (pre-publish PII/secret gate) | ✅ |
 | K8s staging/production overlays + ESO | ✅ |
 | Auto-generated secrets (`cg-bootstrap`) | ✅ |
 | OIDC RBAC (privileged paths) | ✅ sidecar + gateway |

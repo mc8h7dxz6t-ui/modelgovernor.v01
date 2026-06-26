@@ -49,4 +49,16 @@ echo ""
 echo "8) Recent security events"
 curl -sf -H "x-internal-token: $TOKEN" "$SIDECAR/internal/events/recent?limit=8"
 echo ""
+
+echo "9) Posture drift → STRANDED"
+curl -sf -X POST http://localhost:8107/posture/evaluate \
+  -H 'content-type: application/json' \
+  -d '{"evaluation_id":"tcp-demo-posture","resource_id":"eks-dr","posture_score":65,"failed_controls":["public_s3_bucket"]}'
+echo ""
+
+echo "10) ContentGuard secret leak → BLOCKED"
+curl -sf -X POST http://localhost:8108/content/evaluate \
+  -H 'content-type: application/json' \
+  -d '{"content_id":"tcp-demo-content","principal_id":"alice@corp.example","text_body":"leaked sk-abcdefghijklmnopqrstuvwxyz123456","classification_hint":"restricted"}'
+echo ""
 echo "cg-security-demo OK"

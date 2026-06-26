@@ -20,6 +20,9 @@ No security surprise is allowed to authorize without a **Threat Crystal**:
 | [IdentityGate](../../cyber-governor/platforms/identity_gate/) | Session hijack / token binding mismatch | ✅ |
 | [EgressLock](../../cyber-governor/platforms/egress_lock/) | Ungoverned data exfiltration | ✅ |
 | [WitnessBridge](../../cyber-governor/platforms/witness_bridge/) | Log erasure / telemetry silence | ✅ |
+| [LineageIngest](../../cyber-governor/platforms/lineage_ingest/) | Structural lineage / CNAPP adjacency | ✅ |
+| [PostureReconcile](platforms/posture-reconcile.md) | Posture drift at authorize time | ✅ |
+| [ContentGuard](platforms/content-guard.md) | Ungoverned sensitive publish | ✅ |
 
 **Optional spine** (gateway :8100 + ledger sidecar :8101 + reconciler :8102) unifies TCP, audit, Threat Mesh, and forensic export.
 

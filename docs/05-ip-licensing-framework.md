@@ -23,18 +23,28 @@ Canonical licensing map for ModelGovernor, Finance Governor, and Cybersecurity G
 | `MG-PLATFORM-DEMO` through `MG-ADDON-ENTERPRISE-SECURITY` | ModelGovernor deployment SKUs | Per deployment mode |
 | `FG-ALGOFREEZE` … `FG-CREDITGOVERN` | Finance wedges | Per use-case |
 | `CG-IDENTITYGATE` … `CG-LINEAGEINGEST` | Cyber wedges | Per use-case |
+| `CG-POSTURERECONCILE`, `CG-CONTENTGUARD` | Cyber wedges (posture + content) | Per use-case |
 
 ## Cybersecurity Governor — licensable differentiators
 
-These are **real shipped mechanisms** (branch `cursor/cyber-governor-spine-c8d6`), not roadmap names:
+These are **real shipped mechanisms** on `main`, not roadmap names:
 
-1. **TCP** — crystallize-before-authorize on identity, egress, witness, lineage
+1. **TCP** — crystallize-before-authorize on identity, egress, witness, lineage, posture, content
 2. **Threat Mesh** — cross-platform invariants (STRANDED session blocks egress commit)
 3. **Witness quorum** — S3 Object Lock anchor + `security_chain_anchors`
 4. **Lineage DAG** — structural parent/child edges (Falco/Tetragon/generic)
 5. **Shadow Gap closure** — time-skew (hash chain), erasure (witness), mutation (anchor)
 
-**Not licensed as separate products (SKU names only):** PostureReconcile, ContentGuard — integrate via future wedges or partner SOW.
+## Cybersecurity Governor — licensable wedges (6)
+
+| Code | Platform | Status |
+|------|----------|--------|
+| `CG-IDENTITYGATE` | Session arm + device binding | ✅ Shipped |
+| `CG-EGRESSLOCK` | Egress evaluate gate | ✅ Shipped |
+| `CG-WITNESSBRIDGE` | Witness ingest + erasure detect | ✅ Shipped |
+| `CG-LINEAGEINGEST` | Lineage DAG ingest | ✅ Shipped |
+| `CG-POSTURERECONCILE` | Posture vs baseline at authorize | ✅ Shipped |
+| `CG-CONTENTGUARD` | Pre-publish content gate | ✅ Shipped |
 
 ## Open-source vs commercial boundary
 
