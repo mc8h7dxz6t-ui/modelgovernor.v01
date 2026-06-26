@@ -71,7 +71,7 @@ Platforms work with **most systems** via:
 | `platforms/common/integrations.py` | ✅ Okta / CloudTrail / generic normalizer |
 | Spine services (gateway/sidecar/reconciler) | ✅ |
 | IdentityGate, EgressLock, WitnessBridge | ✅ |
-| Integration tests | ✅ 25+ unit tests |
+| Integration tests | ✅ 47+ unit + property tests |
 | Witness quorum (S3 anchors) | ✅ |
 | Lineage ingest (Falco/Tetragon) | ✅ |
 | K8s deploy kit | ✅ `deploy/base/` |
@@ -90,6 +90,13 @@ make witness-bridge-demo
 
 ```bash
 cp .env.example .env
+# Or auto-generate secure tokens:
+make cg-bootstrap
+```
+
+**Plug-and-play guide:** [PLUG-AND-PLAY.md](PLUG-AND-PLAY.md) · **Production hardening:** [docs/cyber-governor/production-hardening.md](../docs/cyber-governor/production-hardening.md)
+
+```bash
 # POSTGRES_DB=cybersecuritygovernor
 # CG_SIDECAR_URL=http://localhost:8101
 # CG_SPINE_ENABLED=true

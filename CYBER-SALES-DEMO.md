@@ -25,6 +25,8 @@ make threat-crystal-demo    # multi-vector scripted attack
 make lineage-ingest-demo    # Falco/Tetragon structural DAG
 ```
 
+**Production path:** [cyber-governor/PLUG-AND-PLAY.md](cyber-governor/PLUG-AND-PLAY.md) (dev → staging → Fortune-500)
+
 ## Talk track (7 minutes)
 
 ### 1. The problem (30s)

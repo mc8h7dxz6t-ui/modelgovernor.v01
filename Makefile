@@ -6,7 +6,7 @@
 	crystal-demo algofreeze-demo wirematch-demo \
 	cg-spine-up cg-stack-up cg-spine-down cg-stack-down cg-spine-test cg-spine-smoke \
 	threat-crystal-demo identity-gate-demo egress-lock-demo witness-bridge-demo \
-	cg-security-demo lineage-ingest-demo
+	cg-security-demo lineage-ingest-demo cg-bootstrap cg-prod-bootstrap
 
 demo-prereqs:
 	./scripts/install-demo-prereqs.sh --check-only
@@ -134,3 +134,9 @@ cg-proof-test:
 
 cg-deploy-dry-run:
 	$(MAKE) -C cyber-governor cg-deploy-dry-run
+
+cg-bootstrap:
+	$(MAKE) -C cyber-governor cg-bootstrap
+
+cg-prod-bootstrap:
+	$(MAKE) -C cyber-governor cg-prod-bootstrap

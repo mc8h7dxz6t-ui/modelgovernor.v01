@@ -1,6 +1,8 @@
 from decimal import Decimal
 from functools import lru_cache
+from typing import Self
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -29,6 +31,12 @@ class Settings(BaseSettings):
     security_anchor_s3_retention_days: int = 3650
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    @model_validator(mode="after")
+    def auto_enable_s3_object_lock_when_bucket_set(self) -> Self:
+        if self.security_anchor_s3_bucket and not self.security_anchor_s3_object_lock_enabled:
+            self.security_anchor_s3_object_lock_enabled = True
+        return self
 
 
 @lru_cache(maxsize=1)

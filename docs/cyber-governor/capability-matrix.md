@@ -33,10 +33,13 @@ Use in RFPs, SOC 2 questionnaires, and CISO diligence.
 | 4-tier CI (unit → Postgres → demo → K8s dry-run) | ✅ |
 | Synthetic + governance canary CronJobs | ✅ |
 | DB invariant CHECK constraints | ✅ |
-| OIDC RBAC (privileged paths) | 📋 Phase 3 |
-| PgBouncer + Redis Sentinel HA | 📋 Phase 3 |
-| Helm chart + ArgoCD | 📋 Phase 3 |
-| Toxiproxy chaos harness | 📋 Phase 3 |
+| Toxiproxy chaos harness | ✅ |
+| Hypothesis property tests (hash chain) | ✅ |
+| K8s staging/production overlays + ESO | ✅ |
+| Auto-generated secrets (`cg-bootstrap`) | ✅ |
+| OIDC RBAC (privileged paths) | 📋 wire IdP via production overlay |
+| PgBouncer + Redis Sentinel HA | 📋 see production-hardening.md |
+| Helm chart + ArgoCD | 📋 Phase 4 roadmap |
 
 Legend: ✅ shipped | 📋 planned
 

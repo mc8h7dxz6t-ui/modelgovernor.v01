@@ -1,2 +1,5 @@
 reports/
 *.sqlite3
+deploy/generated/secrets.yaml
+deploy/generated/secret-manager-keys.json
+.env

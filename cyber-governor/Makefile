@@ -2,7 +2,7 @@
 	cg-stack-up cg-stack-down threat-crystal-demo cg-security-demo identity-gate-demo \
 	egress-lock-demo witness-bridge-demo lineage-ingest-demo cg-deploy-dry-run \
 	cg-postgres-test cg-proof-test cg-load-test cg-invariant-report cg-chaos-test \
-	cg-property-test
+	cg-property-test cg-bootstrap cg-prod-bootstrap
 
 cg-spine-up:
 	docker compose up -d --build
@@ -35,6 +35,15 @@ cg-load-test:
 
 cg-invariant-report:
 	python3 scripts/generate_cyber_invariant_report.py
+
+cg-bootstrap:
+	chmod +x scripts/bootstrap-secrets.sh
+	./scripts/bootstrap-secrets.sh --write-env
+	@echo "cg-bootstrap OK — wrote .env with random CG_INTERNAL_TOKENS"
+
+cg-prod-bootstrap:
+	chmod +x scripts/cg-prod-bootstrap.sh scripts/bootstrap-secrets.sh
+	./scripts/cg-prod-bootstrap.sh
 
 cg-spine-smoke:
 	@echo "==> cg-sidecar health"
