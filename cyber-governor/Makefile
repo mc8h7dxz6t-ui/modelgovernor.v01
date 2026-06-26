@@ -1,7 +1,7 @@
 .PHONY: cg-spine-up cg-spine-down cg-spine-test cg-spine-smoke cg-spine-logs \
 	cg-stack-up cg-stack-down threat-crystal-demo cg-security-demo identity-gate-demo \
 	egress-lock-demo witness-bridge-demo lineage-ingest-demo cg-deploy-dry-run \
-	cg-postgres-test cg-proof-test
+	cg-postgres-test cg-proof-test cg-load-test cg-invariant-report
 
 cg-spine-up:
 	docker compose up -d --build
@@ -17,7 +17,13 @@ cg-spine-logs:
 	docker compose logs -f
 
 cg-spine-test:
-	python3 -m pytest tests/ -q
+	python3 -m pytest tests/ -q --ignore=tests/load/
+
+cg-load-test:
+	CG_LOAD_TEST=1 python3 -m pytest tests/load/ -v -s
+
+cg-invariant-report:
+	python3 scripts/generate_cyber_invariant_report.py
 
 cg-spine-smoke:
 	@echo "==> cg-sidecar health"
@@ -81,7 +87,7 @@ cg-deploy-dry-run:
 cg-postgres-test:
 	@docker compose -f docker-compose.test.yml up -d --wait 2>/dev/null || true
 	CG_POSTGRES_TEST_URL=postgresql+psycopg://postgres:postgres@localhost:5444/cg_test \
-	  python3 -m pytest tests/integration/test_postgres_vigorous.py -q
+	  python3 -m pytest tests/integration/ -q
 
-cg-proof-test: cg-spine-test cg-postgres-test cg-deploy-dry-run
-	@echo "cg-proof-test OK — institutional++ tiers 1, 2, 4"
+cg-proof-test: cg-spine-test cg-postgres-test cg-invariant-report cg-deploy-dry-run
+	@echo "cg-proof-test OK — institutional++ tiers 1–3, invariant report, deploy dry-run"

@@ -258,10 +258,15 @@ jobs:
       - name: Tier 1 — unit tests
         run: make -C cyber-governor cg-spine-test
 
-      - name: Tier 2 — Postgres vigorous
+      - name: Tier 2 — Postgres integration
         env:
           CG_POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5444/cg_test
-        run: make -C cyber-governor cg-postgres-test
+        run: |
+          cd cyber-governor
+          python3 -m pytest tests/integration/ -q
+
+      - name: Invariant report
+        run: make -C cyber-governor cg-invariant-report
 
       - name: Tier 4 — Kustomize build
         run: |
