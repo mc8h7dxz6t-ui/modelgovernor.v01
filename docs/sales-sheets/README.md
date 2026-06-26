@@ -2,6 +2,8 @@
 
 Full specification and commercial packaging for each ModelGovernor deployment platform. Use in investor decks, enterprise RFPs, and partner enablement.
 
+**Master catalog:** [portfolio-roadmap.md](portfolio-roadmap.md) — 4 governors · 12 standalone programs · Webhook Mesh · code-only asset sale price.
+
 | Platform | Sheet | Primary audience | Suggested ACV (list) | Pre-revenue asset worth* |
 |---|---|---|---|---|
 | **A — Sales Demo** | [01-demo-platform.md](01-demo-platform.md) | Marketing, conferences, first calls | Included / lead-gen | **$75K–$150K** |
