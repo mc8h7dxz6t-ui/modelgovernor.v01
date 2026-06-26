@@ -125,3 +125,12 @@ cg-security-demo:
 
 lineage-ingest-demo:
 	$(MAKE) -C cyber-governor lineage-ingest-demo
+
+cg-postgres-test:
+	$(MAKE) -C cyber-governor cg-postgres-test
+
+cg-proof-test:
+	$(MAKE) -C cyber-governor cg-proof-test
+
+cg-deploy-dry-run:
+	$(MAKE) -C cyber-governor cg-deploy-dry-run

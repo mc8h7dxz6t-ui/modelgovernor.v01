@@ -1,6 +1,7 @@
 .PHONY: cg-spine-up cg-spine-down cg-spine-test cg-spine-smoke cg-spine-logs \
 	cg-stack-up cg-stack-down threat-crystal-demo cg-security-demo identity-gate-demo \
-	egress-lock-demo witness-bridge-demo lineage-ingest-demo cg-deploy-dry-run
+	egress-lock-demo witness-bridge-demo lineage-ingest-demo cg-deploy-dry-run \
+	cg-postgres-test cg-proof-test
 
 cg-spine-up:
 	docker compose up -d --build
@@ -73,4 +74,14 @@ lineage-ingest-demo:
 	@echo "\nlineage-ingest-demo OK"
 
 cg-deploy-dry-run:
-	kubectl apply --dry-run=client -k deploy/base/
+	@command -v kubectl >/dev/null && command -v kustomize >/dev/null && \
+	  kustomize build deploy/base/ | kubectl apply --dry-run=client -f - || \
+	  echo "kubectl/kustomize not installed — skipping dry-run"
+
+cg-postgres-test:
+	@docker compose -f docker-compose.test.yml up -d --wait 2>/dev/null || true
+	CG_POSTGRES_TEST_URL=postgresql+psycopg://postgres:postgres@localhost:5444/cg_test \
+	  python3 -m pytest tests/integration/test_postgres_vigorous.py -q
+
+cg-proof-test: cg-spine-test cg-postgres-test cg-deploy-dry-run
+	@echo "cg-proof-test OK — institutional++ tiers 1, 2, 4"

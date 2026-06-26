@@ -28,7 +28,7 @@ def assert_threat_ops_invariants(session: Session) -> dict[str, int]:
     ).scalar_one()
     violations["committed_without_crystal"] = int(committed_without_crystal)
     if committed_without_crystal:
-        get_counters().increment("surprise_authorize_blocked_total", int(committed_without_crystal))
+        get_counters().increment("security_audit_violation_total", int(committed_without_crystal))
 
     high_risk_auto_expired = session.execute(
         text(
@@ -59,5 +59,6 @@ def assert_threat_ops_invariants(session: Session) -> dict[str, int]:
         get_counters().increment("duplicate_commit_anomaly_total", int(duplicate_commits))
 
     if sum(violations.values()):
+        get_counters().increment("security_audit_violation_total")
         raise CrystalOpsInvariantError(f"crystal ops violations: {violations}")
     return violations

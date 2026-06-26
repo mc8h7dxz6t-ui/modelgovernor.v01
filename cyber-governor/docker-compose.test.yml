@@ -1,0 +1,19 @@
+# Cybersecurity Governor — Postgres integration test stack
+services:
+  cg-postgres-test:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: cg_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5444:5432"
+    volumes:
+      - ./migrations/0001_cg_spine_init.sql:/docker-entrypoint-initdb.d/0001.sql:ro
+      - ./migrations/0002_security_anchors_lineage.sql:/docker-entrypoint-initdb.d/0002.sql:ro
+      - ./migrations/0003_invariant_constraints.sql:/docker-entrypoint-initdb.d/0003.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d cg_test"]
+      interval: 3s
+      timeout: 3s
+      retries: 10

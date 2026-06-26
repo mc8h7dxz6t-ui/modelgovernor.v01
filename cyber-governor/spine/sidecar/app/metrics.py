@@ -14,6 +14,7 @@ _COUNTER_NAMES = (
     "exposure_cap_overrun_detected_total",
     "duplicate_commit_anomaly_total",
     "regulatory_audit_violation_total",
+    "security_audit_violation_total",
     "regulatory_audit_diagnostic_entered_total",
     "reconciler_horizon_strand_total",
     "reconciler_expired_total",

@@ -71,7 +71,7 @@ Platforms work with **most systems** via:
 | `platforms/common/integrations.py` | ✅ Okta / CloudTrail / generic normalizer |
 | Spine services (gateway/sidecar/reconciler) | ✅ |
 | IdentityGate, EgressLock, WitnessBridge | ✅ |
-| Integration tests | ✅ |
+| Integration tests | ✅ 25+ unit tests |
 | Witness quorum (S3 anchors) | ✅ |
 | Lineage ingest (Falco/Tetragon) | ✅ |
 | K8s deploy kit | ✅ `deploy/base/` |

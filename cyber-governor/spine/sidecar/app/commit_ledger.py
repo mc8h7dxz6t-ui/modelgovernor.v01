@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from .config import Settings
 from .currency import quantize_money
-from .security_seal import GENESIS_HASH, compute_row_hash, head_hash
+from .event_ledger import append_security_event
 from .metrics import get_counters
 
 # Import shared CCP from platforms/common
@@ -85,50 +85,14 @@ def _append_event(
     exposure_delta: Decimal,
     metadata: dict[str, Any],
 ) -> None:
-    prev = head_hash(session) or GENESIS_HASH
-    now = _utcnow()
-    meta_sql = ":meta" if session.bind.dialect.name == "sqlite" else ":meta::jsonb"
-    recorded_at_value = now.isoformat() if session.bind.dialect.name == "sqlite" else now
-    row = session.execute(
-        text(
-            f"""
-            INSERT INTO security_events (
-                operation_id, crystal_id, account_id, event_type,
-                exposure_delta, metadata, prev_hash, row_hash, recorded_at
-            ) VALUES (
-                :operation_id, :crystal_id, :account_id, :event_type,
-                :exposure_delta, {meta_sql}, :prev_hash, :placeholder, :recorded_at
-            )
-            RETURNING event_id
-            """
-        ),
-        {
-            "operation_id": operation_id,
-            "crystal_id": crystal_id,
-            "account_id": account_id,
-            "event_type": event_type,
-            "exposure_delta": _money_param(exposure_delta),
-            "meta": json.dumps(metadata),
-            "prev_hash": prev,
-            "placeholder": prev,
-            "recorded_at": recorded_at_value,
-        },
-    ).scalar_one()
-    recorded_at_for_hash = recorded_at_value if isinstance(recorded_at_value, str) else now.isoformat()
-    rh = compute_row_hash(
-        event_id=row,
+    append_security_event(
+        session,
         operation_id=operation_id,
         crystal_id=crystal_id,
         account_id=account_id,
         event_type=event_type,
-        exposure_delta=str(quantize_money(exposure_delta)),
+        exposure_delta=exposure_delta,
         metadata=metadata,
-        prev_hash=prev,
-        recorded_at=recorded_at_for_hash,
-    )
-    session.execute(
-        text("UPDATE security_events SET row_hash = :rh, prev_hash = :prev WHERE event_id = :eid"),
-        {"rh": rh, "prev": prev, "eid": row},
     )
 
 

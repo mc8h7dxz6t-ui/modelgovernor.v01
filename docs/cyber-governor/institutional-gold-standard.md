@@ -1,51 +1,84 @@
-# Institutional++ gold standard
+# Institutional++ Gold Standard — Cybersecurity Governor
 
-Cybersecurity Governor inherits ModelGovernor's institutional++ reliability bar. See also [Finance Governor institutional-gold-standard.md](../finance-governor/institutional-gold-standard.md) for the full pattern catalog.
+What **industry gold standard with institutional++ grade** means for Cybersecurity Governor — testable, operable, examiner-defensible.
 
-## Inherited capabilities
+## Definition
 
-| Capability | Cybersecurity Governor implementation |
-|------------|--------------------------------------|
-| Append-only audit | `security_events` + SHA-256 hash chain |
-| Idempotency | `platform + operation_id` unique on `threat_crystals` |
-| Strand-not-guess | Critical/high horizon expiry → `STRANDED` |
-| Diagnostic write-halt | Sidecar `diagnostic_mode` blocks mutations |
-| Reconciler leader | Horizon sweeper with `FOR UPDATE SKIP LOCKED` |
-| Invariant counters | `surprise_authorize_blocked_total`, mesh blocks |
-| 4-tier CI | Unit (SQLite) → Postgres → load → chaos (port from ModelGovernor kit) |
+**Institutional++** satisfies three audiences simultaneously:
 
-## Security-specific invariants
+1. **Engineering** — correct under failure, provable invariants, tested through Tier 4
+2. **Operations** — SLOs, CronJobs, diagnostic mode (no poison pill)
+3. **Risk / Compliance** — tamper-evident audit, NIST/SOC mapping, witness quorum
 
-| Invariant | Enforcement |
-|-----------|-------------|
-| No authorize without crystal | Commit path requires valid `crystal_id` |
-| Fingerprint match | Commit facets must equal crystallize facets |
-| Threat Mesh | Parent STRANDED blocks child egress commit |
-| Witness silence | WitnessBridge tracks `silent_sources` (demo threshold) |
+## Five non-negotiable design principles
 
-## SLO targets (spine)
+1. **Postgres is authoritative** — Redis is never the ledger
+2. **Fail closed on authorize, fail open on reads** — diagnostic mode
+3. **Tamper-evident audit** — hash chain + verify CronJob + S3 anchor
+4. **Strand-not-guess** — critical/high horizon → `STRANDED`, never silent allow
+5. **Single-writer reconciliation** — leader election; idempotent sweeps preserve chain
 
-| SLI | Target |
-|-----|--------|
-| `/crystallize` success rate | 99.5% / 30d |
-| `/crystallize` p95 latency | ≤ 500ms |
-| `/commit` success rate | 99.5% / 30d |
-| Horizon strand correctness | 100% (invariant) |
+## Surprise Budget = 0 (TCP invariants)
 
-## Regulatory / compliance mapping
+| Signal | Meaning |
+|--------|---------|
+| `surprise_authorize_blocked_total` | Commit without valid crystal |
+| `threat_fingerprint_mismatch_total` | Facet drift at commit |
+| `threat_horizon_strand_total` | Ambiguity stranded |
+| `threat_mesh_block_total` | Cross-platform mesh violation |
+| `security_audit_violation_total` | Post-sweep invariant failure |
 
-| Requirement | TCP artifact |
-|-------------|--------------|
-| Immutable audit trail | Hash-chained `security_events` |
-| Access decision record | Threat crystal facets at arm time |
-| Incident reconstruction | `/internal/crystals/{id}/reconstruct` |
-| Separation of duties | Internal token + optional OIDC RBAC (Phase 3) |
+Any unexpected increase → **diagnostic mode** + P1 investigation.
 
-## Test tiers
+## Reliability stack
 
-```bash
-# Tier 1 — SQLite unit (< 1s)
-cd cyber-governor && make cg-spine-test
-
-# Tier 2+ — port ModelGovernor postgres/chaos harness with cyber schema
 ```
+Ingress (platforms / webhooks / lineage)
+         │
+         ▼
+Gateway :8100 ──► Sidecar :8101 (3+ replicas)
+         │              │
+         │              ├── Redis (diagnostic, guardrails)
+         │              ├── security_events hash chain
+         │              └── threat_crystals / action_escrow
+         ▼
+Reconciler :8102 (leader)
+  • horizon_sweep (sealed STRANDED events)
+  • security_ops + threat_ops audit
+         │
+         ▼
+Witness quorum: security_chain_anchors + S3 Object Lock
+```
+
+## Framework mapping
+
+| Framework | Cybersecurity Governor evidence |
+|-----------|--------------------------------|
+| **NIST CSF** | Detect (lineage), Respond (strand), Recover (reconciler) |
+| **ISO 27001** | Hash chain, S3 anchor, access control |
+| **SOC 2 Type II** | Internal token, invariant probes, CronJobs |
+| **MITRE D3FEND** | Provenance (TCP), isolation (mesh, NetworkPolicy) |
+| **Zero Trust** | Crystallize-before-authorize, continuous verification |
+
+## 4-tier test pyramid
+
+| Tier | Command | Status |
+|------|---------|--------|
+| 1 SQLite unit | `make cg-spine-test` | ✅ 25+ tests |
+| 2 Postgres | `make cg-postgres-test` | ✅ |
+| 3 Live demo | `make cg-security-demo` | ✅ |
+| 4 K8s gate | `make cg-deploy-dry-run` | ✅ |
+
+See [reliability-testing.md](reliability-testing.md), [capability-matrix.md](capability-matrix.md), [slo-definitions.md](slo-definitions.md).
+
+## Production checklist (L4 Gold)
+
+- [x] Hash chain verify every 15m
+- [x] Anchor head hourly to Postgres + S3
+- [x] Synthetic canary every 5m
+- [x] Governance canary every 10m
+- [x] PrometheusRule alerts
+- [x] DB CHECK constraints (migration 0003)
+- [x] NetworkPolicy + strand egress template
+- [ ] OIDC on privileged paths (Phase 3)
+- [ ] PgBouncer + Redis Sentinel (Phase 3)

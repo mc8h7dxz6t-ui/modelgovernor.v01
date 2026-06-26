@@ -10,7 +10,7 @@ from .metrics import get_counters
 logger = logging.getLogger(__name__)
 _lock = threading.Lock()
 _local: dict[str, Any] = {"active": False, "reason": None, "component": None}
-_REDIS_KEY = "fg:diagnostic_mode"
+_REDIS_KEY = "cg:diagnostic_mode"
 
 
 def _redis_client():

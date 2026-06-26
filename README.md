@@ -55,7 +55,7 @@ The **Cybersecurity Governor** ecosystem adapts the institutional++ spine for se
 - [Standalone vs spine deployment](docs/cyber-governor/platform-model.md)
 
 ```bash
-make cg-stack-up && make cg-spine-test && make cg-security-demo
+make cg-proof-test        # institutional++ tiers 1, 2, 4
 ```
 
 See [CYBER-SALES-DEMO.md](CYBER-SALES-DEMO.md) for the CISO talk track.

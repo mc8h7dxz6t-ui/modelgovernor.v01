@@ -27,5 +27,6 @@ def assert_security_ops_invariants(session: Session) -> dict[str, int]:
         get_counters().increment("exposure_cap_overrun_detected_total", int(cap_over))
 
     if sum(violations.values()):
+        get_counters().increment("security_audit_violation_total")
         raise RegulatoryOpsInvariantError(f"regulatory ops violations: {violations}")
     return violations

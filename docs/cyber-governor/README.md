@@ -45,7 +45,11 @@ Multi-vector attacks exploit **The Shadow Gap** — evidence fragmented across c
 | [threat-crystal-protocol.md](threat-crystal-protocol.md) | Unique IP — Threat Crystal Protocol |
 | [platform-model.md](platform-model.md) | Standalone vs spine-connected deployment |
 | [integrations.md](integrations.md) | Works with Okta, CloudTrail, generic webhooks |
-| [institutional-gold-standard.md](institutional-gold-standard.md) | Industry++ reliability mapping |
+| [institutional-gold-standard.md](institutional-gold-standard.md) | **Industry++ reliability** — invariants, SLOs, framework mapping |
+| [capability-matrix.md](capability-matrix.md) | RFP / diligence checklist |
+| [reliability-testing.md](reliability-testing.md) | 4-tier test pyramid |
+| [slo-definitions.md](slo-definitions.md) | SLIs, alerts, error budget |
+| [quality-bar.md](quality-bar.md) | Merge gate |
 
 ## Relationship to sibling governors
 
