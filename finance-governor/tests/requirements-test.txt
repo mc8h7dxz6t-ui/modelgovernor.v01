@@ -1,5 +1,6 @@
 # Test-only dependencies (CI + local proof gates)
-# Full install: make cg-test-deps  (or pip install spine + this file)
+# Install spine deps first: pip install -r spine/sidecar/requirements.txt ...
 pytest>=8.0
 hypothesis>=6.100
+httpx>=0.27
 requests>=2.31

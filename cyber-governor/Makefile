@@ -3,7 +3,8 @@
 	egress-lock-demo witness-bridge-demo lineage-ingest-demo posture-reconcile-demo \
 	content-guard-demo cg-deploy-dry-run cg-demo-prereq \
 	cg-postgres-test cg-proof-test cg-load-test cg-invariant-report cg-chaos-test \
-	cg-property-test cg-bootstrap cg-prod-bootstrap
+	cg-property-test cg-bootstrap cg-prod-bootstrap \
+	cg-test-deps cg-test-deps-check
 
 cg-spine-up:
 	./scripts/cg-stack-up.sh
@@ -22,10 +23,29 @@ cg-stack-reset:
 cg-spine-logs:
 	docker compose logs -f
 
-cg-spine-test:
+cg-test-deps:
+	chmod +x scripts/install-test-deps.sh
+	./scripts/install-test-deps.sh
+
+cg-test-deps-check:
+	@python3 -c "import fastapi, sqlalchemy, pydantic" 2>/dev/null || { \
+	  echo "ERROR: Missing Python test dependencies for Cyber Governor."; \
+	  echo ""; \
+	  echo "  make cg-test-deps"; \
+	  echo "  # or: pip install -r spine/sidecar/requirements.txt -r tests/requirements-test.txt"; \
+	  echo ""; \
+	  echo "CI uses Python 3.12. You are running: $$(python3 --version 2>&1)"; \
+	  exit 1; \
+	}
+
+cg-spine-test: cg-test-deps-check
 	python3 -m pytest tests/ -q --ignore=tests/load/ --ignore=tests/chaos/
 
-cg-property-test:
+cg-property-test: cg-test-deps-check
+	@python3 -c "import hypothesis" 2>/dev/null || { \
+	  echo "ERROR: hypothesis not installed. Run: make cg-test-deps"; \
+	  exit 1; \
+	}
 	python3 -m pytest tests/test_property_security_chain.py -q
 
 cg-chaos-test:
@@ -131,7 +151,7 @@ cg-deploy-dry-run:
 	  kustomize build --load-restrictor LoadRestrictionsNone deploy/overlays/production/ | kubectl apply --dry-run=client -f - || \
 	  echo "kubectl/kustomize not installed — skipping dry-run"
 
-cg-postgres-test:
+cg-postgres-test: cg-test-deps-check
 	@docker compose -f docker-compose.test.yml up -d --wait 2>/dev/null || true
 	CG_POSTGRES_TEST_URL=postgresql+psycopg://postgres:postgres@localhost:5444/cg_test \
 	  python3 -m pytest tests/integration/ -q

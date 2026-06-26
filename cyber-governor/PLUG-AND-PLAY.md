@@ -41,6 +41,7 @@ make cg-security-demo
 **Verify quality gate:**
 
 ```bash
+make cg-test-deps              # one-time: pip install spine + test packages
 make cg-spine-test             # 42+ unit tests
 make cg-property-test          # Hypothesis hash-chain properties
 ```
@@ -223,6 +224,7 @@ Today you still wire **your** IdP, **your** secret store, and **your** data plan
 | Symptom | Fix |
 |---------|-----|
 | `connection refused` on 8101 | `docker compose ps` — wait for `cg-postgres` healthy |
+| `ModuleNotFoundError: fastapi` | `make cg-test-deps` (or `make fg-test-deps` for Finance Governor) |
 | `401` on `/internal/*` | Match `x-internal-token` to `CG_INTERNAL_TOKENS` in `.env` |
 | Migration job failed | `kubectl logs -n cybersecuritygovernor job/cg-migration` |
 | Chain verify FAIL | `GET /internal/security/verify-chain` on sidecar; check reconciler |

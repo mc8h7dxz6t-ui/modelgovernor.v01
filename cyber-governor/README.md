@@ -78,6 +78,7 @@ Platforms work with **most systems** via:
 
 ```bash
 make cg-stack-up
+make cg-test-deps          # one-time: pip install spine + test packages
 make cg-spine-test
 make cg-security-demo
 make lineage-ingest-demo
@@ -85,6 +86,16 @@ make identity-gate-demo
 make egress-lock-demo
 make witness-bridge-demo
 ```
+
+**Local tests** need Python packages (CI installs these automatically):
+
+```bash
+cd cyber-governor
+make cg-test-deps          # installs spine + pytest/hypothesis
+make cg-spine-test
+```
+
+Use **Python 3.12** to match CI (`python3.12 -m venv .venv && source .venv/bin/activate`).
 
 ## Environment
 
