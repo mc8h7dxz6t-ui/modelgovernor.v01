@@ -1,0 +1,34 @@
+# Restrict spine sidecar ingress to gateway, reconciler, and platform adapters only.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cg-sidecar-ingress
+  namespace: cybersecuritygovernor
+spec:
+  podSelector:
+    matchLabels:
+      app: cg-sidecar
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: cg-gateway
+      ports:
+        - protocol: TCP
+          port: 8101
+    - from:
+        - podSelector:
+            matchLabels:
+              app: cg-reconciler
+      ports:
+        - protocol: TCP
+          port: 8101
+    - from:
+        - podSelector:
+            matchLabels:
+              cybersecuritygovernor.io/spine-client: "true"
+      ports:
+        - protocol: TCP
+          port: 8101

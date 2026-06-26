@@ -12,6 +12,7 @@ spec:
     metadata:
       labels:
         app: cg-gateway
+        cybersecuritygovernor.io/spine-client: "true"
     spec:
       containers:
         - name: cg-gateway

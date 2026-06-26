@@ -83,4 +83,5 @@ See [reliability-testing.md](reliability-testing.md), [capability-matrix.md](cap
 - [x] OIDC on privileged paths (sidecar + gateway)
 - [x] PgBouncer + Redis Sentinel (production overlay)
 - [x] Istio mTLS + egress allowlist (enterprise overlay)
+- [x] Istio AuthorizationPolicy adapter → spine (enterprise overlay)
 - [ ] Helm chart + ArgoCD (Phase 4 roadmap)

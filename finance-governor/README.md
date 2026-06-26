@@ -65,6 +65,9 @@ Every irreversible action on the spine requires a **Governance Crystal**. See [c
 | Helm chart (`deploy/helm/finance-governor`) | ✅ |
 | AlgoFreeze (Phase 1) | ✅ |
 | WireMatch (Phase 1b) | ✅ |
+| SubledgerSync | ✅ demo-ready |
+| CreditGovern | ✅ demo-ready |
+| AssetLedger | 📋 design-partner |
 | `make crystal-demo` walkthrough | ✅ |
 
 ```bash

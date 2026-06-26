@@ -12,6 +12,7 @@ spec:
     metadata:
       labels:
         app: cg-reconciler
+        cybersecuritygovernor.io/spine-client: "true"
     spec:
       containers:
         - name: cg-reconciler

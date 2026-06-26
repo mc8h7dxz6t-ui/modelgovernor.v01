@@ -1,6 +1,7 @@
 .PHONY: fg-spine-up fg-spine-down fg-spine-test fg-spine-smoke fg-spine-logs \
 	fg-stack-up fg-stack-down crystal-demo algofreeze-demo wirematch-demo \
-	subledger-demo assetledger-demo credit-demo fg-all-platforms-demo \
+	subledger-demo subledger-demo-gold assetledger-demo credit-demo credit-demo-gold \
+	fg-all-platforms-demo \
 	fg-demo-gold-reliability fg-certification fg-demo-up fg-demo-down fg-demo-gold \
 	fg-test-postgres-up fg-test-postgres-down fg-integration-test fg-load-smoke
 
@@ -100,16 +101,10 @@ algofreeze-demo:
 	@echo "\nalgofreeze-demo OK"
 
 subledger-demo:
-	@echo "==> SubledgerSync health"
-	curl -sf http://localhost:8095/healthz
-	@echo "\n==> ingest mirror legs"
-	curl -sf -X POST http://localhost:8095/transactions \
-	  -H 'content-type: application/json' \
-	  -d '{"entity_id":"UK-01","counterparty_id":"US-01","amount":"10000.00","currency":"USD","value_date":"2026-06-01"}'
-	curl -sf -X POST http://localhost:8095/match/run \
-	  -H 'content-type: application/json' \
-	  -d '{"entity_id":"US-01","counterparty_id":"UK-01","amount":"10000.00","currency":"USD","value_date":"2026-06-01"}'
-	@echo "\nsubledger-demo OK"
+	chmod +x scripts/*.sh
+	./scripts/subledger-demo-gold.sh
+
+subledger-demo-gold: subledger-demo
 
 assetledger-demo:
 	@echo "==> AssetLedger health"
@@ -124,13 +119,10 @@ assetledger-demo:
 	@echo "\nassetledger-demo OK"
 
 credit-demo:
-	@echo "==> CreditGovern health"
-	curl -sf http://localhost:8097/healthz
-	@echo "\n==> approved model evaluate"
-	curl -sf -X POST http://localhost:8097/credit/evaluate \
-	  -H 'content-type: application/json' \
-	  -d '{"application_id":"app-demo-1","exposure_amount":"50000.00","model_version_id":"credit-model-v3","desk_id":"desk-default"}'
-	@echo "\ncredit-demo OK"
+	chmod +x scripts/*.sh
+	./scripts/credit-demo-gold.sh
+
+credit-demo-gold: credit-demo
 
 fg-all-platforms-demo: wirematch-demo algofreeze-demo subledger-demo assetledger-demo credit-demo
 	@echo "fg-all-platforms-demo OK — all five platforms exercised"

@@ -14,6 +14,8 @@ spec:
     metadata:
       labels:
         app: cg-identity-gate
+        cybersecuritygovernor.io/spine-client: "true"
+        cybersecuritygovernor.io/role: platform
     spec:
       containers:
         - name: cg-identity-gate
@@ -59,6 +61,8 @@ spec:
     metadata:
       labels:
         app: cg-egress-lock
+        cybersecuritygovernor.io/spine-client: "true"
+        cybersecuritygovernor.io/role: platform
     spec:
       containers:
         - name: cg-egress-lock
@@ -104,6 +108,8 @@ spec:
     metadata:
       labels:
         app: cg-witness-bridge
+        cybersecuritygovernor.io/spine-client: "true"
+        cybersecuritygovernor.io/role: platform
     spec:
       containers:
         - name: cg-witness-bridge
@@ -149,6 +155,8 @@ spec:
     metadata:
       labels:
         app: cg-lineage-ingest
+        cybersecuritygovernor.io/spine-client: "true"
+        cybersecuritygovernor.io/role: platform
     spec:
       containers:
         - name: cg-lineage-ingest
@@ -194,6 +202,8 @@ spec:
     metadata:
       labels:
         app: cg-posture-reconcile
+        cybersecuritygovernor.io/spine-client: "true"
+        cybersecuritygovernor.io/role: platform
     spec:
       containers:
         - name: cg-posture-reconcile
@@ -239,6 +249,8 @@ spec:
     metadata:
       labels:
         app: cg-content-guard
+        cybersecuritygovernor.io/spine-client: "true"
+        cybersecuritygovernor.io/role: platform
     spec:
       containers:
         - name: cg-content-guard

@@ -7,6 +7,7 @@ resources:
   - ../../base
   - egress-istio.yaml
   - mtls-mesh.yaml
+  - spine-authz-istio.yaml
 
 patches:
   - path: istio-injection-patches.yaml

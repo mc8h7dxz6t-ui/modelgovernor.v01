@@ -52,3 +52,47 @@ spec:
     metadata:
       labels:
         sidecar.istio.io/inject: "true"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cg-witness-bridge
+  namespace: cybersecuritygovernor
+spec:
+  template:
+    metadata:
+      labels:
+        sidecar.istio.io/inject: "true"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cg-lineage-ingest
+  namespace: cybersecuritygovernor
+spec:
+  template:
+    metadata:
+      labels:
+        sidecar.istio.io/inject: "true"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cg-posture-reconcile
+  namespace: cybersecuritygovernor
+spec:
+  template:
+    metadata:
+      labels:
+        sidecar.istio.io/inject: "true"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cg-content-guard
+  namespace: cybersecuritygovernor
+spec:
+  template:
+    metadata:
+      labels:
+        sidecar.istio.io/inject: "true"

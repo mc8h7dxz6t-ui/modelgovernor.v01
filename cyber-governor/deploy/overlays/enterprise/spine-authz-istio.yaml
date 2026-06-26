@@ -1,0 +1,47 @@
+# Istio L7 authorization — platform adapters and spine may call cg-sidecar mutation APIs.
+# Pair with mtls-mesh.yaml (STRICT) and base NetworkPolicy cg-sidecar-ingress.
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: cg-sidecar-spine-ingress
+  namespace: cybersecuritygovernor
+spec:
+  selector:
+    matchLabels:
+      app: cg-sidecar
+  action: ALLOW
+  rules:
+    - to:
+        - operation:
+            ports: ["8101"]
+            paths: ["/healthz", "/readyz", "/metrics.json"]
+    - from:
+        - source:
+            namespaces: ["cybersecuritygovernor"]
+      to:
+        - operation:
+            ports: ["8101"]
+            paths: ["/crystallize", "/commit"]
+    - from:
+        - source:
+            namespaces: ["cybersecuritygovernor"]
+      to:
+        - operation:
+            ports: ["8101"]
+            paths: ["/internal/*"]
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: cg-platform-adapter-ingress
+  namespace: cybersecuritygovernor
+spec:
+  selector:
+    matchLabels:
+      cybersecuritygovernor.io/role: platform
+  action: ALLOW
+  rules:
+    - to:
+        - operation:
+            ports: ["8103", "8104", "8105", "8106", "8107", "8108"]
+            paths: ["/healthz", "/session/*", "/egress/*", "/ingest/*", "/posture/*", "/content/*"]
