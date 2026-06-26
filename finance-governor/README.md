@@ -57,6 +57,7 @@ Every irreversible action on the spine requires a **Governance Crystal**. See [c
 | `platforms/common/spine_adapter.py` | ✅ Adapter contract |
 | Spine services (gateway/sidecar/reconciler) | ✅ Phase 2 |
 | Integration tests (28+ passing) | ✅ |
+| **CI gate (`finance-governor-test`)** | ✅ every push |
 | OIDC/RBAC (FG-native) | ✅ |
 | Decision chain verify + S3 anchor | ✅ |
 | Admin audit log | ✅ |

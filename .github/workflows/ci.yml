@@ -286,6 +286,57 @@ jobs:
             wc -l "/tmp/cg-k8s-$overlay.yaml"
           done
 
+  finance-governor-test:
+    name: Finance Governor — institutional++ gate
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: fg_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5445:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install finance-governor dependencies
+        run: make -C finance-governor fg-test-deps
+
+      - name: Apply finance migrations
+        env:
+          PGPASSWORD: postgres
+        run: |
+          for f in finance-governor/migrations/*.sql; do
+            psql -h localhost -p 5445 -U postgres -d fg_test -f "$f"
+          done
+
+      - name: Tier 1 — unit tests (all platforms)
+        run: make -C finance-governor fg-spine-test
+
+      - name: Tier 2 — Postgres integration
+        env:
+          FG_TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5445/fg_test
+        run: |
+          cd finance-governor
+          python3 -m pytest tests/integration/ -q
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Helm template gate
+        run: make -C finance-governor fg-helm-template
+
   cyber-governor-chaos:
     name: Tier 4 — Toxiproxy chaos (Cyber Governor)
     runs-on: ubuntu-latest
