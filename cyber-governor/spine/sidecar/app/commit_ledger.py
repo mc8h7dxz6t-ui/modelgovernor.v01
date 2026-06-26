@@ -217,7 +217,7 @@ def crystallize_operation(
 
     expires_at = _utcnow() + timedelta(seconds=settings.commit_ttl_seconds)
     facets_json = json.dumps(facets)
-    facets_sql = ":facets" if session.bind.dialect.name == "sqlite" else ":facets::jsonb"
+    facets_sql = ":facets" if session.bind.dialect.name == "sqlite" else "CAST(:facets AS jsonb)"
     session.execute(
         text(
             f"""

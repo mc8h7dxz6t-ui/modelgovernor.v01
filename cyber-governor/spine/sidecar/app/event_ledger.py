@@ -34,7 +34,7 @@ def append_security_event(
     meta = metadata or {}
     prev = head_hash(session) or GENESIS_HASH
     now = _utcnow()
-    meta_sql = ":meta" if session.bind.dialect.name == "sqlite" else ":meta::jsonb"
+    meta_sql = ":meta" if session.bind.dialect.name == "sqlite" else "CAST(:meta AS jsonb)"
     recorded_at_value = now.isoformat() if session.bind.dialect.name == "sqlite" else now
     row = session.execute(
         text(

@@ -36,8 +36,8 @@ def schema_supports_lineage_edges(session: Session) -> bool:
 
 
 def insert_lineage_edge(session: Session, edge: LineageEdge) -> int:
-    causal_sql = ":causal" if session.bind.dialect.name == "sqlite" else ":causal::jsonb"
-    meta_sql = ":meta" if session.bind.dialect.name == "sqlite" else ":meta::jsonb"
+    causal_sql = ":causal" if session.bind.dialect.name == "sqlite" else "CAST(:causal AS jsonb)"
+    meta_sql = ":meta" if session.bind.dialect.name == "sqlite" else "CAST(:meta AS jsonb)"
     ts = edge.physical_time.isoformat() if session.bind.dialect.name == "sqlite" else edge.physical_time
     params = {
         "source_system": edge.source_system,
