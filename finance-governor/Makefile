@@ -45,10 +45,10 @@ fg-test-deps-check:
 	  $(MAKE) fg-test-deps; \
 	}
 
-fg-spine-test: fg-test-deps-check
+fg-spine-test: fg-test-deps
 	python3 -m pytest tests/ -q --ignore=tests/integration
 
-fg-integration-test: fg-test-deps-check
+fg-integration-test: fg-test-deps
 	@if command -v docker >/dev/null 2>&1; then $(MAKE) fg-test-postgres-up; else echo "docker not available — integration tests will skip if postgres unreachable"; fi
 	python3 -m pytest tests/integration/ -q; status=$$?; \
 	if command -v docker >/dev/null 2>&1; then $(MAKE) fg-test-postgres-down; fi; \
@@ -153,7 +153,7 @@ fg-demo-gold-reliability:
 crystal-demo:
 	./scripts/crystal-demo.sh
 
-fg-certification: fg-test-deps-check
+fg-certification: fg-test-deps
 	@echo "==> Tier 1: unit + chaos (SQLite)"
 	python3 -m pytest tests/ -q --ignore=tests/integration
 	@echo "==> Tier 2: Postgres integration (starts test DB if needed)"
