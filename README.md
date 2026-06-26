@@ -12,7 +12,7 @@ make demo-gold-up
 make demo-gold
 ```
 
-See [SALES-DEMO.md](SALES-DEMO.md) for the talk track, capability matrix, production upgrade path (`docs/plug-and-play.md`), and [platform sales sheets with pre-revenue valuation](docs/sales-sheets/).
+See [SALES-DEMO.md](SALES-DEMO.md) for the talk track, capability matrix, production upgrade path (`docs/plug-and-play.md`), and [sales sheets](docs/sales-sheets/) — **start with [honest product scope](docs/sales-sheets/HONEST-SCOPE.md)** for diligence.
 
 ```bash
 make demo-gold-down   # teardown
