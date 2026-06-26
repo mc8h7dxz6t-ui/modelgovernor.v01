@@ -3,10 +3,12 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class CreditRequest(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     application_id: str
     exposure_amount: str
     model_version_id: str
