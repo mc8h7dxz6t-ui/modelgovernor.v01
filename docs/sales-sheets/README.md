@@ -7,6 +7,7 @@ Full specification and commercial packaging for ModelGovernor deployment modes a
 | Document | Purpose |
 |----------|---------|
 | **[HONEST-SCOPE.md](HONEST-SCOPE.md)** | **Canonical** — what is L4 shipped vs L2 demo vs L0 delisted |
+| **[BUSINESS-MODEL-CRITIQUE.md](BUSINESS-MODEL-CRITIQUE.md)** | **For external critique** — falsifiable claims, comps, three tracks, weaknesses |
 | [GOVERNOR-PORTFOLIO.md](GOVERNOR-PORTFOLIO.md) | Competitive copy + product codes (aligned to honest scope) |
 | [valuation-pre-revenue.md](valuation-pre-revenue.md) | Pre-revenue asset methodology |
 
