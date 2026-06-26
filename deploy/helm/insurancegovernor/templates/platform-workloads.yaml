@@ -29,6 +29,10 @@ spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
+      {{- $sa := include "insurancegovernor.platformServiceAccountName" $ }}
+      {{- if $sa }}
+      serviceAccountName: {{ $sa }}
+      {{- end }}
       containers:
         - name: {{ $plat.name | replace "_" "-" }}
           image: {{ index $.Values.images $plat.imageKey "repository" }}:{{ index $.Values.images $plat.imageKey "tag" }}

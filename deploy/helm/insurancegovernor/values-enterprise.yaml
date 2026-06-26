@@ -98,6 +98,21 @@ claimGateGoldenProbe:
 networkPolicy:
   enabled: true
 
+serviceAccounts:
+  create: true
+
+platforms:
+  claim_gate:
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 24
+  parametric_oracle:
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 16
+
 integrations:
   paymentRailMode: fednow
   oracleFeedMode: live

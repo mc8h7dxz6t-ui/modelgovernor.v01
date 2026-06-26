@@ -128,6 +128,52 @@ def test_l5_istio_injection_on_workloads(enterprise_docs):
     assert len(injected) >= 5
 
 
+def test_l5_sidecar_ingress_authorization_policy(enterprise_docs):
+    policies = [d for d in enterprise_docs if d.get("kind") == "AuthorizationPolicy"]
+    names = {d["metadata"]["name"] for d in policies}
+    assert "sidecar-ingress-platforms" in names
+    sidecar_policy = next(d for d in policies if d["metadata"]["name"] == "sidecar-ingress-platforms")
+    principals = sidecar_policy["spec"]["rules"][0]["from"][0]["source"]["principals"]
+    assert any("ig-platform-workload" in p for p in principals)
+    assert any("ig-gateway-workload" in p for p in principals)
+    ports = sidecar_policy["spec"]["rules"][0]["to"][0]["operation"]["ports"]
+    assert "8101" in ports
+
+
+def test_l5_network_policy_allows_platform_to_sidecar(enterprise_docs):
+    netpols = [d for d in enterprise_docs if d.get("kind") == "NetworkPolicy"]
+    sidecar_ingress = next(d for d in netpols if d["metadata"]["name"] == "sidecar-ingress")
+    ingress_rules = sidecar_ingress["spec"]["ingress"]
+    platform_rule = next(
+        r
+        for r in ingress_rules
+        if any(
+            sel.get("podSelector", {}).get("matchLabels", {}).get("insurancegovernor.io/component") == "platform"
+            for sel in r.get("from", [])
+        )
+    )
+    assert {"protocol": "TCP", "port": 8101} in platform_rule["ports"]
+
+
+def test_l5_ingestion_adapter_hpa(enterprise_docs):
+    hpas = [d for d in enterprise_docs if d.get("kind") == "HorizontalPodAutoscaler"]
+    names = {d["metadata"]["name"] for d in hpas}
+    assert "claim-gate-hpa" in names
+    assert "parametric-oracle-hpa" in names
+    claim_hpa = next(d for d in hpas if d["metadata"]["name"] == "claim-gate-hpa")
+    assert claim_hpa["spec"]["maxReplicas"] >= 12
+
+
+def test_l5_platform_service_accounts(enterprise_docs):
+    accounts = [d for d in enterprise_docs if d.get("kind") == "ServiceAccount"]
+    names = {d["metadata"]["name"] for d in accounts}
+    assert "ig-platform-workload" in names
+    assert "ig-gateway-workload" in names
+    deployments = [d for d in enterprise_docs if d.get("kind") == "Deployment"]
+    claim_gate = next(d for d in deployments if d["metadata"]["name"] == "claim-gate")
+    assert claim_gate["spec"]["template"]["spec"]["serviceAccountName"] == "ig-platform-workload"
+
+
 def test_l5_rds_overlay_no_in_cluster_postgres():
     cmd = [
         "helm",

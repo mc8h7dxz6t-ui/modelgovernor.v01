@@ -54,6 +54,22 @@ sidecar.istio.io/inject: "true"
 {{- end }}
 {{- end }}
 
+{{- define "insurancegovernor.istioPrincipal" -}}
+cluster.local/ns/{{ include "insurancegovernor.namespace" .root }}/sa/{{ .serviceAccount }}
+{{- end }}
+
+{{- define "insurancegovernor.platformServiceAccountName" -}}
+{{- if .Values.serviceAccounts.create -}}
+{{- .Values.serviceAccounts.platform.name -}}
+{{- end -}}
+{{- end }}
+
+{{- define "insurancegovernor.gatewayServiceAccountName" -}}
+{{- if .Values.serviceAccounts.create -}}
+{{- .Values.serviceAccounts.gateway.name -}}
+{{- end -}}
+{{- end }}
+
 {{- define "insurancegovernor.postgresBackendHost" -}}
 {{- if .Values.postgres.external.enabled -}}
 {{- .Values.postgres.external.host -}}

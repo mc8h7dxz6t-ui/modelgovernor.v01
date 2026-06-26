@@ -41,6 +41,9 @@ enterprise:
     enabled: true
     mtlsMode: STRICT
 
+serviceAccounts:
+  create: true
+
 integrations:
   paymentRailMode: fednow
   oracleFeedMode: live

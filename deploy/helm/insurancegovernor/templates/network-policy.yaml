@@ -23,6 +23,13 @@ spec:
       ports:
         - protocol: TCP
           port: 8101
+    - from:
+        - podSelector:
+            matchLabels:
+              insurancegovernor.io/component: platform
+      ports:
+        - protocol: TCP
+          port: 8101
   egress:
     - to:
         - podSelector:

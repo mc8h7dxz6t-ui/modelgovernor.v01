@@ -58,6 +58,29 @@ spec:
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
+  name: sidecar-ingress-platforms
+  namespace: {{ include "insurancegovernor.namespace" . }}
+  labels:
+    {{- include "insurancegovernor.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: sidecar
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - {{ include "insurancegovernor.istioPrincipal" (dict "root" . "serviceAccount" .Values.serviceAccounts.platform.name) }}
+              - {{ include "insurancegovernor.istioPrincipal" (dict "root" . "serviceAccount" .Values.serviceAccounts.gateway.name) }}
+      to:
+        - operation:
+            ports:
+              - "8101"
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
   name: platform-egress-allowlist
   namespace: {{ include "insurancegovernor.namespace" . }}
 spec:

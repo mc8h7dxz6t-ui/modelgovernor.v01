@@ -113,6 +113,11 @@ Pod injection (`sidecar.istio.io/inject: "true"`) on:
 - Gateway, sidecar, reconciler
 - **All 11 platform deployments**
 
+**Zero-trust platform → spine path:**
+- `sidecar-ingress-platforms` **AuthorizationPolicy** — ALLOW ingress to sidecar port `8101` from Istio mTLS principals `ig-platform-workload` and `ig-gateway-workload` service accounts
+- **NetworkPolicy** `sidecar-ingress` — L3/L4 allow from pods labeled `insurancegovernor.io/component: platform` (in addition to gateway)
+- Optional **ingestion adapter HPA** — `claim-gate-hpa` and `parametric-oracle-hpa` in `values-enterprise.yaml` (2–24 / 2–16 replicas)
+
 ```bash
 helm lint deploy/helm/insurancegovernor -f deploy/helm/insurancegovernor/values-production.yaml
 ```

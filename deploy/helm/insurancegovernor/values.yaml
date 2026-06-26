@@ -190,6 +190,11 @@ platforms:
     imageKey: claimGate
     port: 8103
     replicas: 2
+    hpa:
+      enabled: false
+      minReplicas: 2
+      maxReplicas: 24
+      targetCPUUtilization: 70
     resources:
       requests:
         cpu: 50m
@@ -216,6 +221,11 @@ platforms:
     imageKey: parametricOracle
     port: 8105
     replicas: 2
+    hpa:
+      enabled: false
+      minReplicas: 2
+      maxReplicas: 16
+      targetCPUUtilization: 70
     resources:
       requests:
         cpu: 50m
@@ -387,6 +397,13 @@ claimGateGoldenProbe:
 
 networkPolicy:
   enabled: true
+
+serviceAccounts:
+  create: false
+  platform:
+    name: ig-platform-workload
+  gateway:
+    name: ig-gateway-workload
 
 config:
   commitTtlSeconds: "300"

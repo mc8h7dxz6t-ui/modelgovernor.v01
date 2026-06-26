@@ -1,0 +1,28 @@
+{{- range $key, $plat := .Values.platforms }}
+{{- if and $plat.enabled (dig "hpa" "enabled" false $plat) }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ $plat.name | replace "_" "-" }}-hpa
+  namespace: {{ include "insurancegovernor.namespace" $ }}
+  labels:
+    app: {{ $plat.name | replace "_" "-" }}
+    insurancegovernor.io/platform: {{ $plat.name | quote }}
+    {{- include "insurancegovernor.labels" $ | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ $plat.name | replace "_" "-" }}
+  minReplicas: {{ $plat.hpa.minReplicas }}
+  maxReplicas: {{ $plat.hpa.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ $plat.hpa.targetCPUUtilization }}
+{{- end }}
+{{- end }}
