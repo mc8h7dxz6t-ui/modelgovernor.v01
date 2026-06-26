@@ -5,11 +5,11 @@
 	fg-spine-up fg-stack-up fg-spine-down fg-stack-down fg-spine-test fg-spine-smoke \
 	crystal-demo algofreeze-demo wirematch-demo fg-certification \
 	fg-demo-up fg-demo-down fg-demo-gold fg-integration-test fg-load-smoke \
-	fg-prod-setup fg-aws-anchor-bucket fg-helm-template fg-helm-install \
+	fg-prod-setup fg-aws-anchor-bucket fg-helm-template fg-helm-install fg-test-deps \
 	cg-spine-up cg-stack-up cg-spine-down cg-stack-down cg-stack-reset cg-spine-test cg-spine-smoke \
 	threat-crystal-demo identity-gate-demo egress-lock-demo witness-bridge-demo \
 	cg-security-demo lineage-ingest-demo posture-reconcile-demo content-guard-demo \
-	cg-bootstrap cg-prod-bootstrap \
+	cg-bootstrap cg-prod-bootstrap cg-test-deps \
 	cg-postgres-test cg-proof-test cg-deploy-dry-run
 
 demo-prereqs:
@@ -82,6 +82,9 @@ fg-stack-down:
 fg-spine-test:
 	$(MAKE) -C finance-governor fg-spine-test
 
+fg-test-deps:
+	$(MAKE) -C finance-governor fg-test-deps
+
 fg-spine-smoke:
 	$(MAKE) -C finance-governor fg-spine-smoke
 
@@ -142,6 +145,9 @@ cg-stack-reset:
 
 cg-spine-test:
 	$(MAKE) -C cyber-governor cg-spine-test
+
+cg-test-deps:
+	$(MAKE) -C cyber-governor cg-test-deps
 
 cg-spine-smoke:
 	$(MAKE) -C cyber-governor cg-spine-smoke

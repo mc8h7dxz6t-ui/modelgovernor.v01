@@ -71,9 +71,20 @@ Every irreversible action on the spine requires a **Governance Crystal**. See [c
 make fg-demo-up            # spine + platforms
 make fg-demo-gold          # 11-step institutional++ walkthrough
 make fg-certification      # 4-tier: unit → postgres → load → chain verify
-make fg-spine-test         # pytest (28 unit/chaos tests)
+make fg-test-deps          # one-time: pip install spine + test packages
+make fg-spine-test         # pytest (unit/chaos; requires fg-test-deps)
 make crystal-demo          # quick CCP walkthrough
 ```
+
+**Local tests** need Python packages (CI installs these automatically):
+
+```bash
+cd finance-governor
+make fg-test-deps          # installs spine + pytest/hypothesis/httpx
+make fg-spine-test
+```
+
+Use **Python 3.12** to match CI (`python3.12 -m venv .venv && source .venv/bin/activate`).
 
 All tooling lives under `finance-governor/` — **no ModelGovernor runtime dependency**.
 

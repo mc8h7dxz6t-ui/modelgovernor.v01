@@ -2,7 +2,8 @@
 	fg-stack-up fg-stack-down crystal-demo algofreeze-demo wirematch-demo \
 	subledger-demo assetledger-demo credit-demo fg-all-platforms-demo \
 	fg-demo-gold-reliability fg-certification fg-demo-up fg-demo-down fg-demo-gold \
-	fg-test-postgres-up fg-test-postgres-down fg-integration-test fg-load-smoke
+	fg-test-postgres-up fg-test-postgres-down fg-integration-test fg-load-smoke \
+	fg-test-deps fg-test-deps-check
 
 fg-spine-up:
 	docker compose up -d --build
@@ -34,10 +35,25 @@ fg-test-postgres-up:
 fg-test-postgres-down:
 	docker compose -f docker-compose.test.yml down
 
-fg-spine-test:
+fg-test-deps:
+	chmod +x scripts/install-test-deps.sh
+	./scripts/install-test-deps.sh
+
+fg-test-deps-check:
+	@python3 -c "import fastapi, sqlalchemy" 2>/dev/null || { \
+	  echo "ERROR: Missing Python test dependencies for Finance Governor."; \
+	  echo ""; \
+	  echo "  make fg-test-deps"; \
+	  echo "  # or: pip install -r spine/sidecar/requirements.txt -r tests/requirements-test.txt"; \
+	  echo ""; \
+	  echo "CI uses Python 3.12. You are running: $$(python3 --version 2>&1)"; \
+	  exit 1; \
+	}
+
+fg-spine-test: fg-test-deps-check
 	python3 -m pytest tests/ -q --ignore=tests/integration
 
-fg-integration-test:
+fg-integration-test: fg-test-deps-check
 	@if command -v docker >/dev/null 2>&1; then $(MAKE) fg-test-postgres-up; else echo "docker not available — integration tests will skip if postgres unreachable"; fi
 	python3 -m pytest tests/integration/ -q; status=$$?; \
 	if command -v docker >/dev/null 2>&1; then $(MAKE) fg-test-postgres-down; fi; \
@@ -142,7 +158,7 @@ fg-demo-gold-reliability:
 crystal-demo:
 	./scripts/crystal-demo.sh
 
-fg-certification:
+fg-certification: fg-test-deps-check
 	@echo "==> Tier 1: unit + chaos (SQLite)"
 	python3 -m pytest tests/ -q --ignore=tests/integration
 	@echo "==> Tier 2: Postgres integration (starts test DB if needed)"
