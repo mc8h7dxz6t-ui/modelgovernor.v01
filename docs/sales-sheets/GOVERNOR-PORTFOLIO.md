@@ -12,7 +12,7 @@
 | **Demo / first call (Mode A — single VPC)** | **Yes** | `make demo-gold`, `make cg-security-demo`, `make algofreeze-demo` |
 | **Paid pilot (Mode B — customer VPC)** | **Yes** (MG + CG + FG spine + 2 FG wedges) | K8s overlays, ESO, 45–57+ tests per spine |
 | **Production institutional++** | **Yes with wiring** | Secrets, IdP, optional S3 anchor — `PLUG-AND-PLAY.md` |
-| **Design-partner SKUs** | **Roadmap** | FG: SubledgerSync, AssetLedger, CreditGovern (spec/schema) |
+| **Design-partner SKUs** | **Roadmap** | FG: AssetLedger (spec/schema) |
 
 **Cyber wedges:** six shipped (`CG-IDENTITYGATE` … `CG-CONTENTGUARD`).
 
@@ -151,20 +151,22 @@ How buyer objections map to **Single VPC pilot (A)** vs **Multi-instance product
 - **Tech edge:** No float path; spine `reserve` → `settle` on funds; golden record version pinned in crystal.
 - **ROI narrative:** Citigroup-class ($900M) prevention.
 
-### `FG-SUBLEDGERSYNC` 📋 Design-partner
+### `FG-SUBLEDGERSYNC` ✅ Demo-ready
 - **Does:** Intercompany match-at-clear with immutable FX snapshot hash.
 - **vs:** BlackLine — **event-driven at clear**, not month-end batch.
 - **Tech edge:** FX rate hash on every match; spine group invariant (zero orphans after sweep).
+- **Demo:** `make subledger-demo-gold`
 
 ### `FG-ASSETLEDGER` 📋 Design-partner
 - **Does:** Regulation-version-pinned daily depreciation + append-only charges.
 - **vs:** SAP FA module — **examiner-friendly chain**, not batch surprise.
 - **Tech edge:** `reg_table_version` in every charge; book value invariant.
 
-### `FG-CREDITGOVERN` 📋 Design-partner
+### `FG-CREDITGOVERN` ✅ Demo-ready
 - **Does:** Reserve exposure → score → settle; fair-lending evidence binding.
 - **vs:** ValidMind — **sub-second runtime enforcement**; vs Arthur/Fiddler — **pre-score reserve**, not post drift alert.
 - **Tech edge:** ModelGovernor-proven reserve/settle/strand ported to credit exposure.
+- **Demo:** `make credit-demo-gold`
 
 ---
 
@@ -252,7 +254,7 @@ These share the **same spine pattern**; Mode A sale-ready per matrix above.
 | Bundle | List ACV |
 |--------|----------|
 | AI Governance Enterprise (MG prod + security) | $430K – $1.1M |
-| Finance Risk Critical (FG spine + AlgoFreeze + WireMatch) | $500K – $1.0M |
+| Finance Risk Critical (FG spine + AlgoFreeze + WireMatch + Subledger + Credit) | $650K – $1.2M |
 | Cyber Institutional++ (CG spine + 6 wedges) | $700K – $1.4M |
 | Tri-Governor Portfolio | $1.2M – $2.5M |
 
@@ -289,6 +291,8 @@ make posture-reconcile-demo # PostureReconcile wedge
 make content-guard-demo     # ContentGuard wedge
 make algofreeze-demo        # Finance wedge
 make wirematch-demo         # Finance wedge
+make subledger-demo-gold    # Finance wedge
+make credit-demo-gold       # Finance wedge
 make demo-all-platforms     # Full MG SKU story
 ```
 

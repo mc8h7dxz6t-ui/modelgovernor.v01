@@ -39,3 +39,16 @@ Set `SECURITY_ANCHOR_S3_BUCKET` on cg-sidecar (separate AWS account recommended)
 ## Strand egress circuit breaker
 
 Apply label `cybersecuritygovernor.io/stranded=true` to pods when IdentityGate STRANDED — `strand-egress-deny-template` NetworkPolicy blocks egress except spine + DNS.
+
+## Enterprise mesh (Istio)
+
+`deploy/overlays/enterprise/` adds:
+
+| Manifest | Purpose |
+|----------|---------|
+| `mtls-mesh.yaml` | STRICT mTLS + ISTIO_MUTUAL |
+| `egress-istio.yaml` | Gateway external egress allowlist |
+| `spine-authz-istio.yaml` | L7 allowlist for `/crystallize`, `/commit` on cg-sidecar |
+| `sidecar-network-policy.yaml` (base) | L4 allowlist — only spine clients reach :8101 |
+
+Platform pods carry `cybersecuritygovernor.io/spine-client: "true"` and `cybersecuritygovernor.io/role: platform`.

@@ -24,6 +24,7 @@ resources:
   - cg-reconciler-deployment.yaml
   - migration-job.yaml
   - network-policy.yaml
+  - sidecar-network-policy.yaml
   - security-chain-verify-cronjob.yaml
   - security-chain-anchor-cronjob.yaml
   - synthetic-probe-cronjob.yaml

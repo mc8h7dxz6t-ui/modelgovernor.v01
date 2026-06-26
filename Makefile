@@ -3,7 +3,7 @@
 	demo-all-platforms demo-all-platforms-live demo-all-platforms-manifests demo-all-platforms-proof \
 	demo-prereqs demo-prereqs-install proof-test load-test \
 	fg-spine-up fg-stack-up fg-spine-down fg-stack-down fg-spine-test fg-spine-smoke \
-	crystal-demo algofreeze-demo wirematch-demo fg-certification \
+	crystal-demo algofreeze-demo wirematch-demo subledger-demo-gold credit-demo-gold fg-certification \
 	fg-demo-up fg-demo-down fg-demo-gold fg-integration-test fg-load-smoke \
 	fg-prod-setup fg-aws-anchor-bucket fg-helm-template fg-helm-install \
 	cg-spine-up cg-stack-up cg-spine-down cg-stack-down cg-stack-reset cg-spine-test cg-spine-smoke \
@@ -93,6 +93,12 @@ algofreeze-demo:
 
 wirematch-demo:
 	$(MAKE) -C finance-governor wirematch-demo
+
+subledger-demo-gold:
+	$(MAKE) -C finance-governor subledger-demo-gold
+
+credit-demo-gold:
+	$(MAKE) -C finance-governor credit-demo-gold
 
 fg-certification:
 	$(MAKE) -C finance-governor fg-certification

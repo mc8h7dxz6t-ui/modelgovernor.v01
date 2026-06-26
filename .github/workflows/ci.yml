@@ -286,6 +286,72 @@ jobs:
             wc -l "/tmp/cg-k8s-$overlay.yaml"
           done
 
+  finance-governor-test:
+    name: Finance Governor — institutional++ gate
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: fg_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5445:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install finance-governor dependencies
+        run: |
+          pip install -r finance-governor/spine/sidecar/requirements.txt
+          pip install -r finance-governor/spine/reconciler/requirements.txt
+          pip install -r finance-governor/spine/gateway/requirements.txt
+          pip install pytest httpx hypothesis
+
+      - name: Apply finance migrations
+        env:
+          PGPASSWORD: postgres
+        run: |
+          for f in finance-governor/migrations/*.sql; do
+            psql -h localhost -p 5445 -U postgres -d fg_test -f "$f"
+          done
+
+      - name: Tier 1 — unit tests (all platforms)
+        run: make -C finance-governor fg-spine-test
+
+      - name: Tier 2 — Postgres integration
+        env:
+          FG_TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5445/fg_test
+        run: |
+          cd finance-governor
+          python3 -m pytest tests/integration/ -q
+
+      - name: Platform smoke (SubledgerSync + CreditGovern)
+        run: |
+          cd finance-governor
+          python3 -m pytest tests/integration/test_platforms_smoke.py -q
+
+      - name: Helm template gate
+        run: |
+          curl -sSLo helm.tar.gz https://get.helm.sh/helm-v3.16.2-linux-amd64.tar.gz
+          tar xzf helm.tar.gz && chmod +x linux-amd64/helm
+          ./linux-amd64/helm template fg finance-governor/deploy/helm/finance-governor \
+            -f finance-governor/deploy/helm/finance-governor/values-production.yaml \
+            --set secrets.create=true \
+            --set oidc.issuerUrl=https://idp.example.com/realms/fg \
+            --set oidc.audience=finance-governor \
+            --set s3Anchor.bucket=fg-anchor-ci \
+            --set postgres.password=postgres > /tmp/fg-helm.yaml
+          wc -l /tmp/fg-helm.yaml
+
   cyber-governor-chaos:
     name: Tier 4 — Toxiproxy chaos (Cyber Governor)
     runs-on: ubuntu-latest

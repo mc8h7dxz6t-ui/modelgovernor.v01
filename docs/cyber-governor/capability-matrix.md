@@ -43,6 +43,7 @@ Use in RFPs, SOC 2 questionnaires, and CISO diligence.
 | admin_audit_log (hash-chained) | ✅ |
 | PgBouncer + Redis Sentinel HA | ✅ production overlay |
 | Istio mTLS + egress allowlist | ✅ enterprise overlay |
+| Istio AuthorizationPolicy (adapter → spine) | ✅ enterprise overlay |
 | Helm chart + ArgoCD | 📋 Phase 4 roadmap |
 
 Legend: ✅ shipped | 📋 planned
