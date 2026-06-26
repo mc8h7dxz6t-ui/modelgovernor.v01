@@ -14,5 +14,5 @@ python3 -m pip install \
 
 echo ""
 echo "Finance Governor test dependencies installed."
-echo "Python: $(python3 --version)"
+echo "Python: $(python3 --version) ($(python3 -c 'import sys; print(sys.executable)'))"
 echo "Next: make fg-spine-test"

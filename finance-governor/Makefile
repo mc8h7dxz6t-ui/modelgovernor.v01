@@ -40,14 +40,9 @@ fg-test-deps:
 	./scripts/install-test-deps.sh
 
 fg-test-deps-check:
-	@python3 -c "import fastapi, sqlalchemy" 2>/dev/null || { \
-	  echo "ERROR: Missing Python test dependencies for Finance Governor."; \
-	  echo ""; \
-	  echo "  make fg-test-deps"; \
-	  echo "  # or: pip install -r spine/sidecar/requirements.txt -r tests/requirements-test.txt"; \
-	  echo ""; \
-	  echo "CI uses Python 3.12. You are running: $$(python3 --version 2>&1)"; \
-	  exit 1; \
+	@python3 -c "import fastapi, sqlalchemy, pytest" 2>/dev/null || { \
+	  echo "Installing test dependencies into $$(python3 -c 'import sys; print(sys.executable)')..."; \
+	  $(MAKE) fg-test-deps; \
 	}
 
 fg-spine-test: fg-test-deps-check

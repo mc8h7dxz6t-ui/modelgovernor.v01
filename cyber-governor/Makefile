@@ -28,24 +28,15 @@ cg-test-deps:
 	./scripts/install-test-deps.sh
 
 cg-test-deps-check:
-	@python3 -c "import fastapi, sqlalchemy, pydantic" 2>/dev/null || { \
-	  echo "ERROR: Missing Python test dependencies for Cyber Governor."; \
-	  echo ""; \
-	  echo "  make cg-test-deps"; \
-	  echo "  # or: pip install -r spine/sidecar/requirements.txt -r tests/requirements-test.txt"; \
-	  echo ""; \
-	  echo "CI uses Python 3.12. You are running: $$(python3 --version 2>&1)"; \
-	  exit 1; \
+	@python3 -c "import fastapi, sqlalchemy, pydantic, pytest, hypothesis" 2>/dev/null || { \
+	  echo "Installing test dependencies into $$(python3 -c 'import sys; print(sys.executable)')..."; \
+	  $(MAKE) cg-test-deps; \
 	}
 
 cg-spine-test: cg-test-deps-check
 	python3 -m pytest tests/ -q --ignore=tests/load/ --ignore=tests/chaos/
 
 cg-property-test: cg-test-deps-check
-	@python3 -c "import hypothesis" 2>/dev/null || { \
-	  echo "ERROR: hypothesis not installed. Run: make cg-test-deps"; \
-	  exit 1; \
-	}
 	python3 -m pytest tests/test_property_security_chain.py -q
 
 cg-chaos-test:
