@@ -1,11 +1,12 @@
 .PHONY: cg-spine-up cg-spine-down cg-spine-test cg-spine-smoke cg-spine-logs \
-	cg-stack-up cg-stack-down threat-crystal-demo cg-security-demo identity-gate-demo \
-	egress-lock-demo witness-bridge-demo lineage-ingest-demo cg-deploy-dry-run \
+	cg-stack-up cg-stack-down cg-stack-reset threat-crystal-demo cg-security-demo identity-gate-demo \
+	egress-lock-demo witness-bridge-demo lineage-ingest-demo posture-reconcile-demo \
+	content-guard-demo cg-deploy-dry-run cg-demo-prereq \
 	cg-postgres-test cg-proof-test cg-load-test cg-invariant-report cg-chaos-test \
 	cg-property-test cg-bootstrap cg-prod-bootstrap
 
 cg-spine-up:
-	docker compose up -d --build
+	./scripts/cg-stack-up.sh
 
 cg-stack-up: cg-spine-up
 
@@ -13,6 +14,10 @@ cg-spine-down:
 	docker compose down
 
 cg-stack-down: cg-spine-down
+
+cg-stack-reset:
+	chmod +x scripts/cg-stack-reset.sh
+	./scripts/cg-stack-reset.sh
 
 cg-spine-logs:
 	docker compose logs -f
@@ -45,6 +50,9 @@ cg-prod-bootstrap:
 	chmod +x scripts/cg-prod-bootstrap.sh scripts/bootstrap-secrets.sh
 	./scripts/cg-prod-bootstrap.sh
 
+cg-demo-prereq:
+	@bash -c 'source scripts/cg-demo-lib.sh && ensure_cg_stack_up'
+
 cg-spine-smoke:
 	@echo "==> cg-sidecar health"
 	curl -sf http://localhost:8101/healthz
@@ -57,7 +65,7 @@ cg-spine-smoke:
 	  http://localhost:8101/internal/events/recent?limit=5
 	@echo "\ncg-spine-smoke OK"
 
-identity-gate-demo:
+identity-gate-demo: cg-demo-prereq
 	@echo "==> IdentityGate health"
 	curl -sf http://localhost:8103/healthz
 	@echo "\n==> session hijack STRANDED"
@@ -66,7 +74,7 @@ identity-gate-demo:
 	  -d '{"session_id":"demo-1","user_id":"alice@corp.example","device_fingerprint":"attacker_device","client_ip":"203.0.113.9"}'
 	@echo "\nidentity-gate-demo OK"
 
-egress-lock-demo:
+egress-lock-demo: cg-demo-prereq
 	@echo "==> EgressLock health"
 	curl -sf http://localhost:8104/healthz
 	@echo "\n==> blocked destination"
@@ -75,7 +83,7 @@ egress-lock-demo:
 	  -d '{"egress_id":"demo-1","principal_id":"alice@corp.example","destination":"evil-exfil.example","byte_count":1024}'
 	@echo "\negress-lock-demo OK"
 
-witness-bridge-demo:
+witness-bridge-demo: cg-demo-prereq
 	@echo "==> WitnessBridge health"
 	curl -sf http://localhost:8105/healthz
 	@echo "\n==> CloudTrail delete event witnessed"
@@ -90,7 +98,7 @@ threat-crystal-demo:
 cg-security-demo:
 	./scripts/cg-security-demo.sh
 
-lineage-ingest-demo:
+lineage-ingest-demo: cg-demo-prereq
 	@echo "==> LineageIngest health"
 	curl -sf http://localhost:8106/healthz
 	@echo "\n==> Falco critical shell"
@@ -98,6 +106,24 @@ lineage-ingest-demo:
 	  -H 'content-type: application/json' \
 	  -d '{"rule":"Terminal shell in container","priority":"Critical","output_fields":{"proc.name":"bash","user.name":"root"}}'
 	@echo "\nlineage-ingest-demo OK"
+
+posture-reconcile-demo: cg-demo-prereq
+	@echo "==> PostureReconcile health"
+	curl -sf http://localhost:8107/healthz
+	@echo "\n==> critical posture drift STRANDED"
+	curl -sf -X POST http://localhost:8107/posture/evaluate \
+	  -H 'content-type: application/json' \
+	  -d '{"evaluation_id":"demo-pr-1","resource_id":"eks-dr","posture_score":72,"failed_controls":["public_s3_bucket"]}'
+	@echo "\nposture-reconcile-demo OK"
+
+content-guard-demo: cg-demo-prereq
+	@echo "==> ContentGuard health"
+	curl -sf http://localhost:8108/healthz
+	@echo "\n==> API key leak BLOCKED"
+	curl -sf -X POST http://localhost:8108/content/evaluate \
+	  -H 'content-type: application/json' \
+	  -d '{"content_id":"demo-cg-1","principal_id":"alice@corp.example","text_body":"key sk-abcdefghijklmnopqrstuvwxyz123456","classification_hint":"restricted"}'
+	@echo "\ncontent-guard-demo OK"
 
 cg-deploy-dry-run:
 	@command -v kubectl >/dev/null && command -v kustomize >/dev/null && \

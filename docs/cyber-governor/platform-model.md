@@ -34,6 +34,9 @@ CG_SIDECAR_URL=http://cg-sidecar:8101
 | IdentityGate | 8103 | `POST /session/arm` | Okta, Azure AD, custom IdP (via adapter) |
 | EgressLock | 8104 | `POST /egress/evaluate` | S3 proxy, API gateway, DLP |
 | WitnessBridge | 8105 | `POST /ingest/{source}` | Okta, CloudTrail, Splunk HEC-style generic |
+| LineageIngest | 8106 | `POST /ingest/falco` etc. | Falco, Tetragon, generic |
+| PostureReconcile | 8107 | `POST /posture/evaluate` | Wiz, Prisma, K8s admission webhooks |
+| ContentGuard | 8108 | `POST /content/evaluate` | CMS, email gateway, internal APIs |
 
 ## Docker Compose profiles
 

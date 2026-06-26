@@ -10,6 +10,7 @@ configMapGenerator:
       - ../../migrations/0002_security_anchors_lineage.sql
       - ../../migrations/0003_invariant_constraints.sql
       - ../../migrations/0004_admin_audit_log.sql
+      - ../../migrations/0005_posture_content_platforms.sql
 
 resources:
   - namespace.yaml

@@ -101,12 +101,37 @@ CREATE TABLE threat_mesh_rules (
 INSERT INTO threat_mesh_rules (parent_platform, parent_facet_key, parent_facet_value, child_platform)
 VALUES ('identity_gate', 'session_state', 'STRANDED', 'egress_lock');
 
+INSERT INTO threat_mesh_rules (parent_platform, parent_facet_key, parent_facet_value, child_platform)
+VALUES ('posture_reconcile', 'posture_state', 'STRANDED', 'egress_lock');
+
+INSERT INTO threat_mesh_rules (parent_platform, parent_facet_key, parent_facet_value, child_platform)
+VALUES ('posture_reconcile', 'posture_state', 'STRANDED', 'content_guard');
+
+INSERT INTO threat_mesh_rules (parent_platform, parent_facet_key, parent_facet_value, child_platform)
+VALUES ('content_guard', 'content_decision', 'BLOCKED', 'egress_lock');
+
 INSERT INTO control_policy_registry (
     policy_id, instrument_type, platform, jurisdiction, risk_classification,
     max_exposure_per_commit, commit_horizon_ms, allow_auto_expire
 ) VALUES (
     'identity-critical-us', 'session', 'identity_gate', 'US', 'critical',
     1000000000, 30000, 0
+);
+
+INSERT INTO control_policy_registry (
+    policy_id, instrument_type, platform, jurisdiction, risk_classification,
+    max_exposure_per_commit, commit_horizon_ms, allow_auto_expire
+) VALUES (
+    'posture-high-us', 'posture', 'posture_reconcile', 'US', 'high',
+    1000000000, 120000, 0
+);
+
+INSERT INTO control_policy_registry (
+    policy_id, instrument_type, platform, jurisdiction, risk_classification,
+    max_exposure_per_commit, commit_horizon_ms, allow_auto_expire
+) VALUES (
+    'content-high-us', 'content', 'content_guard', 'US', 'high',
+    1000000000, 120000, 0
 );
 
 INSERT INTO principal_budgets (account_id, ledger_type, currency, balance, active)

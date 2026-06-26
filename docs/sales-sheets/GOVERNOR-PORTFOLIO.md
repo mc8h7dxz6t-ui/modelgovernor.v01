@@ -14,6 +14,8 @@
 | **Production institutional++** | **Yes with wiring** | Secrets, IdP, optional S3 anchor — `PLUG-AND-PLAY.md` |
 | **Design-partner SKUs** | **Roadmap** | FG: SubledgerSync, AssetLedger, CreditGovern (spec/schema) |
 
+**Cyber wedges:** six shipped (`CG-IDENTITYGATE` … `CG-CONTENTGUARD`).
+
 **Mode A rule:** Almost every “concern” in diligence is **config, buyer credential, or SOW** — not missing spine IP. See [Deployment concern matrix](#deployment-concern-matrix) below.
 
 ---
@@ -109,7 +111,7 @@ How buyer objections map to **Single VPC pilot (A)** vs **Multi-instance product
 
 ---
 
-# The 12 product codes
+# The product codes
 
 ## ModelGovernor deployment SKUs (4)
 
@@ -166,7 +168,7 @@ How buyer objections map to **Single VPC pilot (A)** vs **Multi-instance product
 
 ---
 
-## Cybersecurity Governor wedges (4)
+## Cybersecurity Governor wedges (6)
 
 ### `CG-IDENTITYGATE` ✅ Shipped
 - **Does:** `POST /session/arm` — device fingerprint + IP binding; hijack → STRANDED.
@@ -187,6 +189,18 @@ How buyer objections map to **Single VPC pilot (A)** vs **Multi-instance product
 - **Does:** Falco / Tetragon / generic → `lineage_edges` structural DAG.
 - **vs:** CNAPP alerts — **crystal-bound lineage** for forensic reconstruct.
 - **Tech edge:** Parent/child edges feed Threat Mesh; eBPF structural, not ML correlation.
+
+### `CG-POSTURERECONCILE` ✅ Shipped
+- **Does:** `POST /posture/evaluate` — live CNAPP/K8s posture vs approved baseline crystal.
+- **vs:** Wiz/Prisma dashboards — **authorize-time STRAND**, not alert backlog.
+- **Tech edge:** Critical control drift → `STRANDED`; Threat Mesh blocks egress/content commits.
+- **Demo:** `make posture-reconcile-demo`
+
+### `CG-CONTENTGUARD` ✅ Shipped
+- **Does:** `POST /content/evaluate` — PII/secret pattern gate before publish.
+- **vs:** Edge DLP only — **pre-publish crystal** + mesh blocks egress on BLOCKED.
+- **Tech edge:** REDACTED path with sealed facets; complements EgressLock byte policy.
+- **Demo:** `make content-guard-demo`
 
 ---
 
@@ -230,6 +244,8 @@ These share the **same spine pattern**; Mode A sale-ready per matrix above.
 | `CG-EGRESSLOCK` | $150K – $350K |
 | `CG-WITNESSBRIDGE` | $100K – $250K |
 | `CG-LINEAGEINGEST` | $100K – $200K |
+| `CG-POSTURERECONCILE` | $120K – $280K |
+| `CG-CONTENTGUARD` | $100K – $250K |
 
 ## Bundle list
 
@@ -237,7 +253,7 @@ These share the **same spine pattern**; Mode A sale-ready per matrix above.
 |--------|----------|
 | AI Governance Enterprise (MG prod + security) | $430K – $1.1M |
 | Finance Risk Critical (FG spine + AlgoFreeze + WireMatch) | $500K – $1.0M |
-| Cyber Institutional++ (CG spine + 4 wedges) | $600K – $1.2M |
+| Cyber Institutional++ (CG spine + 6 wedges) | $700K – $1.4M |
 | Tri-Governor Portfolio | $1.2M – $2.5M |
 
 ## Market proof points
@@ -269,6 +285,8 @@ Governors:   event → CRYSTALLIZE → (allow | freeze | hold | reserve) → com
 ```bash
 make demo-gold              # ModelGovernor
 make cg-security-demo       # Cyber Governor
+make posture-reconcile-demo # PostureReconcile wedge
+make content-guard-demo     # ContentGuard wedge
 make algofreeze-demo        # Finance wedge
 make wirematch-demo         # Finance wedge
 make demo-all-platforms     # Full MG SKU story

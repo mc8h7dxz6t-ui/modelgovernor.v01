@@ -11,9 +11,11 @@ sys.path.insert(0, str(ROOT))
 
 
 def test_all_platforms_health_and_core_apis():
+    from platforms.content_guard.main import app as content_app
     from platforms.egress_lock.main import app as egress_app
     from platforms.identity_gate.main import app as identity_app
     from platforms.lineage_ingest.main import app as lineage_app
+    from platforms.posture_reconcile.main import app as posture_app
     from platforms.witness_bridge.main import app as witness_app
 
     identity = TestClient(identity_app)
@@ -59,3 +61,29 @@ def test_all_platforms_health_and_core_apis():
             "output_fields": {"proc.name": "vim", "user.name": "alice"},
         },
     )
+
+    posture = TestClient(posture_app)
+    assert posture.get("/healthz").status_code == 200
+    posture_eval = posture.post(
+        "/posture/evaluate",
+        json={
+            "evaluation_id": "pr1",
+            "resource_id": "eks-prod",
+            "posture_score": 95,
+            "failed_controls": [],
+        },
+    )
+    assert posture_eval.json()["decision"] == "ALLOWED"
+
+    content = TestClient(content_app)
+    assert content.get("/healthz").status_code == 200
+    content_eval = content.post(
+        "/content/evaluate",
+        json={
+            "content_id": "cg1",
+            "principal_id": "alice@corp.example",
+            "text_body": "Status update only.",
+            "classification_hint": "internal",
+        },
+    )
+    assert content_eval.json()["decision"] == "ALLOWED"
