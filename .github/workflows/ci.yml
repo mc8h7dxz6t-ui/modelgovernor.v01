@@ -303,7 +303,22 @@ jobs:
           pip install -r cyber-governor/tests/requirements-test.txt
 
       - name: Start cyber toxiproxy chaos stack
+        shell: bash
         run: |
+          set -euo pipefail
+
+          ok=0
+          for i in 1 2 3; do
+            if docker compose -f cyber-governor/docker-compose.chaos.yml pull cg-postgres-chaos cg-toxiproxy; then
+              ok=1
+              break
+            fi
+            echo "Docker pull failed, retry $i/3"
+            sleep 10
+          done
+
+          test "$ok" -eq 1
+
           docker compose -f cyber-governor/docker-compose.chaos.yml up -d --wait cg-postgres-chaos cg-toxiproxy
           docker compose -f cyber-governor/docker-compose.chaos.yml run --rm cg-toxiproxy-config
 
@@ -336,7 +351,22 @@ jobs:
           pip install pytest requests
 
       - name: Start toxiproxy chaos stack
+        shell: bash
         run: |
+          set -euo pipefail
+
+          ok=0
+          for i in 1 2 3; do
+            if docker compose -f docker-compose.chaos.yml pull postgres-chaos toxiproxy; then
+              ok=1
+              break
+            fi
+            echo "Docker pull failed, retry $i/3"
+            sleep 10
+          done
+
+          test "$ok" -eq 1
+
           docker compose -f docker-compose.chaos.yml up -d --wait postgres-chaos toxiproxy
           docker compose -f docker-compose.chaos.yml run --rm toxiproxy-config
 
