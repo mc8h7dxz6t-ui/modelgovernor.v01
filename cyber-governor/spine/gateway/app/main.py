@@ -1,9 +1,10 @@
 from decimal import Decimal
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
+from .auth_oidc import require_commit_auth
 from .config import get_settings
 from .governance import execute_governed_commit
 
@@ -28,7 +29,7 @@ def healthz() -> dict:
 
 
 @app.post("/governed/commit")
-def governed_commit(request: GovernedCommitRequest) -> dict:
+def governed_commit(request: GovernedCommitRequest, _auth=Depends(require_commit_auth)) -> dict:
     try:
         return execute_governed_commit(
             get_settings(),

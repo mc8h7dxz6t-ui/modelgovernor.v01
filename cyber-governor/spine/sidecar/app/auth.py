@@ -1,11 +1,16 @@
+"""Auth entrypoints — OIDC RBAC with internal-token fallback."""
 from __future__ import annotations
 
-from fastapi import Header, HTTPException, status
+from .auth_oidc import (
+    AuthContext,
+    require_internal_auth,
+    require_security_admin,
+    resolve_auth_context,
+)
 
-from .config import get_settings
-
-
-def require_internal_auth(x_internal_token: str | None = Header(default=None, alias="x-internal-token")) -> None:
-    tokens = {t.strip() for t in get_settings().cg_internal_tokens.split(",") if t.strip()}
-    if not x_internal_token or x_internal_token not in tokens:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid internal token")
+__all__ = [
+    "AuthContext",
+    "require_internal_auth",
+    "require_security_admin",
+    "resolve_auth_context",
+]

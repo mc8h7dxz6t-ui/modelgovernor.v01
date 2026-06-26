@@ -101,7 +101,8 @@ lineage-ingest-demo:
 
 cg-deploy-dry-run:
 	@command -v kubectl >/dev/null && command -v kustomize >/dev/null && \
-	  kustomize build deploy/base/ | kubectl apply --dry-run=client -f - || \
+	  kustomize build --load-restrictor LoadRestrictionsNone deploy/base/ | kubectl apply --dry-run=client -f - && \
+	  kustomize build --load-restrictor LoadRestrictionsNone deploy/overlays/production/ | kubectl apply --dry-run=client -f - || \
 	  echo "kubectl/kustomize not installed — skipping dry-run"
 
 cg-postgres-test:

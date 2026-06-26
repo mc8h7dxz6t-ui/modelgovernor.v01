@@ -139,6 +139,19 @@ CREATE TABLE lineage_edges (
     recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE admin_audit_log (
+    audit_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    actor_subject TEXT NOT NULL,
+    actor_method VARCHAR(32) NOT NULL,
+    actor_roles TEXT,
+    action VARCHAR(128) NOT NULL,
+    resource VARCHAR(255) NOT NULL,
+    details TEXT NOT NULL DEFAULT '{}',
+    prev_hash VARCHAR(64),
+    row_hash VARCHAR(64),
+    recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 INSERT INTO control_policy_registry (
     policy_id, instrument_type, platform, jurisdiction, risk_classification,
     max_exposure_per_commit, commit_horizon_ms, allow_auto_expire

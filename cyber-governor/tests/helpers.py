@@ -71,6 +71,7 @@ def identity_facets(**extra) -> dict:
 
 
 CG_TRUNCATE_TABLES = [
+    "admin_audit_log",
     "lineage_edges",
     "security_chain_anchors",
     "security_events",

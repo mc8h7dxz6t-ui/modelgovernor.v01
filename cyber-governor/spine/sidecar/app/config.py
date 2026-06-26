@@ -29,8 +29,30 @@ class Settings(BaseSettings):
     security_anchor_s3_object_lock_enabled: bool = False
     security_anchor_s3_object_lock_mode: str = "GOVERNANCE"
     security_anchor_s3_retention_days: int = 3650
+    oidc_enabled: bool = False
+    oidc_issuer_url: str | None = None
+    oidc_audience: str | None = None
+    oidc_jwks_url: str | None = None
+    oidc_algorithms: str = "RS256"
+    oidc_allow_internal_token_fallback: bool = True
+    oidc_internal_token_is_admin: bool = True
+    oidc_viewer_roles: str = "viewer,security-viewer,cybersecuritygovernor-viewer"
+    oidc_security_admin_roles: str = "security-admin,cybersecuritygovernor-admin"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    def oidc_algorithms_list(self) -> list[str]:
+        return [part.strip() for part in self.oidc_algorithms.split(",") if part.strip()]
+
+    def oidc_viewer_roles_list(self) -> list[str]:
+        return [part.strip().lower() for part in self.oidc_viewer_roles.split(",") if part.strip()]
+
+    def oidc_security_admin_roles_list(self) -> list[str]:
+        return [
+            part.strip().lower()
+            for part in self.oidc_security_admin_roles.split(",")
+            if part.strip()
+        ]
 
     @model_validator(mode="after")
     def auto_enable_s3_object_lock_when_bucket_set(self) -> Self:

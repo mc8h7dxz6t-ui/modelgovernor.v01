@@ -276,8 +276,15 @@ jobs:
           curl -sSLo kustomize.tar.gz \
             https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.5.0/kustomize_v5.5.0_linux_amd64.tar.gz
           tar xzf kustomize.tar.gz && chmod +x kustomize
-          ./kustomize build cyber-governor/deploy/base/ > /tmp/cg-k8s.yaml
-          wc -l /tmp/cg-k8s.yaml
+          for overlay in base staging production enterprise; do
+            echo "==> kustomize build deploy/overlays/$overlay (or deploy/$overlay)"
+            if [ "$overlay" = "base" ]; then
+              ./kustomize build --load-restrictor LoadRestrictionsNone cyber-governor/deploy/base/ > "/tmp/cg-k8s-$overlay.yaml"
+            else
+              ./kustomize build --load-restrictor LoadRestrictionsNone "cyber-governor/deploy/overlays/$overlay/" > "/tmp/cg-k8s-$overlay.yaml"
+            fi
+            wc -l "/tmp/cg-k8s-$overlay.yaml"
+          done
 
   cyber-governor-chaos:
     name: Tier 4 — Toxiproxy chaos (Cyber Governor)

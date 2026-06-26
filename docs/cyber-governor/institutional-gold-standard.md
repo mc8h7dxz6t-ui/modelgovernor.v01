@@ -56,7 +56,7 @@ Witness quorum: security_chain_anchors + S3 Object Lock
 |-----------|--------------------------------|
 | **NIST CSF** | Detect (lineage), Respond (strand), Recover (reconciler) |
 | **ISO 27001** | Hash chain, S3 anchor, access control |
-| **SOC 2 Type II** | Internal token, invariant probes, CronJobs |
+| **SOC 2 Type II** | OIDC RBAC, admin_audit_log, invariant probes, CronJobs |
 | **MITRE D3FEND** | Provenance (TCP), isolation (mesh, NetworkPolicy) |
 | **Zero Trust** | Crystallize-before-authorize, continuous verification |
 
@@ -80,5 +80,7 @@ See [reliability-testing.md](reliability-testing.md), [capability-matrix.md](cap
 - [x] PrometheusRule alerts
 - [x] DB CHECK constraints (migration 0003)
 - [x] NetworkPolicy + strand egress template
-- [ ] OIDC on privileged paths (Phase 3)
-- [ ] PgBouncer + Redis Sentinel (Phase 3)
+- [x] OIDC on privileged paths (sidecar + gateway)
+- [x] PgBouncer + Redis Sentinel (production overlay)
+- [x] Istio mTLS + egress allowlist (enterprise overlay)
+- [ ] Helm chart + ArgoCD (Phase 4 roadmap)

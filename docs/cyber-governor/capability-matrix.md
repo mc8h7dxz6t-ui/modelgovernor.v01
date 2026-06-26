@@ -37,8 +37,10 @@ Use in RFPs, SOC 2 questionnaires, and CISO diligence.
 | Hypothesis property tests (hash chain) | ✅ |
 | K8s staging/production overlays + ESO | ✅ |
 | Auto-generated secrets (`cg-bootstrap`) | ✅ |
-| OIDC RBAC (privileged paths) | 📋 wire IdP via production overlay |
-| PgBouncer + Redis Sentinel HA | 📋 see production-hardening.md |
+| OIDC RBAC (privileged paths) | ✅ sidecar + gateway |
+| admin_audit_log (hash-chained) | ✅ |
+| PgBouncer + Redis Sentinel HA | ✅ production overlay |
+| Istio mTLS + egress allowlist | ✅ enterprise overlay |
 | Helm chart + ArgoCD | 📋 Phase 4 roadmap |
 
 Legend: ✅ shipped | 📋 planned

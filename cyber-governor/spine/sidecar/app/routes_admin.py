@@ -1,7 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+import json
+from datetime import datetime
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 
-from .auth import require_internal_auth
+from .auth import require_internal_auth, require_security_admin
 from .db import get_db_session
 from .security_seal import head_hash, verify_security_chain
 from .security_anchor import anchor_verified_security_chain_head
@@ -32,6 +36,37 @@ class SecurityAnchorResponse(BaseModel):
     s3_anchored: bool = False
     s3_key: str | None = None
     reason: str | None = None
+
+
+class AdminAuditEntryResponse(BaseModel):
+    audit_id: int
+    actor_subject: str
+    actor_method: str
+    actor_roles: str | None
+    action: str
+    resource: str
+    details: dict[str, Any]
+    recorded_at: datetime | str
+
+
+class AdminAuditLogResponse(BaseModel):
+    entries: list[AdminAuditEntryResponse]
+    total: int
+
+
+def _parse_metadata(metadata: Any) -> dict[str, Any]:
+    if metadata is None:
+        return {}
+    if isinstance(metadata, dict):
+        return metadata
+    if isinstance(metadata, str):
+        try:
+            parsed = json.loads(metadata)
+        except json.JSONDecodeError:
+            return {}
+        if isinstance(parsed, dict):
+            return parsed
+    return {}
 
 
 @router.get("/crystals/{crystal_id}")
@@ -79,9 +114,18 @@ def diagnostic_status(_: None = Depends(require_internal_auth)) -> dict:
 
 
 @router.post("/diagnostic/clear")
-def diagnostic_clear(_: None = Depends(require_internal_auth)) -> dict:
+def diagnostic_clear(ctx=Depends(require_security_admin)) -> dict:
+    from .admin_audit import record_admin_action
     from .diagnostic_mode import clear_diagnostic_mode
 
+    with get_db_session() as session:
+        record_admin_action(
+            session,
+            ctx=ctx,
+            action="diagnostic_clear",
+            resource="/internal/diagnostic/clear",
+        )
+        session.commit()
     clear_diagnostic_mode()
     return {"cleared": True}
 
@@ -116,9 +160,17 @@ def get_security_verify_chain(_: None = Depends(require_internal_auth)) -> Secur
 
 
 @router.post("/security/anchor-head", response_model=SecurityAnchorResponse)
-def post_security_anchor_head(_: None = Depends(require_internal_auth)) -> SecurityAnchorResponse:
+def post_security_anchor_head(ctx=Depends(require_security_admin)) -> SecurityAnchorResponse:
+    from .admin_audit import record_admin_action
+
     with get_db_session() as session:
         try:
+            record_admin_action(
+                session,
+                ctx=ctx,
+                action="security_anchor_head",
+                resource="/internal/security/anchor-head",
+            )
             payload = anchor_verified_security_chain_head(session, source="admin_api")
         except ValueError as exc:
             raise HTTPException(
@@ -127,3 +179,41 @@ def post_security_anchor_head(_: None = Depends(require_internal_auth)) -> Secur
             ) from exc
         session.commit()
     return SecurityAnchorResponse(**payload)
+
+
+@router.get("/admin/audit/recent", response_model=AdminAuditLogResponse)
+def get_recent_admin_audit(
+    limit: int = Query(default=25, ge=1, le=200),
+    _: None = Depends(require_internal_auth),
+) -> AdminAuditLogResponse:
+    from .admin_audit import schema_supports_admin_audit
+
+    with get_db_session() as session:
+        if not schema_supports_admin_audit(session):
+            return AdminAuditLogResponse(entries=[], total=0)
+        rows = session.execute(
+            text(
+                """
+                SELECT audit_id, actor_subject, actor_method, actor_roles,
+                       action, resource, details, recorded_at
+                FROM admin_audit_log
+                ORDER BY audit_id DESC
+                LIMIT :limit
+                """
+            ),
+            {"limit": limit},
+        ).mappings().all()
+    entries = [
+        AdminAuditEntryResponse(
+            audit_id=row["audit_id"],
+            actor_subject=row["actor_subject"],
+            actor_method=row["actor_method"],
+            actor_roles=row["actor_roles"],
+            action=row["action"],
+            resource=row["resource"],
+            details=_parse_metadata(row["details"]),
+            recorded_at=row["recorded_at"],
+        )
+        for row in rows
+    ]
+    return AdminAuditLogResponse(entries=entries, total=len(entries))

@@ -37,8 +37,11 @@ def spine_db(monkeypatch):
         database_url="sqlite+pysqlite:///:memory:",
         redis_url="redis://localhost:6390/0",
         cg_internal_tokens="test-token",
+        oidc_enabled=False,
     )
+    get_settings.cache_clear()
     monkeypatch.setattr("app.config.get_settings", lambda: test_settings)
+    monkeypatch.setattr("app.auth_oidc.get_settings", lambda: test_settings)
     override_engine(engine)
     yield engine
     override_engine(create_engine("sqlite+pysqlite:///:memory:", poolclass=StaticPool))
