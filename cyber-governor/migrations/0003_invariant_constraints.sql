@@ -13,5 +13,7 @@ ALTER TABLE action_budget_state
 ALTER TABLE action_escrow_ledger
     DROP CONSTRAINT IF EXISTS fg_escrow_nonnegative_reserved,
     DROP CONSTRAINT IF EXISTS fg_escrow_nonnegative_committed,
+    DROP CONSTRAINT IF EXISTS cg_escrow_nonnegative_reserved,
+    DROP CONSTRAINT IF EXISTS cg_escrow_nonnegative_committed,
     ADD CONSTRAINT cg_escrow_nonnegative_reserved CHECK (reserved_exposure >= 0),
     ADD CONSTRAINT cg_escrow_nonnegative_committed CHECK (committed_exposure >= 0);

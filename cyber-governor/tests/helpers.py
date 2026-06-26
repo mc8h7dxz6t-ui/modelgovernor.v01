@@ -39,8 +39,22 @@ def apply_sqlite_schema(engine: Engine) -> None:
                 conn.execute(text(s))
 
 
+def _postgres_schema_bootstrapped(conn) -> bool:
+    row = conn.execute(
+        text(
+            """
+            SELECT 1 FROM information_schema.tables
+            WHERE table_schema = 'public' AND table_name = 'principal_budgets'
+            """
+        )
+    ).first()
+    return row is not None
+
+
 def apply_postgres_migrations(engine: Engine) -> None:
     with engine.begin() as conn:
+        if _postgres_schema_bootstrapped(conn):
+            return
         for path in sorted(MIGRATIONS_DIR.glob("*.sql")):
             sql = path.read_text(encoding="utf-8")
             conn.execute(text(sql))
