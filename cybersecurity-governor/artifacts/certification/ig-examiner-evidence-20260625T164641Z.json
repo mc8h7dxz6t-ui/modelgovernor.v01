@@ -1,0 +1,77 @@
+{
+  "artifact_references": {
+    "argocd_application": {
+      "exists": true,
+      "path": "/workspace/deploy/argocd/application-insurancegovernor-production-helm.yaml"
+    },
+    "capability_matrix": {
+      "exists": true,
+      "path": "/workspace/docs/insurance-governor/capability-matrix.md"
+    },
+    "data_room_manifest": {
+      "exists": true,
+      "path": "/workspace/docs/insurance-governor/data-room/published/manifest.json"
+    },
+    "design_partner_attestation": {
+      "exists": true,
+      "path": "/workspace/docs/insurance-governor/design-partner-attestation.md"
+    },
+    "helm_chart": {
+      "exists": true,
+      "path": "/workspace/deploy/helm/insurancegovernor/Chart.yaml"
+    },
+    "institutional_gold_standard": {
+      "exists": true,
+      "path": "/workspace/docs/insurance-governor/institutional-gold-standard.md"
+    },
+    "operations_runbook": {
+      "exists": true,
+      "path": "/workspace/docs/insurance-governor/operations-runbook.md"
+    },
+    "uk_us_regulatory_framework": {
+      "exists": true,
+      "path": "/workspace/docs/insurance-governor/uk-us-regulatory-framework.md"
+    },
+    "warranty_enforcement_engine": {
+      "exists": true,
+      "path": "/workspace/docs/insurance-governor/warranty-enforcement-engine.md"
+    }
+  },
+  "automated_test_count": 99,
+  "certification_targets": {
+    "embedded_rehearsal": "make ig-embedded-rehearsal",
+    "enterprise_rehearsal": "make ig-full-rehearsal",
+    "institutional_plus_plus": "make ig-certification",
+    "strict_l4_gold": "make ig-certification-strict"
+  },
+  "chain_verify_endpoint": "/internal/claims/verify-chain",
+  "claim_ops_probes": 7,
+  "crystal_reconstruct_endpoint": "/internal/crystals/{crystal_id}/reconstruct",
+  "generated_at": "2026-06-25T16:46:40.570727+00:00",
+  "git_commit": "e041324625b245efeb53428d60dd680b416f996d",
+  "pack_id": "ig-examiner-evidence-v1",
+  "pack_sha256": "90ba5acf5df41ab3c4b92cd5b338b120230d9489c0ef2419a9ac46331d62f73c",
+  "spine_invariant_counters": [
+    "surprise_commit_blocked_total",
+    "crystal_fingerprint_mismatch_total",
+    "crystal_horizon_strand_total",
+    "crystal_mesh_block_total",
+    "claim_chain_verification_failed_total",
+    "negative_balance_detected_total",
+    "stranded_without_hold_total"
+  ],
+  "warranty_mesh_rules": 6,
+  "wedge_invariant_counters": {
+    "indemnity_pay_gate": [
+      "indemnity_social_engineering_blocked_total",
+      "indemnity_payee_held_total",
+      "indemnity_payee_approved_total",
+      "indemnity_fat_finger_held_total"
+    ],
+    "model_risk_freeze": [
+      "version_mismatch_freeze_total",
+      "frozen_inference_blocked_total",
+      "inference_allowed_total"
+    ]
+  }
+}

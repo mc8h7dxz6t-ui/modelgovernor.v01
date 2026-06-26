@@ -1,0 +1,35 @@
+sidecar:
+  replicas: 2
+  hpa:
+    minReplicas: 2
+    maxReplicas: 6
+
+gateway:
+  replicas: 1
+
+reconciler:
+  replicas: 1
+
+postgres:
+  enabled: true
+
+secrets:
+  create: false
+
+externalSecrets:
+  enabled: false
+
+syntheticProbe:
+  enabled: true
+
+integrations:
+  paymentRailMode: fednow_sandbox
+  oracleFeedMode: live
+  oracleFeedSource: usgs-live
+  fednowApiUrl: ""
+  clearinghouseApiUrl: ""
+
+enterprise:
+  istio:
+    enabled: true
+    mtlsMode: STRICT

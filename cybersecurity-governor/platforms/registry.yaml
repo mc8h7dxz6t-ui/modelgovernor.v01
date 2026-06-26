@@ -1,0 +1,102 @@
+# Cybersecurity Governor — platform catalog
+
+platforms:
+  egress_govern:
+    display_name: EgressGovern
+    default_policy_id: egress-critical-us
+    default_risk_tier: critical
+    port: 8123
+    docker_image: cybersecuritygovernor/egress-govern
+    required_facet_keys:
+      - flow_id
+      - destination_host
+      - egress_decision
+    commit_decisions:
+      - ALLOWED
+    invariant_counters:
+      - egress_denied_total
+      - egress_allowlisted_total
+      - egress_shadow_it_blocked_total
+
+  identity_govern:
+    display_name: IdentityGovern
+    default_policy_id: identity-high-us
+    default_risk_tier: high
+    port: 8124
+    docker_image: cybersecuritygovernor/identity-govern
+    required_facet_keys:
+      - principal
+      - workload_sa
+      - identity_decision
+    commit_decisions:
+      - VERIFIED
+    invariant_counters:
+      - identity_principal_mismatch_total
+      - identity_stale_role_total
+      - identity_verified_total
+
+  threat_proxy:
+    display_name: ThreatProxy
+    default_policy_id: threat-critical-us
+    default_risk_tier: critical
+    port: 8125
+    docker_image: cybersecuritygovernor/threat-proxy
+    required_facet_keys:
+      - request_id
+      - threat_score
+      - threat_decision
+    commit_decisions:
+      - CLEARED
+    invariant_counters:
+      - threat_blocked_total
+      - threat_high_risk_total
+      - threat_cleared_total
+
+  incident_response_gate:
+    display_name: IncidentResponseGate
+    default_policy_id: ir-critical-us
+    default_risk_tier: critical
+    port: 8126
+    docker_image: cybersecuritygovernor/incident-response-gate
+    required_facet_keys:
+      - incident_id
+      - action_type
+      - ir_decision
+    commit_decisions:
+      - AUTHORIZED
+    invariant_counters:
+      - ir_unauthorized_blocked_total
+      - ir_playbook_violation_total
+      - ir_authorized_total
+
+  posture_reconcile:
+    display_name: PostureReconcile
+    default_policy_id: posture-high-us
+    default_risk_tier: high
+    port: 8127
+    docker_image: cybersecuritygovernor/posture-reconcile
+    required_facet_keys:
+      - asset_id
+      - match_state
+    commit_decisions:
+      - MATCHED
+    invariant_counters:
+      - posture_drift_total
+      - posture_cve_threshold_breach_total
+      - posture_matched_total
+
+  compliance_logger:
+    display_name: ComplianceLogger
+    default_policy_id: compliance-standard-us
+    default_risk_tier: high
+    port: 8128
+    docker_image: cybersecuritygovernor/compliance-logger
+    required_facet_keys:
+      - framework
+      - control_id
+      - evidence_hash
+    commit_decisions:
+      - LOGGED
+    invariant_counters:
+      - compliance_event_logged_total
+      - compliance_export_ready_total

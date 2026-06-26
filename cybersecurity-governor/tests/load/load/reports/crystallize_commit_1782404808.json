@@ -1,0 +1,11 @@
+{
+  "scenario": "crystallize_commit",
+  "workers": 1,
+  "ops_per_worker": 5,
+  "total_ops": 5,
+  "errors": 0,
+  "invariant_violations": 0,
+  "p50_ms": 1.1333599977660924,
+  "p95_ms": 2.8734090010402724,
+  "recorded_at": "2026-06-25T16:26:48.063857+00:00"
+}

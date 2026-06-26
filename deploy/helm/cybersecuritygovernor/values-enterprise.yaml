@@ -1,0 +1,119 @@
+# Cybersecurity Governor L4 Gold — enterprise overlay
+# Usage:
+#   helm upgrade --install ig ./deploy/helm/cybersecuritygovernor \
+#     -f values-production.yaml -f values-enterprise.yaml
+
+global:
+  namespace: cybersecuritygovernor
+
+sidecar:
+  replicas: 5
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 12
+    targetCPUUtilization: 70
+  pdb:
+    enabled: true
+    minAvailable: 3
+
+gateway:
+  replicas: 3
+
+reconciler:
+  replicas: 3
+  pdb:
+    enabled: true
+    minAvailable: 2
+
+postgres:
+  enabled: true
+  external:
+    enabled: false
+
+pgbouncer:
+  enabled: true
+  replicas: 3
+  maxClientConn: 500
+  defaultPoolSize: 25
+  pdb:
+    enabled: true
+    minAvailable: 2
+
+redis:
+  enabled: false
+  sentinel:
+    enabled: true
+    replicas: 3
+
+enterprise:
+  istio:
+    enabled: true
+    mtlsMode: STRICT
+
+config:
+  oidcEnabled: "true"
+  oidcAllowInternalTokenFallback: "false"
+  platformRegistryEnforce: "true"
+  securityAnchorS3ObjectLockEnabled: "true"
+
+externalSecrets:
+  enabled: true
+
+secrets:
+  create: true
+
+monitoring:
+  prometheusRules:
+    enabled: true
+  sidecarPodMonitor:
+    enabled: true
+  reconcilerPodMonitor:
+    enabled: true
+
+syntheticProbe:
+  enabled: true
+  schedule: "*/10 * * * *"
+
+ledgerChainVerify:
+  enabled: true
+  schedule: "0 * * * *"
+
+ledgerChainAnchor:
+  enabled: true
+  schedule: "15 * * * *"
+
+governanceCanary:
+  enabled: true
+  schedule: "*/5 * * * *"
+
+postureReconcileVersionProbe:
+  enabled: true
+  schedule: "*/15 * * * *"
+
+egressGovernGoldenProbe:
+  enabled: true
+  schedule: "*/15 * * * *"
+
+networkPolicy:
+  enabled: true
+
+serviceAccounts:
+  create: true
+
+platforms:
+  egress_govern:
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 24
+  threat_proxy:
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 16
+
+integrations:
+  siemExportMode: splunk
+  threatIntelMode: live
+  threatIntelSource: crowdstrike-live

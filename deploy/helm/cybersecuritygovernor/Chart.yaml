@@ -1,0 +1,17 @@
+apiVersion: v2
+name: cybersecuritygovernor
+description: Institutional++ finance control plane — sidecar, gateway, reconciler, HA data plane
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.25.0-0"
+keywords:
+  - cybersecuritygovernor
+  - governance
+  - ledger
+  - gitops
+maintainers:
+  - name: cybersecuritygovernor
+home: https://github.com/mc8h7dxz6t-ui/cybersecuritygovernor.v01
+sources:
+  - https://github.com/mc8h7dxz6t-ui/cybersecuritygovernor.v01

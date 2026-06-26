@@ -1,0 +1,116 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: cybersecuritygovernor-invariant-alerts
+  labels:
+    app: cybersecuritygovernor-sidecar
+spec:
+  groups:
+    - name: cybersecuritygovernor.slos
+      interval: 30s
+      rules:
+        - record: cybersecuritygovernor:crystallize_success_rate:5m
+          expr: |
+            sum(rate(cybersecuritygovernor_http_requests_total{route="/crystallize",status=~"2.."}[5m]))
+            /
+            clamp_min(sum(rate(cybersecuritygovernor_http_requests_total{route="/crystallize"}[5m])), 1e-9)
+
+        - record: cybersecuritygovernor:commit_success_rate:5m
+          expr: |
+            sum(rate(cybersecuritygovernor_http_requests_total{route="/commit",status=~"2.."}[5m]))
+            /
+            clamp_min(sum(rate(cybersecuritygovernor_http_requests_total{route="/commit"}[5m])), 1e-9)
+
+        - record: cybersecuritygovernor:crystallize_p95_latency:5m
+          expr: |
+            histogram_quantile(
+              0.95,
+              sum(rate(cybersecuritygovernor_http_request_duration_seconds_bucket{route="/crystallize"}[5m])) by (le)
+            )
+
+        - alert: CybersecurityGovernorCrystallizeAvailabilitySLO
+          expr: cybersecuritygovernor:crystallize_success_rate:5m < 0.995
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Crystallize availability below 99.5% SLO
+
+        - alert: CybersecurityGovernorCommitAvailabilitySLO
+          expr: cybersecuritygovernor:commit_success_rate:5m < 0.995
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Commit availability below 99.5% SLO
+
+        - alert: CybersecurityGovernorCrystallizeLatencySLO
+          expr: cybersecuritygovernor:crystallize_p95_latency:5m > 0.5
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Crystallize p95 latency above 500ms SLO
+
+    - name: cybersecuritygovernor.invariants
+      rules:
+        - alert: CybersecurityGovernorClaimChainVerificationFailed
+          expr: increase(cybersecuritygovernor_security_chain_verification_failed_total[5m]) > 0
+          labels:
+            severity: critical
+          annotations:
+            summary: Claim chain verification failed
+
+        - alert: CybersecurityGovernorNegativeBalance
+          expr: increase(cybersecuritygovernor_negative_balance_detected_total[5m]) > 0
+          labels:
+            severity: critical
+          annotations:
+            summary: Negative reserve balance detected
+
+        - alert: CybersecurityGovernorClaimAuditViolation
+          expr: increase(cybersecuritygovernor_claim_audit_violation_total[5m]) > 0
+          labels:
+            severity: critical
+          annotations:
+            summary: Post-sweep claim_ops audit violation
+
+        - alert: CybersecurityGovernorGuardrailDegraded
+          expr: increase(cybersecuritygovernor_guardrail_degraded_total[5m]) > 10
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Guardrails running in local fallback mode
+
+        - alert: CybersecurityGovernorCircuitBreakerLocalFallback
+          expr: increase(cybersecuritygovernor_dependency_circuit_local_fallback_total[5m]) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Dependency circuit breaker using local fallback
+
+        - alert: CybersecurityGovernorRedisCircuitOpen
+          expr: increase(cybersecuritygovernor_redis_circuit_open_total[5m]) > 0
+          for: 0m
+          labels:
+            severity: critical
+          annotations:
+            summary: Redis dependency circuit open — crystallize fail-closed
+
+        - alert: CybersecurityGovernorClaimAnchorS3Failed
+          expr: increase(cybersecuritygovernor_security_chain_anchor_s3_failed_total[5m]) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: S3 Object Lock claim anchor upload failed
+
+        - alert: CybersecurityGovernorSyntheticCanaryMissing
+          expr: absent(up{job="cybersecuritygovernor-sidecar"}) == 1
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: Sidecar metrics absent — synthetic canary may be failing

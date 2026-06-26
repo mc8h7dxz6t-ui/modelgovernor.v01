@@ -1,0 +1,102 @@
+{{- if .Values.enterprise.istio.enabled }}
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: {{ include "cybersecuritygovernor.namespace" . }}
+  labels:
+    {{- include "cybersecuritygovernor.labels" . | nindent 4 }}
+spec:
+  mtls:
+    mode: {{ .Values.enterprise.istio.mtlsMode | default "STRICT" }}
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: cybersecuritygovernor-mtls
+  namespace: {{ include "cybersecuritygovernor.namespace" . }}
+spec:
+  host: "*.{{ include "cybersecuritygovernor.namespace" . }}.svc.cluster.local"
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+---
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: bank-rail-egress
+  namespace: {{ include "cybersecuritygovernor.namespace" . }}
+spec:
+  hosts:
+    {{- range .Values.enterprise.istio.egress.bankRails }}
+    - {{ . | quote }}
+    {{- end }}
+  location: MESH_EXTERNAL
+  ports:
+    - number: 443
+      name: https
+      protocol: HTTPS
+  resolution: DNS
+---
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: oracle-feed-egress
+  namespace: {{ include "cybersecuritygovernor.namespace" . }}
+spec:
+  hosts:
+    {{- range .Values.enterprise.istio.egress.oracleFeeds }}
+    - {{ . | quote }}
+    {{- end }}
+  location: MESH_EXTERNAL
+  ports:
+    - number: 443
+      name: https
+      protocol: HTTPS
+  resolution: DNS
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: sidecar-ingress-platforms
+  namespace: {{ include "cybersecuritygovernor.namespace" . }}
+  labels:
+    {{- include "cybersecuritygovernor.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: sidecar
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - {{ include "cybersecuritygovernor.istioPrincipal" (dict "root" . "serviceAccount" .Values.serviceAccounts.platform.name) }}
+              - {{ include "cybersecuritygovernor.istioPrincipal" (dict "root" . "serviceAccount" .Values.serviceAccounts.gateway.name) }}
+      to:
+        - operation:
+            ports:
+              - "8121"
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: platform-egress-allowlist
+  namespace: {{ include "cybersecuritygovernor.namespace" . }}
+spec:
+  selector:
+    matchLabels:
+      cybersecuritygovernor.io/component: platform
+  action: ALLOW
+  rules:
+    - to:
+        - operation:
+            hosts:
+              {{- range .Values.enterprise.istio.egress.threatIntel }}
+              - {{ . | quote }}
+              {{- end }}
+              {{- range .Values.enterprise.istio.egress.siemEndpoints }}
+              - {{ . | quote }}
+              {{- end }}
+              - sidecar.{{ include "cybersecuritygovernor.namespace" . }}.svc.cluster.local
+{{- end }}

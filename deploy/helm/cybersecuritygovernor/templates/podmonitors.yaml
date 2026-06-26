@@ -1,0 +1,37 @@
+{{- if .Values.monitoring.sidecarPodMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: sidecar
+  namespace: {{ include "cybersecuritygovernor.namespace" . }}
+  labels:
+    {{- include "cybersecuritygovernor.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  selector:
+    matchLabels:
+      app: sidecar
+  podMetricsEndpoints:
+    - port: http
+      path: /metrics/prometheus
+      interval: 30s
+{{- end }}
+{{- if .Values.monitoring.reconcilerPodMonitor.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: reconciler
+  namespace: {{ include "cybersecuritygovernor.namespace" . }}
+  labels:
+    {{- include "cybersecuritygovernor.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: reconciler
+  podMetricsEndpoints:
+    - port: http-health
+      path: /metrics/prometheus
+      interval: 30s
+{{- end }}

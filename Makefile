@@ -10,7 +10,10 @@
 	claim-gate-demo ig-demo ig-certification ig-certification-strict ig-certification-l4 ig-certification-l4-ci \
 	ig-helm-enterprise ig-platform-conformance ig-load-test ig-ha-up ig-pilot-attestation \
 	ig-cluster-attestation ig-rail-smoke ig-design-partner-package ig-claim-gate-load \
-	ig-full-rehearsal ig-embedded-rehearsal ig-examiner-evidence
+	ig-full-rehearsal ig-embedded-rehearsal ig-examiner-evidence \
+	cg-spine-up cg-stack-up cg-spine-down cg-stack-down cg-spine-test cg-spine-smoke \
+	egress-govern-demo cg-demo cg-certification cg-certification-strict cg-certification-l4 cg-certification-l4-ci \
+	cg-helm-enterprise cg-platform-conformance cg-load-test cg-examiner-evidence
 
 demo-prereqs:
 	./scripts/install-demo-prereqs.sh --check-only
@@ -202,6 +205,54 @@ ig-full-rehearsal:
 
 ig-embedded-rehearsal:
 	$(MAKE) -C insurance-governor ig-embedded-rehearsal
+
+cg-spine-up:
+	$(MAKE) -C cybersecurity-governor cg-spine-up
+
+cg-stack-up:
+	$(MAKE) -C cybersecurity-governor cg-stack-up
+
+cg-spine-down:
+	$(MAKE) -C cybersecurity-governor cg-spine-down
+
+cg-stack-down:
+	$(MAKE) -C cybersecurity-governor cg-stack-down
+
+cg-spine-test:
+	$(MAKE) -C cybersecurity-governor cg-spine-test
+
+cg-spine-smoke:
+	$(MAKE) -C cybersecurity-governor cg-spine-smoke
+
+egress-govern-demo:
+	$(MAKE) -C cybersecurity-governor egress-govern-demo
+
+cg-demo:
+	$(MAKE) -C cybersecurity-governor cg-demo
+
+cg-certification:
+	$(MAKE) -C cybersecurity-governor cg-certification
+
+cg-certification-strict:
+	$(MAKE) -C cybersecurity-governor cg-certification-strict
+
+cg-certification-l4:
+	$(MAKE) -C cybersecurity-governor cg-certification-l4
+
+cg-certification-l4-ci:
+	$(MAKE) -C cybersecurity-governor cg-certification-l4-ci
+
+cg-helm-enterprise:
+	$(MAKE) -C cybersecurity-governor cg-helm-enterprise
+
+cg-platform-conformance:
+	$(MAKE) -C cybersecurity-governor cg-platform-conformance
+
+cg-examiner-evidence:
+	$(MAKE) -C cybersecurity-governor cg-examiner-evidence
+
+cg-load-test:
+	$(MAKE) -C cybersecurity-governor cg-load-test
 
 demo-all-platforms:
 	./scripts/demo-all-platforms.sh
