@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fg-sidecar
+  namespace: {{ include "financegovernor.namespace" . }}
+  labels:
+    app: fg-sidecar
+    {{- include "financegovernor.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.sidecar.replicas }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: fg-sidecar
+  template:
+    metadata:
+      labels:
+        app: fg-sidecar
+    spec:
+      containers:
+        - name: sidecar
+          image: {{ .Values.images.sidecar.repository }}:{{ .Values.images.sidecar.tag }}
+          imagePullPolicy: {{ .Values.images.sidecar.pullPolicy }}
+          ports:
+            - containerPort: 8091
+          envFrom:
+            - configMapRef:
+                name: financegovernor-config
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "financegovernor.secretName" . }}
+                  key: database-url
+            - name: FG_INTERNAL_TOKENS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "financegovernor.secretName" . }}
+                  key: fg-internal-tokens
+            - name: LEDGER_ANCHOR_S3_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "financegovernor.secretName" . }}
+                  key: ledger-anchor-s3-bucket
+                  optional: true
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8091
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8091
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+{{- if .Values.sidecar.hpa.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: fg-sidecar
+  namespace: {{ include "financegovernor.namespace" . }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: fg-sidecar
+  minReplicas: {{ .Values.sidecar.hpa.minReplicas }}
+  maxReplicas: {{ .Values.sidecar.hpa.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: fg-sidecar
+  namespace: {{ include "financegovernor.namespace" . }}
+spec:
+  minAvailable: {{ .Values.sidecar.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      app: fg-sidecar
+{{- end }}

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: financegovernor-config
+  namespace: {{ include "financegovernor.namespace" . }}
+  labels:
+    {{- include "financegovernor.labels" . | nindent 4 }}
+data:
+  FG_SPINE_ENABLED: {{ .Values.config.fgSpineEnabled | quote }}
+  LEDGER_ANCHOR_S3_OBJECT_LOCK_ENABLED: {{ .Values.config.ledgerAnchorS3ObjectLockEnabled | quote }}
+  LEDGER_ANCHOR_S3_PREFIX: "fg-decision-chain"
+  ALGOFREEZE_ENABLED: {{ .Values.gateway.algofreeze.enabled | quote }}
+  ALGOFREEZE_URL: {{ .Values.gateway.algofreeze.url | quote }}

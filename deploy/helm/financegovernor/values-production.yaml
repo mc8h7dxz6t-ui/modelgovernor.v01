@@ -1,0 +1,40 @@
+sidecar:
+  replicas: 3
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 12
+
+gateway:
+  replicas: 2
+
+reconciler:
+  replicas: 2
+
+postgres:
+  enabled: true
+
+redis:
+  enabled: true
+  sentinel:
+    enabled: true
+
+externalSecrets:
+  enabled: true
+
+config:
+  ledgerAnchorS3ObjectLockEnabled: "true"
+
+ledgerChainVerify:
+  enabled: true
+
+ledgerChainAnchor:
+  enabled: true
+
+platforms:
+  algofreeze:
+    enabled: true
+    replicas: 3
+  wirematch:
+    enabled: true
+    replicas: 3

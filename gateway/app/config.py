@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     oidc_algorithms: str = "RS256"
     oidc_dispatch_roles: str = "dispatch,modelgovernor-dispatch"
     oidc_allow_internal_token_fallback: bool = False
+    algofreeze_enabled: bool = False
+    algofreeze_url: str = "http://localhost:8094"
+    algofreeze_timeout_seconds: float = 2.0
+    algofreeze_fail_closed: bool = True
+    model_runtime_sha: str | None = None
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

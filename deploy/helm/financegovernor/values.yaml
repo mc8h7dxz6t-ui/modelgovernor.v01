@@ -1,0 +1,80 @@
+global:
+  namespace: financegovernor
+  labels:
+    app.kubernetes.io/part-of: financegovernor
+    app.kubernetes.io/managed-by: helm
+
+images:
+  sidecar:
+    repository: financegovernor/sidecar
+    tag: latest
+    pullPolicy: IfNotPresent
+  reconciler:
+    repository: financegovernor/reconciler
+    tag: latest
+    pullPolicy: IfNotPresent
+  gateway:
+    repository: financegovernor/gateway
+    tag: latest
+    pullPolicy: IfNotPresent
+  algofreeze:
+    repository: financegovernor/algofreeze
+    tag: latest
+    pullPolicy: IfNotPresent
+  wirematch:
+    repository: financegovernor/wirematch
+    tag: latest
+    pullPolicy: IfNotPresent
+
+secrets:
+  create: false
+  name: financegovernor-secrets
+  databaseUrl: postgresql+psycopg://postgres:CHANGE_ME@postgres:5432/financegovernor
+  fgInternalTokens: CHANGE_ME
+
+externalSecrets:
+  enabled: false
+
+postgres:
+  enabled: true
+
+redis:
+  enabled: true
+
+sidecar:
+  replicas: 3
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 12
+  pdb:
+    minAvailable: 2
+
+gateway:
+  replicas: 2
+  algofreeze:
+    enabled: true
+    url: http://algofreeze:8094
+
+reconciler:
+  replicas: 2
+
+platforms:
+  algofreeze:
+    enabled: true
+    replicas: 2
+  wirematch:
+    enabled: true
+    replicas: 2
+
+ledgerChainVerify:
+  enabled: true
+  schedule: "0 * * * *"
+
+ledgerChainAnchor:
+  enabled: true
+  schedule: "15 * * * *"
+
+config:
+  ledgerAnchorS3ObjectLockEnabled: "false"
+  fgSpineEnabled: "true"

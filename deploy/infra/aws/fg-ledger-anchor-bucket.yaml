@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Finance Governor tamper-evident decision chain anchor bucket with Object Lock.
+
+Parameters:
+  BucketName:
+    Type: String
+    Description: Globally unique S3 bucket name for FG decision chain anchors.
+
+Resources:
+  FgDecisionAnchorBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Ref BucketName
+      ObjectLockEnabled: true
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  FgDecisionAnchorObjectLockDefault:
+    Type: AWS::S3::BucketObjectLockConfiguration
+    Properties:
+      Bucket: !Ref FgDecisionAnchorBucket
+      ObjectLockConfiguration:
+        ObjectLockEnabled: Enabled
+        Rule:
+          DefaultRetention:
+            Mode: GOVERNANCE
+            Years: 10
+
+Outputs:
+  BucketName:
+    Value: !Ref FgDecisionAnchorBucket

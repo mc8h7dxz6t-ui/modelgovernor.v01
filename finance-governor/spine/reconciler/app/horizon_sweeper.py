@@ -1,9 +1,9 @@
 """Horizon sweeper — strand ambiguous crystals past Commit Horizon."""
 from __future__ import annotations
 
-import json
 import sys
 from datetime import datetime, timezone
+from decimal import Decimal
 from pathlib import Path
 
 from sqlalchemy import text
@@ -15,8 +15,10 @@ if str(_FG_ROOT) not in sys.path:
 from platforms.common.crystal import should_strand_on_expiry
 
 try:
+    from app.commit_ledger import append_decision_event
     from app.metrics import get_counters
 except ImportError:
+    append_decision_event = None  # type: ignore
     get_counters = None  # type: ignore
 
 
@@ -26,6 +28,7 @@ def _utcnow() -> datetime:
 
 def sweep_expired_horizons(session: Session, batch_size: int = 100) -> int:
     lock = "" if session.bind.dialect.name == "sqlite" else " FOR UPDATE SKIP LOCKED"
+    time_cmp = "datetime('now')" if session.bind.dialect.name == "sqlite" else "CURRENT_TIMESTAMP"
     rows = session.execute(
         text(
             f"""
@@ -34,7 +37,7 @@ def sweep_expired_horizons(session: Session, batch_size: int = 100) -> int:
             FROM governance_crystals c
             JOIN commit_escrow_ledger e ON e.crystal_id = c.crystal_id
             WHERE c.terminal_state IS NULL
-              AND c.horizon_expires_at <= CURRENT_TIMESTAMP
+              AND c.horizon_expires_at <= {time_cmp}
               AND e.status IN ('CRYSTALLIZED', 'IN_FLIGHT', 'ACTION_TIMEOUT')
             ORDER BY c.horizon_expires_at ASC
             LIMIT :batch
@@ -50,11 +53,7 @@ def sweep_expired_horizons(session: Session, batch_size: int = 100) -> int:
         strand = should_strand_on_expiry(row["risk_tier"]) or row["status"] != "CRYSTALLIZED"
         if strand:
             session.execute(
-                text(
-                    """
-                    UPDATE governance_crystals SET terminal_state = 'STRANDED' WHERE crystal_id = :cid
-                    """
-                ),
+                text("UPDATE governance_crystals SET terminal_state = 'STRANDED' WHERE crystal_id = :cid"),
                 {"cid": row["crystal_id"]},
             )
             session.execute(
@@ -67,26 +66,16 @@ def sweep_expired_horizons(session: Session, batch_size: int = 100) -> int:
                 ),
                 {"cid": row["crystal_id"]},
             )
-            session.execute(
-                text(
-                    """
-                    INSERT INTO decision_events (
-                        operation_id, crystal_id, account_id, event_type,
-                        exposure_delta, metadata, row_hash, recorded_at
-                    ) VALUES (
-                        :op, :cid, :acct, 'STRANDED_HOLD', 0, :meta, :rh, :now
-                    )
-                    """
-                ),
-                {
-                    "op": row["operation_id"],
-                    "cid": row["crystal_id"],
-                    "acct": row["account_id"],
-                    "meta": json.dumps({"reason": "horizon_sweep"}),
-                    "rh": "0" * 64,
-                    "now": now,
-                },
-            )
+            if append_decision_event:
+                append_decision_event(
+                    session,
+                    operation_id=row["operation_id"],
+                    crystal_id=row["crystal_id"],
+                    account_id=row["account_id"],
+                    event_type="STRANDED_HOLD",
+                    exposure_delta=Decimal("0"),
+                    metadata={"reason": "horizon_sweep", "platform": row["platform"]},
+                )
             if get_counters:
                 get_counters().increment("reconciler_horizon_strand_total")
         else:
@@ -114,6 +103,16 @@ def sweep_expired_horizons(session: Session, batch_size: int = 100) -> int:
                 ),
                 {"cid": row["crystal_id"]},
             )
+            if append_decision_event:
+                append_decision_event(
+                    session,
+                    operation_id=row["operation_id"],
+                    crystal_id=row["crystal_id"],
+                    account_id=row["account_id"],
+                    event_type="HORIZON_EXPIRED",
+                    exposure_delta=Decimal(str(reserved)),
+                    metadata={"reason": "horizon_sweep", "platform": row["platform"]},
+                )
             if get_counters:
                 get_counters().increment("reconciler_expired_total")
         swept += 1

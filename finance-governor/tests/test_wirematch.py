@@ -73,3 +73,29 @@ def test_decimal_type_rejects_float_string(client):
         },
     )
     assert r.status_code == 422
+
+
+def test_iso20022_evaluate(client):
+    msg = (
+        "<EndToEndId>iso-1</EndToEndId>"
+        "<Nm>Revlon Lenders Group</Nm>"
+        "<IBAN>US12REV001</IBAN>"
+        "<InstdAmt>7800000.00</InstdAmt>"
+        "<Ccy>USD</Ccy>"
+    )
+    r = client.post("/wire/evaluate-iso20022", json={"message": msg})
+    assert r.json()["decision"] == "APPROVED"
+
+
+def test_wire_send_idempotency(client):
+    body = {
+        "wire_id": "send-1",
+        "beneficiary_name": "Revlon Lenders Group",
+        "beneficiary_account": "US12REV001",
+        "amount": "7800000.00",
+        "idempotency_key": "idem-1",
+    }
+    first = client.post("/wire/send", json=body)
+    assert first.json()["status"] == "SENT"
+    second = client.post("/wire/send", json=body)
+    assert second.json()["status"] == "DUPLICATE"

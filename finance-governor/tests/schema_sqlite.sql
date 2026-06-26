@@ -108,3 +108,15 @@ INSERT INTO instrument_policy_registry (
 
 INSERT INTO account_ledgers (account_id, ledger_type, currency, balance, active)
 VALUES ('desk-default', 'exposure', 'USD', 100000000, 1);
+
+INSERT INTO crystal_mesh_rules (parent_platform, parent_facet_key, parent_facet_value, child_platform)
+VALUES ('algofreeze', 'freeze_state', 'FROZEN', 'wire_match');
+
+CREATE TABLE ledger_chain_anchors (
+    anchor_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    head_hash CHAR(64) NOT NULL UNIQUE,
+    sealed_count INTEGER NOT NULL,
+    total_events INTEGER NOT NULL,
+    source VARCHAR(64) NOT NULL DEFAULT 'cronjob',
+    recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

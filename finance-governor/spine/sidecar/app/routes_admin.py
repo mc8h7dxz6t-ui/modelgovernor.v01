@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from .auth import require_internal_auth
 from .db import get_db_session
+from .decision_anchor import anchor_verified_chain_head
+from .decision_chain_verify import verify_decision_chain
 from .decision_seal import head_hash
 from .diagnostic_mode import diagnostic_snapshot
 from .metrics import get_counters
@@ -75,3 +77,21 @@ def recent_events(limit: int = 20, _: None = Depends(require_internal_auth)) -> 
 @router.get("/metrics")
 def internal_metrics(_: None = Depends(require_internal_auth)) -> dict:
     return get_counters().snapshot()
+
+
+@router.get("/decisions/verify-chain")
+def verify_chain(_: None = Depends(require_internal_auth)) -> dict:
+    with get_db_session() as session:
+        result = verify_decision_chain(session)
+        if not result.valid:
+            get_counters().increment("ledger_chain_verification_failed_total")
+        return result.to_dict()
+
+
+@router.post("/decisions/anchor-head")
+def anchor_head(_: None = Depends(require_internal_auth)) -> dict:
+    try:
+        with get_db_session() as session:
+            return anchor_verified_chain_head(session, source="api")
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc

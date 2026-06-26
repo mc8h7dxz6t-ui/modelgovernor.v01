@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fg-gateway
+  namespace: {{ include "financegovernor.namespace" . }}
+  labels:
+    app: fg-gateway
+    {{- include "financegovernor.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.gateway.replicas }}
+  selector:
+    matchLabels:
+      app: fg-gateway
+  template:
+    metadata:
+      labels:
+        app: fg-gateway
+    spec:
+      containers:
+        - name: gateway
+          image: {{ .Values.images.gateway.repository }}:{{ .Values.images.gateway.tag }}
+          ports:
+            - containerPort: 8090
+          envFrom:
+            - configMapRef:
+                name: financegovernor-config
+          env:
+            - name: FG_SIDECAR_URL
+              value: http://fg-sidecar:8091
+            - name: FG_INTERNAL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "financegovernor.secretName" . }}
+                  key: fg-internal-tokens
+            - name: ALGOFREEZE_ENABLED
+              value: {{ .Values.gateway.algofreeze.enabled | quote }}
+            - name: ALGOFREEZE_URL
+              value: {{ .Values.gateway.algofreeze.url | quote }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8090

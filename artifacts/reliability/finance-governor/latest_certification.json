@@ -1,0 +1,49 @@
+{
+  "generated_at": "2026-06-25T16:51:15.235430+00:00",
+  "certification_level": "L2_INSTITUTIONAL",
+  "platforms": [
+    "algofreeze",
+    "wire_match",
+    "subledger_sync",
+    "asset_ledger",
+    "credit_govern"
+  ],
+  "tier1_exit_code": 0,
+  "tier1_summary": "37 passed, 4 skipped, 1 warning in 0.60s",
+  "tier2_exit_code": null,
+  "tier2_summary": null,
+  "tier4_exit_code": null,
+  "tier4_summary": null,
+  "mg_fg_crosswire_exit_code": 0,
+  "l4_capabilities": {
+    "postgres_integration": false,
+    "toxiproxy_chaos": false,
+    "mg_fg_crosswire": true,
+    "s3_chain_anchor_api": true,
+    "k8s_ha_helm": "deploy/helm/financegovernor",
+    "s3_infra_template": "deploy/infra/aws/fg-ledger-anchor-bucket.yaml"
+  },
+  "competitive_gaps_bridged": {
+    "algofreeze": [
+      "ci_cd_deploy_sha_registry",
+      "mg_reserve_crosswire"
+    ],
+    "wire_match": [
+      "semantic_gate",
+      "iso20022",
+      "mesh_block"
+    ],
+    "subledger_sync": [
+      "fx_snapshot_hash_at_match"
+    ],
+    "asset_ledger": [
+      "reg_table_version_pinning"
+    ],
+    "credit_govern": [
+      "reserve_before_score"
+    ],
+    "spine_mesh": [
+      "no_wire_while_algo_frozen"
+    ]
+  }
+}
