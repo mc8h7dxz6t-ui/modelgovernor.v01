@@ -13,8 +13,9 @@ make demo-prereqs-install   # Docker + Compose + curl + make (once)
 ## Run
 
 ```bash
-make cg-stack-up
 make cg-security-demo
+# (auto-starts the stack on first run — allow ~2 min for docker build)
+# or explicitly: make cg-stack-up && make cg-security-demo
 ```
 
 Or step-by-step:
