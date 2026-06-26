@@ -1,0 +1,66 @@
+{{- if .Values.migrations.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: fg-migrations
+  namespace: {{ include "fg.namespace" . }}
+  labels:
+    {{- include "fg.labels" . | nindent 4 }}
+spec:
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: migrate
+          image: {{ .Values.image.migrate }}
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              apt-get update -qq && apt-get install -y -qq python3 python3-pip >/dev/null
+              pip install -q 'psycopg[binary]'
+              python3 - <<'PY'
+              import glob, os, sqlite3
+              import psycopg
+              user = os.environ["PGUSER"]
+              password = os.environ["PGPASSWORD"]
+              db = os.environ["PGDATABASE"]
+              host = os.environ["PGHOST"]
+              dsn = f"postgresql://{user}:{password}@{host}:5432/{db}"
+              files = sorted(glob.glob("/migrations/*.sql"))
+              with psycopg.connect(dsn, autocommit=True) as conn:
+                  with conn.cursor() as cur:
+                      for path in files:
+                          sql = open(path, encoding="utf-8").read()
+                          buf = []
+                          for line in sql.splitlines():
+                              buf.append(line)
+                              cand = "\n".join(buf).strip()
+                              if cand and sqlite3.complete_statement(cand):
+                                  cur.execute(cand)
+                                  buf = []
+                          tail = "\n".join(buf).strip()
+                          if tail:
+                              cur.execute(tail)
+              print("fg migrations applied", len(files))
+              PY
+          env:
+            - name: PGHOST
+              value: fg-postgres
+            - name: PGDATABASE
+              value: {{ .Values.postgres.database | quote }}
+            - name: PGUSER
+              value: {{ .Values.postgres.user | quote }}
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "fg.secretName" . }}
+                  key: postgres-password
+          volumeMounts:
+            - name: migrations
+              mountPath: /migrations
+      volumes:
+        - name: migrations
+          configMap:
+            name: fg-migrations
+{{- end }}

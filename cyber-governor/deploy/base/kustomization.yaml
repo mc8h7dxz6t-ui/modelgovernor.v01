@@ -1,0 +1,38 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: cybersecuritygovernor
+
+configMapGenerator:
+  - name: cg-migrations-bundle
+    files:
+      - ../../migrations/0001_cg_spine_init.sql
+      - ../../migrations/0002_security_anchors_lineage.sql
+      - ../../migrations/0003_invariant_constraints.sql
+      - ../../migrations/0004_admin_audit_log.sql
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secrets.example.yaml
+  - postgres.yaml
+  - redis.yaml
+  - pgbouncer.yaml
+  - cg-sidecar-deployment.yaml
+  - cg-gateway-deployment.yaml
+  - cg-reconciler-deployment.yaml
+  - migration-job.yaml
+  - network-policy.yaml
+  - security-chain-verify-cronjob.yaml
+  - security-chain-anchor-cronjob.yaml
+  - synthetic-probe-cronjob.yaml
+  - governance-canary-cronjob.yaml
+  - prometheus-rules.yaml
+  - cg-sidecar-ha.yaml
+  - platforms-deployments.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: cybersecuritygovernor
+      app.kubernetes.io/managed-by: kustomize
+    includeSelectors: false

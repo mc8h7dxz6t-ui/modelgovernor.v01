@@ -56,18 +56,28 @@ Every irreversible action on the spine requires a **Governance Crystal**. See [c
 | `platforms/common/crystal.py` | ✅ Protocol module |
 | `platforms/common/spine_adapter.py` | ✅ Adapter contract |
 | Spine services (gateway/sidecar/reconciler) | ✅ Phase 2 |
-| Integration tests (14 passing) | ✅ |
+| Integration tests (28+ passing) | ✅ |
+| OIDC/RBAC (FG-native) | ✅ |
+| Decision chain verify + S3 anchor | ✅ |
+| Admin audit log | ✅ |
+| `make fg-demo-gold` | ✅ |
+| `make fg-certification` (4-tier) | ✅ |
+| Helm chart (`deploy/helm/finance-governor`) | ✅ |
 | AlgoFreeze (Phase 1) | ✅ |
 | WireMatch (Phase 1b) | ✅ |
 | `make crystal-demo` walkthrough | ✅ |
 
 ```bash
-make fg-stack-up          # spine + WireMatch + AlgoFreeze (from repo root)
-make fg-spine-test        # pytest (14 tests)
-make crystal-demo         # 3-minute CCP walkthrough (stack must be up)
-make algofreeze-demo      # Knight-class freeze smoke
-make wirematch-demo       # Citigroup-class amount anomaly smoke
+make fg-demo-up            # spine + platforms
+make fg-demo-gold          # 11-step institutional++ walkthrough
+make fg-certification      # 4-tier: unit → postgres → load → chain verify
+make fg-spine-test         # pytest (28 unit/chaos tests)
+make crystal-demo          # quick CCP walkthrough
 ```
+
+All tooling lives under `finance-governor/` — **no ModelGovernor runtime dependency**.
+
+Production: [deploy/PRODUCTION.md](deploy/PRODUCTION.md) · `make fg-prod-setup` · `make fg-helm-install`
 
 ## Environment
 

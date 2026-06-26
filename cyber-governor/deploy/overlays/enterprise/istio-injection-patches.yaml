@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cg-sidecar
+  namespace: cybersecuritygovernor
+spec:
+  template:
+    metadata:
+      labels:
+        sidecar.istio.io/inject: "true"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cg-gateway
+  namespace: cybersecuritygovernor
+spec:
+  template:
+    metadata:
+      labels:
+        sidecar.istio.io/inject: "true"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cg-reconciler
+  namespace: cybersecuritygovernor
+spec:
+  template:
+    metadata:
+      labels:
+        sidecar.istio.io/inject: "true"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cg-identity-gate
+  namespace: cybersecuritygovernor
+spec:
+  template:
+    metadata:
+      labels:
+        sidecar.istio.io/inject: "true"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cg-egress-lock
+  namespace: cybersecuritygovernor
+spec:
+  template:
+    metadata:
+      labels:
+        sidecar.istio.io/inject: "true"

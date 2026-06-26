@@ -106,5 +106,57 @@ INSERT INTO instrument_policy_registry (
     1000000000, 30000, 0
 );
 
+INSERT INTO instrument_policy_registry (
+    policy_id, instrument_type, platform, jurisdiction, risk_classification,
+    max_exposure_per_commit, commit_horizon_ms, allow_auto_expire
+) VALUES (
+    'credit-high-us', 'credit', 'credit_govern', 'US', 'high',
+    250000, 300000, 0
+);
+
 INSERT INTO account_ledgers (account_id, ledger_type, currency, balance, active)
 VALUES ('desk-default', 'exposure', 'USD', 100000000, 1);
+
+INSERT INTO crystal_mesh_rules (
+    parent_platform, parent_facet_key, parent_facet_value, child_platform, block_commit, enabled
+) VALUES ('algofreeze', 'freeze_state', 'FROZEN', 'wire_match', 1, 1);
+
+CREATE TABLE admin_audit_log (
+    audit_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    actor_subject VARCHAR(255) NOT NULL,
+    actor_method VARCHAR(50) NOT NULL,
+    action VARCHAR(100) NOT NULL,
+    target VARCHAR(255),
+    metadata TEXT NOT NULL DEFAULT '{}',
+    prev_hash VARCHAR(64),
+    row_hash VARCHAR(64),
+    recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE decision_chain_anchors (
+    anchor_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    head_hash VARCHAR(64) NOT NULL UNIQUE,
+    sealed_count INT NOT NULL,
+    total_events INT NOT NULL,
+    source VARCHAR(100) NOT NULL DEFAULT 'api',
+    anchored_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE guardrail_incidents (
+    incident_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    operation_id VARCHAR(255),
+    crystal_id VARCHAR(255),
+    incident_type VARCHAR(50) NOT NULL,
+    platform VARCHAR(50) NOT NULL,
+    metadata TEXT NOT NULL DEFAULT '{}',
+    recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE platform_action_attempts (
+    attempt_key VARCHAR(255) PRIMARY KEY,
+    operation_id VARCHAR(255) NOT NULL,
+    platform VARCHAR(50) NOT NULL,
+    attempt_status VARCHAR(50) NOT NULL,
+    external_ref VARCHAR(255),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

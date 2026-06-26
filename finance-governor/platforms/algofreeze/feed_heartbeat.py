@@ -14,4 +14,6 @@ class FeedHeartbeat:
         self._last_packet_at = monotonic()
 
     def is_degraded(self) -> bool:
+        if self._last_packet_at is None:
+            return True
         return (monotonic() - self._last_packet_at) > self.max_gap_seconds

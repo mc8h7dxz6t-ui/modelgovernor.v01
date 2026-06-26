@@ -18,6 +18,14 @@ SCHEMA = (Path(__file__).parent / "schema_sqlite.sql").read_text()
 
 @pytest.fixture()
 def spine_db(monkeypatch):
+    for name in list(sys.modules):
+        if name == "app" or name.startswith("app."):
+            del sys.modules[name]
+    if str(SIDECAR) not in sys.path:
+        sys.path.insert(0, str(SIDECAR))
+    elif sys.path[0] != str(SIDECAR):
+        sys.path.remove(str(SIDECAR))
+        sys.path.insert(0, str(SIDECAR))
     engine = create_engine(
         "sqlite+pysqlite:///:memory:",
         connect_args={"check_same_thread": False},

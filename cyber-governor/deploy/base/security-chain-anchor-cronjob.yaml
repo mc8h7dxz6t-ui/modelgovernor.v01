@@ -1,0 +1,30 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: security-chain-anchor
+  namespace: cybersecuritygovernor
+spec:
+  schedule: "15 * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: anchor
+              image: curlimages/curl:8.5.0
+              env:
+                - name: CG_INTERNAL_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: cybersecuritygovernor-secrets
+                      key: cg-internal-tokens
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -e
+                  TOKEN="${CG_INTERNAL_TOKEN%%,*}"
+                  curl -sf -H "x-internal-token: ${TOKEN}" \
+                    -X POST http://cg-sidecar:8101/internal/security/anchor-head
+                  echo "security chain head anchored"

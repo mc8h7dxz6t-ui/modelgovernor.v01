@@ -1,0 +1,91 @@
+namespace: finance-governor
+
+image:
+  gateway: finance-governor-gateway:0.3.0
+  sidecar: finance-governor-sidecar:0.3.0
+  reconciler: finance-governor-reconciler:0.3.0
+  migrate: postgres:16
+  pullPolicy: IfNotPresent
+
+replicas:
+  gateway: 2
+  sidecar: 3
+  reconciler: 2
+
+postgres:
+  enabled: true
+  database: financegovernor
+  user: postgres
+  password: postgres
+  storage: 20Gi
+
+redis:
+  enabled: true
+
+secrets:
+  create: true
+  name: fg-internal
+  # Override in production — use: openssl rand -hex 32
+  internalToken: change-me-in-production
+
+externalSecrets:
+  enabled: false
+  secretStoreRef:
+    name: aws-secrets-manager
+    kind: ClusterSecretStore
+  remoteRefs:
+    internalToken: fg/prod/internal-token
+    postgresPassword: fg/prod/postgres-password
+    oidcIssuerUrl: fg/prod/oidc-issuer-url
+    oidcAudience: fg/prod/oidc-audience
+    s3Bucket: fg/prod/decision-anchor-s3-bucket
+
+oidc:
+  enabled: false
+  issuerUrl: ""
+  jwksUrl: ""
+  audience: ""
+  algorithms: RS256
+  commitRoles: fg-commit,financial-admin
+  financialAdminRoles: financial-admin,fg-admin
+  viewerRoles: viewer,financial-admin,fg-admin
+  allowInternalTokenFallback: false
+  internalTokenIsAdmin: false
+
+s3Anchor:
+  bucket: ""
+  prefix: finance-governor/decision-chain
+  region: ""
+  objectLock: false
+  retentionDays: 365
+
+serviceAccount:
+  create: true
+  name: fg-sidecar
+  annotations: {}
+
+migrations:
+  enabled: true
+
+decisionChainVerify:
+  enabled: true
+  schedule: "0 * * * *"
+
+decisionChainAnchor:
+  enabled: true
+  schedule: "15 * * * *"
+
+governanceCanary:
+  enabled: true
+  schedule: "*/10 * * * *"
+
+prometheusRules:
+  enabled: false
+
+service:
+  gateway:
+    type: ClusterIP
+    port: 8090
+  sidecar:
+    type: ClusterIP
+    port: 8091

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cybersecuritygovernor-config
+  namespace: cybersecuritygovernor
+data:
+  CG_SIDECAR_URL: "http://cg-sidecar:8101"
+  OTEL_SERVICE_NAME: "cybersecuritygovernor-sidecar"
+  SECURITY_ANCHOR_S3_PREFIX: "security-anchors"
+  SECURITY_ANCHOR_S3_OBJECT_LOCK_ENABLED: "true"
+  SECURITY_ANCHOR_S3_OBJECT_LOCK_MODE: "GOVERNANCE"
+  SECURITY_ANCHOR_S3_RETENTION_DAYS: "3650"
