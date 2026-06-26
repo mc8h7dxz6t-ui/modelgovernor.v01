@@ -1,13 +1,37 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 
 from .auth import require_internal_auth
 from .db import get_db_session
-from .security_seal import head_hash
+from .security_seal import head_hash, verify_security_chain
+from .security_anchor import anchor_verified_security_chain_head
 from .diagnostic_mode import diagnostic_snapshot
 from .metrics import get_counters
 from sqlalchemy import text
 
 router = APIRouter(tags=["admin"], prefix="/internal")
+
+
+class SecurityChainVerificationResponse(BaseModel):
+    valid: bool
+    sealed_count: int
+    unsealed_count: int
+    total_events: int
+    head_hash: str | None = None
+
+
+class SecurityAnchorResponse(BaseModel):
+    anchored: bool
+    anchor_id: int | None = None
+    head_hash: str | None = None
+    sealed_count: int | None = None
+    total_events: int | None = None
+    first_event_id: int | None = None
+    last_event_id: int | None = None
+    source: str | None = None
+    s3_anchored: bool = False
+    s3_key: str | None = None
+    reason: str | None = None
 
 
 @router.get("/crystals/{crystal_id}")
@@ -75,3 +99,31 @@ def recent_events(limit: int = 20, _: None = Depends(require_internal_auth)) -> 
 @router.get("/metrics")
 def internal_metrics(_: None = Depends(require_internal_auth)) -> dict:
     return get_counters().snapshot()
+
+
+@router.get("/security/verify-chain", response_model=SecurityChainVerificationResponse)
+def get_security_verify_chain(_: None = Depends(require_internal_auth)) -> SecurityChainVerificationResponse:
+    with get_db_session() as session:
+        result = verify_security_chain(session)
+    if not result.valid:
+        get_counters().increment("security_chain_verification_failed_total")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=result.to_dict(),
+        )
+    get_counters().increment("security_chain_verification_ok_total")
+    return SecurityChainVerificationResponse(**result.to_dict())
+
+
+@router.post("/security/anchor-head", response_model=SecurityAnchorResponse)
+def post_security_anchor_head(_: None = Depends(require_internal_auth)) -> SecurityAnchorResponse:
+    with get_db_session() as session:
+        try:
+            payload = anchor_verified_security_chain_head(session, source="admin_api")
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=str(exc),
+            ) from exc
+        session.commit()
+    return SecurityAnchorResponse(**payload)

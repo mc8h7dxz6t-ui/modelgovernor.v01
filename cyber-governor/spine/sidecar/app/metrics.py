@@ -17,6 +17,15 @@ _COUNTER_NAMES = (
     "regulatory_audit_diagnostic_entered_total",
     "reconciler_horizon_strand_total",
     "reconciler_expired_total",
+    "security_chain_verification_ok_total",
+    "security_chain_verification_failed_total",
+    "security_chain_anchor_recorded_total",
+    "security_chain_anchor_failed_total",
+    "security_chain_anchor_s3_ok_total",
+    "security_chain_anchor_s3_failed_total",
+    "security_chain_anchor_webhook_ok_total",
+    "security_chain_anchor_webhook_failed_total",
+    "lineage_edge_ingested_total",
 )
 
 

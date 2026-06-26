@@ -5,7 +5,8 @@
 	fg-spine-up fg-stack-up fg-spine-down fg-stack-down fg-spine-test fg-spine-smoke \
 	crystal-demo algofreeze-demo wirematch-demo \
 	cg-spine-up cg-stack-up cg-spine-down cg-stack-down cg-spine-test cg-spine-smoke \
-	threat-crystal-demo identity-gate-demo egress-lock-demo witness-bridge-demo
+	threat-crystal-demo identity-gate-demo egress-lock-demo witness-bridge-demo \
+	cg-security-demo lineage-ingest-demo
 
 demo-prereqs:
 	./scripts/install-demo-prereqs.sh --check-only
@@ -118,3 +119,9 @@ egress-lock-demo:
 
 witness-bridge-demo:
 	$(MAKE) -C cyber-governor witness-bridge-demo
+
+cg-security-demo:
+	$(MAKE) -C cyber-governor cg-security-demo
+
+lineage-ingest-demo:
+	$(MAKE) -C cyber-governor lineage-ingest-demo

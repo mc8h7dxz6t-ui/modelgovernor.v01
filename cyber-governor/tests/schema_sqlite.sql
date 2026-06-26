@@ -111,3 +111,38 @@ INSERT INTO control_policy_registry (
 
 INSERT INTO principal_budgets (account_id, ledger_type, currency, balance, active)
 VALUES ('tenant-default', 'action_budget', 'USD', 100000000, 1);
+
+CREATE TABLE security_chain_anchors (
+    anchor_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    head_hash VARCHAR(64) NOT NULL,
+    sealed_count BIGINT NOT NULL,
+    total_events BIGINT NOT NULL,
+    first_event_id BIGINT,
+    last_event_id BIGINT,
+    source VARCHAR(64) NOT NULL DEFAULT 'cronjob',
+    recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (head_hash)
+);
+
+CREATE TABLE lineage_edges (
+    edge_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_system VARCHAR(50) NOT NULL,
+    edge_type VARCHAR(50) NOT NULL,
+    parent_ref VARCHAR(512),
+    child_ref VARCHAR(512) NOT NULL,
+    principal_id VARCHAR(255),
+    physical_time TEXT NOT NULL,
+    logical_counter BIGINT NOT NULL DEFAULT 0,
+    causal_parent_ids TEXT NOT NULL DEFAULT '[]',
+    severity VARCHAR(20) NOT NULL DEFAULT 'standard',
+    metadata TEXT NOT NULL DEFAULT '{}',
+    recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO control_policy_registry (
+    policy_id, instrument_type, platform, jurisdiction, risk_classification,
+    max_exposure_per_commit, commit_horizon_ms, allow_auto_expire
+) VALUES (
+    'lineage-critical-us', 'lineage', 'lineage_ingest', 'US', 'critical',
+    1000000, 30000, 0
+);

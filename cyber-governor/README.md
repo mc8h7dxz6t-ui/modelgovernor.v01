@@ -72,11 +72,15 @@ Platforms work with **most systems** via:
 | Spine services (gateway/sidecar/reconciler) | ✅ |
 | IdentityGate, EgressLock, WitnessBridge | ✅ |
 | Integration tests | ✅ |
+| Witness quorum (S3 anchors) | ✅ |
+| Lineage ingest (Falco/Tetragon) | ✅ |
+| K8s deploy kit | ✅ `deploy/base/` |
 
 ```bash
 make cg-stack-up
 make cg-spine-test
-make threat-crystal-demo
+make cg-security-demo
+make lineage-ingest-demo
 make identity-gate-demo
 make egress-lock-demo
 make witness-bridge-demo
@@ -101,5 +105,6 @@ cp .env.example .env
 | IdentityGate | 8103 |
 | EgressLock | 8104 |
 | WitnessBridge | 8105 |
+| LineageIngest | 8106 |
 | Postgres | 5443 |
 | Redis | 6390 |

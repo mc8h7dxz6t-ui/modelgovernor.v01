@@ -87,8 +87,9 @@ def _append_event(
 ) -> None:
     prev = head_hash(session) or GENESIS_HASH
     now = _utcnow()
-    row =     meta_sql = ":meta" if session.bind.dialect.name == "sqlite" else ":meta::jsonb"
-    session.execute(
+    meta_sql = ":meta" if session.bind.dialect.name == "sqlite" else ":meta::jsonb"
+    recorded_at_value = now.isoformat() if session.bind.dialect.name == "sqlite" else now
+    row = session.execute(
         text(
             f"""
             INSERT INTO security_events (
@@ -110,9 +111,10 @@ def _append_event(
             "meta": json.dumps(metadata),
             "prev_hash": prev,
             "placeholder": prev,
-            "recorded_at": now.isoformat() if session.bind.dialect.name == "sqlite" else now,
+            "recorded_at": recorded_at_value,
         },
     ).scalar_one()
+    recorded_at_for_hash = recorded_at_value if isinstance(recorded_at_value, str) else now.isoformat()
     rh = compute_row_hash(
         event_id=row,
         operation_id=operation_id,
@@ -122,11 +124,11 @@ def _append_event(
         exposure_delta=str(quantize_money(exposure_delta)),
         metadata=metadata,
         prev_hash=prev,
-        recorded_at=now.isoformat(),
+        recorded_at=recorded_at_for_hash,
     )
     session.execute(
-        text("UPDATE security_events SET row_hash = :rh WHERE event_id = :eid"),
-        {"rh": rh, "eid": row},
+        text("UPDATE security_events SET row_hash = :rh, prev_hash = :prev WHERE event_id = :eid"),
+        {"rh": rh, "prev": prev, "eid": row},
     )
 
 

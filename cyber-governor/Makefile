@@ -1,5 +1,6 @@
 .PHONY: cg-spine-up cg-spine-down cg-spine-test cg-spine-smoke cg-spine-logs \
-	cg-stack-up cg-stack-down threat-crystal-demo identity-gate-demo egress-lock-demo witness-bridge-demo
+	cg-stack-up cg-stack-down threat-crystal-demo cg-security-demo identity-gate-demo \
+	egress-lock-demo witness-bridge-demo lineage-ingest-demo cg-deploy-dry-run
 
 cg-spine-up:
 	docker compose up -d --build
@@ -58,3 +59,18 @@ witness-bridge-demo:
 
 threat-crystal-demo:
 	./scripts/threat-crystal-demo.sh
+
+cg-security-demo:
+	./scripts/cg-security-demo.sh
+
+lineage-ingest-demo:
+	@echo "==> LineageIngest health"
+	curl -sf http://localhost:8106/healthz
+	@echo "\n==> Falco critical shell"
+	curl -sf -X POST http://localhost:8106/ingest/falco \
+	  -H 'content-type: application/json' \
+	  -d '{"rule":"Terminal shell in container","priority":"Critical","output_fields":{"proc.name":"bash","user.name":"root"}}'
+	@echo "\nlineage-ingest-demo OK"
+
+cg-deploy-dry-run:
+	kubectl apply --dry-run=client -k deploy/base/

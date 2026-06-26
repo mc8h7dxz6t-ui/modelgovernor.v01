@@ -19,6 +19,14 @@ class Settings(BaseSettings):
     redis_connect_timeout_seconds: float = 0.5
     redis_socket_timeout_seconds: float = 0.5
     otel_service_name: str = "cybersecuritygovernor-sidecar"
+    security_anchor_webhook_url: str | None = None
+    security_anchor_s3_bucket: str | None = None
+    security_anchor_s3_prefix: str = "security-anchors"
+    security_anchor_s3_region: str | None = None
+    security_anchor_s3_endpoint_url: str | None = None
+    security_anchor_s3_object_lock_enabled: bool = False
+    security_anchor_s3_object_lock_mode: str = "GOVERNANCE"
+    security_anchor_s3_retention_days: int = 3650
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
