@@ -1,8 +1,10 @@
 # Governor Portfolio — Tech Listing & Valuation (No Pricing)
 
-**As-of:** institutional++ packaging across ModelGovernor, Finance Governor, Cybersecurity Governor.  
+**As-of:** institutional++ packaging across **four governors** — ModelGovernor, Finance Governor, Cybersecurity Governor, **Insurance Governor**.  
 **Use:** listing pages, investor memos, RFP technical annexes, IP diligence.  
 **Excludes:** list prices, ACV tables, sport/trading positioning.
+
+**Code location:** Insurance Governor ships on branch `cursor/insurance-governor-spine-254e` (merge to `main` pending). MG, FG, CG on `main`.
 
 **Methodology:** [valuation-pre-revenue.md](valuation-pre-revenue.md) — replacement cost (40%) + differentiation premium (35%) + commercial readiness (25%). Figures are **illustrative technical asset worth**, not appraisals or company valuation.
 
@@ -38,6 +40,19 @@
 | `MG-HEALTH` | Healthcare ingest/export | ModelGovernor | Extended catalog | ✅ Mode A | BAA template path |
 | `MG-DRIFTGATE` | Model/output drift lockout | ModelGovernor | Extended catalog | ✅ | `demo-gold` step 10 |
 | `MG-SPENDGUARD` | Spend enforcement core | ModelGovernor | Extended catalog | ✅ | Wallet lockout + reserve |
+| `IG-SPINE` | Insurance Governor control plane | Insurance | Loss-control governance | ✅ L4 Gold | `make ig-demo` · 83 tests · 4-tier CI |
+| `IG-PLATFORM-PRODUCTION` | Production Helm + data room | Insurance | Deployment SKU | ✅ | Helm · ArgoCD · Istio · S3 anchor |
+| `IG-CLAIMGATE` | Claims payout + FNOL gate | Insurance | Wedge | ✅ shipped | `make claim-gate-demo` · 6 FNOL adapters |
+| `IG-BINDAUTHORITY` | Premium/limit bind gate | Insurance | Wedge | ✅ shipped | `make bind-authority-demo` |
+| `IG-PARAMETRICORACLE` | Parametric trigger attestation | Insurance | Wedge | ✅ shipped | `make parametric-oracle-demo` |
+| `IG-ZKCLAIMAUDIT` | Cryptographic claim commitments | Insurance | Wedge | ✅ shipped | Selective disclosure proofs |
+| `IG-SPATIALTWIN` | Spatial damage estimate gate | Insurance | Wedge | ✅ scaffold | LiDAR hash + estimate gate |
+| `IG-BATTERYLIABILITY` | EV battery liability gate | Insurance | Wedge | ✅ shipped | SOH / thermal gate |
+| `IG-SUBROGATIONGRAPH` | Recovery routing gate | Insurance | Wedge | ✅ shipped | Multi-defendant subro |
+| `IG-INDEMNITYPAYGATE` | Semantic indemnity payee gate | Insurance | Loss-control wedge | ✅ shipped | Crime/FI — WireMatch analogue |
+| `IG-MODELRISKFREEZE` | Claims/pricing model version guard | Insurance | Loss-control wedge | ✅ shipped | E&O/Cyber — deploy freeze analogue |
+| `IG-UNDERWRITINGGOVERN` | Fair-bind compliance gate | Insurance | Loss-control wedge | ✅ shipped | D&O/Consumer Duty analogue |
+| `IG-RESERVERECONCILE` | Case reserve vs subledger match | Insurance | Loss-control wedge | ✅ shipped | Solvency / D&O drift block |
 
 ---
 
@@ -50,7 +65,7 @@
 | **STRANDED semantics** | Timeout/ambiguity → held state, never silent wrong commit | Retry-heavy systems rewrite or guess |
 | **Reconciler + leader election** | Horizon sweep, stranded repair, `RECONCILED_LATE_SETTLE` without history rewrite | HA without dual-write; chaos-tested |
 | **Diagnostic mode** | Writes halt, reads continue — no poison pill | Circuit breakers often brick production |
-| **Threat / Crystal Mesh** | Cross-platform invariants (e.g. STRANDED identity blocks egress commit) | Point tools lack shared authorize-time fabric |
+| **Threat / Crystal / Warranty Mesh** | Cross-platform invariants at authorize/commit time | Point tools lack shared commit interceptor |
 | **Standalone OR spine** | `*_SPINE_ENABLED=false` per platform; days-to-weeks wedge deploy | Suites force all-or-nothing |
 
 **Elevator:** *No surprise commit without a crystal — AI spend, finance ops, or security authorize.*
@@ -256,16 +271,113 @@
 
 ---
 
+# Deep dive — Insurance Governor (`IG-SPINE`)
+
+**Buyer:** CRO, Chief Actuary, claims innovation, MGAs (Cyber, D&O, E&O, Crime financial lines)  
+**One line:** **Loss-control attestation spine** — prove policy warranties at runtime, not after the claim.  
+**Branch:** `cursor/insurance-governor-spine-254e`
+
+## Technical specification
+
+| Layer | Components | Ports (default) |
+|-------|------------|-----------------|
+| Gateway | Governed claim commit API | 8100 |
+| Sidecar | CCP, claim escrow, `claim_events` hash chain, `claim_ops` | 8101 |
+| Reconciler | Reserve horizon sweep, diagnostic halt | 8102 |
+| Data | PostgreSQL, Redis Sentinel | Helm / compose |
+
+| CCP / insurance primitive | Spec detail |
+|-----------------------------|-------------|
+| Governance Crystal | Hash-chained snapshot at evaluate/bind/pay time |
+| Claim hash chain | `GET /internal/claims/verify-chain` — 422 on tamper |
+| Warranty Enforcement Engine | 6 seeded `crystal_mesh_rules` block cascading commits |
+| Platform SDK | `manifest.yaml` + `GovernedPlatform` — plug-and-play registry |
+| Data room | Published attestation manifest — 7/7 probes |
+
+## Wedges (11 platforms)
+
+### Claims & specialty
+
+| Code | Port | Does | vs incumbents |
+|------|------|------|---------------|
+| `IG-CLAIMGATE` | 8103 | Policy rules, deductibles, SIU referral, FNOL ingest (6 vendors), payment rails, write-back | PAS rules inside workflow — no mesh attestation export |
+| `IG-BINDAUTHORITY` | 8104 | Premium/limit bind gate | Static authority tables — no cross-platform mesh |
+| `IG-PARAMETRICORACLE` | 8105 | Oracle feed + `sha256(source:payload)` before parametric trigger | Raw feeds without governed reserve commit |
+| `IG-ZKCLAIMAUDIT` | 8106 | SHA-256 fact commitments; selective disclosure for exams | Document vaults — not cryptographic commitment |
+| `IG-SPATIALTWIN` | 8107 | LiDAR point-cloud hash + damage estimate gate | Photogrammetry without governed commit |
+| `IG-BATTERYLIABILITY` | 8108 | EV battery SOH / thermal liability gate | Telematics dashboards — no warranty enforcement |
+| `IG-SUBROGATIONGRAPH` | 8109 | Multi-defendant recovery routing gate | Subro desk workflow — not governed commit |
+
+### Loss-control wedges (financial-lines lead)
+
+| Code | Port | Does | Finance analogue | Loss-control line |
+|------|------|------|------------------|-------------------|
+| `IG-INDEMNITYPAYGATE` | 8110 | Semantic payee verification before indemnity payment | WireMatch | Crime / FI bond |
+| `IG-MODELRISKFREEZE` | 8111 | Freeze claims/pricing AI on version drift; mesh blocks payout | AlgoFreeze | E&O / Cyber |
+| `IG-UNDERWRITINGGOVERN` | 8112 | Fair-bind / bias gate per application | CreditGovern | D&O / Consumer Duty |
+| `IG-RESERVERECONCILE` | 8113 | Case reserve vs reinsurance match; blocks payout on DRIFT | SubledgerSync | Solvency / D&O |
+
+## Warranty Enforcement Engine (unique moat)
+
+| Parent breach | Blocks | Warranty enforced |
+|---------------|--------|-------------------|
+| ModelRiskFreeze `FROZEN` | ClaimGate, IndemnityPayGate | No auto-adjudication / payment on wrong model version |
+| ClaimGate `REFERRED` | IndemnityPayGate | No payment while SIU open |
+| UnderwritingGovern `VIOLATION` | BindAuthority | No bind while fairness breach |
+| ReserveReconcile `DRIFT` | ClaimGate, IndemnityPayGate | No payout on reserve mismatch |
+
+**Positioning:** *Not replacing your PAS — the loss-control layer actuaries and CRO can underwrite against.*
+
+## Competitive edge
+
+| vs | They do | Our edge |
+|----|---------|----------|
+| Guidewire / Duck Creek / Majesco | Policy admin, FNOL workflow, reserves UI | Runtime warranty mesh + hash-chained commit control |
+| Snapsheet / CCC | Digital FNOL, routing | Governed payout gate + attestation export |
+| Shift / FRISS | Fraud detection scores | SIU **blocks commit**, not just flags |
+| Earnix / Federato | Rate and portfolio pricing | Per-bind compliance crystal + mesh block |
+| Archer / MetricStream | Model inventory, policy docs | **Freeze → block indemnity** at runtime |
+
+## Integrations (production depth)
+
+| Surface | Status |
+|---------|--------|
+| FNOL ingest | Guidewire, Snapsheet, Majesco, Acturis, SSP, ICE |
+| FNOL write-back | Guidewire, Acturis, ICE |
+| Payment rails | ACH stub, FedNow sandbox/live, clearinghouse adapters |
+| Oracle feeds | USGS, NOAA, Chainlink-style with attestation hash |
+| Infra | Helm chart, Istio mTLS, PgBouncer, ArgoCD, S3 Object Lock |
+
+## Technical valuation
+
+| Lens | Assessment |
+|------|------------|
+| **Replacement cost** | 11 platforms + spine + 83 tests + Helm/GTM/data room ≈ **$1.2M–$2.0M** build |
+| **Differentiation premium** | Warranty mesh + claim hash chain + L4 CI — rare in PAS category |
+| **Readiness premium** | Published data room 7/7 probes, full rehearsal path |
+| **Asset worth (IG bundle)** | **$1.6M–$3.2M** fair · **$3.5M–$4.5M** strategic ceiling |
+| **Moat score (1–5)** | **4.5** — mesh IP strong; carrier references still forming |
+
+| Moat dimension | Score | Notes |
+|----------------|-------|-------|
+| Warranty Enforcement Engine | **5** | Cross-product commit interceptor — PAS vendors lack this |
+| Platform completeness | **5** | 11 registered platforms + SDK scaffold |
+| Engineering proof | **5** | 4-tier CI, chaos, load, Helm validate |
+| Market references | **2.5** | Design-partner attestation package; no named carrier logo on main |
+
+---
+
 # Portfolio valuation summary
 
-## Tri-governor technical asset worth (pre-revenue)
+## Quad-governor technical asset worth (pre-revenue)
 
 | Bundle | Constituents | Overlap adjustment | **Asset worth** |
 |--------|--------------|-------------------|-----------------|
 | ModelGovernor enterprise | MG-SPINE + A/B/C/D SKUs | — | **$3.5M–$6.0M** |
 | Finance Governor | FG-SPINE + 5 wedges | Shares spine IP with MG | **$2.5M–$5.0M** |
 | Cyber Governor | CG-SPINE + 6 wedges | Shares spine IP with MG | **$3.5M–$6.5M** |
-| **Portfolio (strategic buyer)** | All three + 25 product codes | −15–25% spine overlap | **$8M–$14M** fair · **$16M** strategic ceiling |
+| Insurance Governor | IG-SPINE + 11 platforms | Shares CCP/mesh IP with FG/MG | **$1.6M–$3.2M** |
+| **Portfolio (strategic buyer)** | All four + **36 product codes** | −20–30% spine overlap | **$10M–$17M** fair · **$22M** strategic ceiling |
 
 ## Valuation drivers (what moves the number)
 
@@ -273,6 +385,7 @@
 |--------|-----------------|
 | Named Fortune 500 design-partner logo | +$0.5M–$1.5M narrative |
 | First paid pilot (any governor) | Validates 3–5× on that logo's ACV potential |
+| IG merge to main + design-partner LOI | +$0.5M–$1.0M IG narrative |
 | FG CI gate + Subledger/Credit promotion to demo-ready | +$0.5M–$1M FG bundle |
 | CG Helm + ArgoCD shipped | +$0.3M–$0.6M packaging |
 | SOC 2 Type II + pen test letter | +$0.5M–$1M enterprise multiplier |
@@ -280,12 +393,12 @@
 
 ## Sale readiness (no pricing)
 
-| Motion | MG | FG | CG |
-|--------|----|----|-----|
-| Mode A — first-call demo | ✅ | ✅ (spine + 2 wedges lead) | ✅ |
-| Mode B — customer VPC pilot | ✅ | ✅ with wiring | ✅ |
-| Mode C — production institutional++ | ✅ with IdP/secrets/S3 | ✅ with wiring | ✅ with IdP/vault/S3 |
-| CI enforcement on every push | ✅ 4 tiers | ⚠️ local gate | ✅ + chaos |
+| Motion | MG | FG | CG | IG |
+|--------|----|----|-----|-----|
+| Mode A — first-call demo | ✅ | ✅ (spine + 2 wedges lead) | ✅ | ✅ `make ig-demo` |
+| Mode B — customer VPC pilot | ✅ | ✅ with wiring | ✅ | ✅ Helm staging |
+| Mode C — production institutional++ | ✅ with IdP/secrets/S3 | ✅ with wiring | ✅ with IdP/vault/S3 | ✅ L4 Gold + data room |
+| CI enforcement on every push | ✅ 4 tiers | ⚠️ local gate | ✅ + chaos | ✅ 4 tiers (on IG branch) |
 
 ---
 
@@ -295,12 +408,15 @@
 make demo-gold                    # ModelGovernor
 make fg-demo-gold                 # Finance Governor (stack up first)
 make cg-security-demo             # Cyber Governor (auto-starts stack)
+make ig-full-rehearsal            # Insurance Governor (IG branch — refreshes data room)
 make demo-all-platforms           # MG full SKU story (live + manifests)
 ```
 
 ## Related documents
 
-- [GOVERNOR-PORTFOLIO.md](GOVERNOR-PORTFOLIO.md) — full competitive copy (includes pricing section)
+- [GOVERNOR-PORTFOLIO.md](GOVERNOR-PORTFOLIO.md) — tri-governor competitive copy (update pending for IG)
+- [insurance-governor-tomorrow-sale.md](insurance-governor-tomorrow-sale.md) — IG deep spec (on IG branch)
+- [insurance-governor-production.md](insurance-governor-production.md) — IG production spec (on IG branch)
 - [valuation-pre-revenue.md](valuation-pre-revenue.md) — MG-focused methodology
 - [05-ip-licensing-framework.md](../05-ip-licensing-framework.md) — licensable primitives
 - [capability-matrix.md](../capability-matrix.md) — MG RFP matrix
