@@ -61,7 +61,14 @@ def append_security_event(
             "recorded_at": recorded_at_value,
         },
     ).scalar_one()
-    recorded_at_for_hash = recorded_at_value if isinstance(recorded_at_value, str) else now.isoformat()
+    dialect = session.bind.dialect.name
+    recorded_expr = "recorded_at::text" if dialect == "postgresql" else "recorded_at"
+    recorded_at_for_hash = str(
+        session.execute(
+            text(f"SELECT {recorded_expr} AS recorded_at FROM security_events WHERE event_id = :eid"),
+            {"eid": row},
+        ).scalar_one()
+    )
     rh = compute_row_hash(
         event_id=row,
         operation_id=operation_id,

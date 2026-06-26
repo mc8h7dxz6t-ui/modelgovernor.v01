@@ -80,7 +80,14 @@ def record_admin_action(
         return None
 
     audit_id = int(row["audit_id"])
-    recorded_at = str(row["recorded_at"])
+    dialect = session.bind.dialect.name
+    recorded_expr = "recorded_at::text" if dialect == "postgresql" else "recorded_at"
+    recorded_at = str(
+        session.execute(
+            text(f"SELECT {recorded_expr} AS recorded_at FROM admin_audit_log WHERE audit_id = :audit_id"),
+            {"audit_id": audit_id},
+        ).scalar_one()
+    )
     prev_hash = session.execute(
         text(
             """

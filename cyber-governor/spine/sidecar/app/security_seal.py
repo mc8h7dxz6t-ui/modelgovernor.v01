@@ -130,11 +130,14 @@ def verify_security_chain(session) -> SecurityChainVerificationResult:
             head_hash=None,
         )
 
+    dialect = session.bind.dialect.name
+    recorded_expr = "recorded_at::text" if dialect == "postgresql" else "recorded_at"
     rows = session.execute(
         text(
-            """
+            f"""
             SELECT event_id, operation_id, crystal_id, account_id, event_type,
-                   exposure_delta, metadata, recorded_at, prev_hash, row_hash
+                   exposure_delta, metadata, {recorded_expr} AS recorded_at,
+                   prev_hash, row_hash
             FROM security_events
             ORDER BY event_id ASC
             """

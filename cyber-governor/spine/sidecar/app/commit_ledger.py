@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .config import Settings
@@ -218,63 +219,85 @@ def crystallize_operation(
     expires_at = _utcnow() + timedelta(seconds=settings.commit_ttl_seconds)
     facets_json = json.dumps(facets)
     facets_sql = ":facets" if session.bind.dialect.name == "sqlite" else "CAST(:facets AS jsonb)"
-    session.execute(
-        text(
-            f"""
-            INSERT INTO threat_crystals (
-                crystal_id, platform, operation_id, risk_tier, policy_id,
-                facets, request_fingerprint, crystal_hash, prev_crystal_hash,
-                parent_crystal_id, horizon_expires_at
-            ) VALUES (
-                :crystal_id, :platform, :operation_id, :risk_tier, :policy_id,
-                {facets_sql}, :fp, :ch, :pch, :parent, :horizon
-            )
-            """
-        ),
-        {
-            "crystal_id": crystal.crystal_id,
-            "platform": platform,
-            "operation_id": operation_id,
-            "risk_tier": risk_tier,
-            "policy_id": policy_id,
-            "facets": facets_json,
-            "fp": crystal.request_fingerprint,
-            "ch": crystal.crystal_hash,
-            "pch": crystal.prev_crystal_hash,
-            "parent": parent_crystal_id,
-            "horizon": _ts_param(session, crystal.horizon_expires_at),
-        },
-    )
-    session.execute(
-        text(
-            """
-            INSERT INTO action_escrow_ledger (
-                operation_id, crystal_id, account_id, platform,
-                reserved_exposure, status, expires_at
-            ) VALUES (
-                :op, :cid, :acct, :plat, :res, 'CRYSTALLIZED', :exp
-            )
-            """
-        ),
-        {
-            "op": operation_id,
-            "cid": crystal.crystal_id,
-            "acct": account_id,
-            "plat": platform,
-            "res": _money_param(reserved),
-            "exp": _ts_param(session, expires_at),
-        },
-    )
-    _append_event(
-        session,
-        operation_id=operation_id,
-        crystal_id=crystal.crystal_id,
-        account_id=account_id,
-        event_type="THREAT_CRYSTAL_CREATED",
-        exposure_delta=-reserved,
-        metadata={"platform": platform, "risk_tier": risk_tier},
-    )
-    session.commit()
+    try:
+        session.execute(
+            text(
+                f"""
+                INSERT INTO threat_crystals (
+                    crystal_id, platform, operation_id, risk_tier, policy_id,
+                    facets, request_fingerprint, crystal_hash, prev_crystal_hash,
+                    parent_crystal_id, horizon_expires_at
+                ) VALUES (
+                    :crystal_id, :platform, :operation_id, :risk_tier, :policy_id,
+                    {facets_sql}, :fp, :ch, :pch, :parent, :horizon
+                )
+                """
+            ),
+            {
+                "crystal_id": crystal.crystal_id,
+                "platform": platform,
+                "operation_id": operation_id,
+                "risk_tier": risk_tier,
+                "policy_id": policy_id,
+                "facets": facets_json,
+                "fp": crystal.request_fingerprint,
+                "ch": crystal.crystal_hash,
+                "pch": crystal.prev_crystal_hash,
+                "parent": parent_crystal_id,
+                "horizon": _ts_param(session, crystal.horizon_expires_at),
+            },
+        )
+        session.execute(
+            text(
+                """
+                INSERT INTO action_escrow_ledger (
+                    operation_id, crystal_id, account_id, platform,
+                    reserved_exposure, status, expires_at
+                ) VALUES (
+                    :op, :cid, :acct, :plat, :res, 'CRYSTALLIZED', :exp
+                )
+                """
+            ),
+            {
+                "op": operation_id,
+                "cid": crystal.crystal_id,
+                "acct": account_id,
+                "plat": platform,
+                "res": _money_param(reserved),
+                "exp": _ts_param(session, expires_at),
+            },
+        )
+        _append_event(
+            session,
+            operation_id=operation_id,
+            crystal_id=crystal.crystal_id,
+            account_id=account_id,
+            event_type="THREAT_CRYSTAL_CREATED",
+            exposure_delta=-reserved,
+            metadata={"platform": platform, "risk_tier": risk_tier},
+        )
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        replay = session.execute(
+            text(
+                """
+                SELECT crystal_id, horizon_expires_at
+                FROM threat_crystals
+                WHERE platform = :p AND operation_id = :o
+                """
+            ),
+            {"p": platform, "o": operation_id},
+        ).first()
+        if replay is None:
+            raise
+        get_counters().increment("crystallize_success_total")
+        return CrystallizeResult(
+            crystal_id=replay[0],
+            operation_id=operation_id,
+            status="REPLAY",
+            horizon_expires_at=replay[1],
+        )
     get_counters().increment("crystallize_success_total")
     return CrystallizeResult(
         crystal_id=crystal.crystal_id,
