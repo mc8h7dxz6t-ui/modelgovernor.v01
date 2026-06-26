@@ -69,6 +69,8 @@ All three share: idempotency, append-only events, hash chain, diagnostic mode, r
 ```bash
 # Standalone platform
 CG_SPINE_ENABLED=false make identity-gate-demo
+make posture-reconcile-demo
+make content-guard-demo
 
 # Full stack
 make cg-stack-up

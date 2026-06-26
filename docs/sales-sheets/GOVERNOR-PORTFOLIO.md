@@ -111,7 +111,7 @@ How buyer objections map to **Single VPC pilot (A)** vs **Multi-instance product
 
 ---
 
-# The 12 product codes
+# The product codes
 
 ## ModelGovernor deployment SKUs (4)
 
@@ -168,7 +168,7 @@ How buyer objections map to **Single VPC pilot (A)** vs **Multi-instance product
 
 ---
 
-## Cybersecurity Governor wedges (4)
+## Cybersecurity Governor wedges (6)
 
 ### `CG-IDENTITYGATE` ✅ Shipped
 - **Does:** `POST /session/arm` — device fingerprint + IP binding; hijack → STRANDED.

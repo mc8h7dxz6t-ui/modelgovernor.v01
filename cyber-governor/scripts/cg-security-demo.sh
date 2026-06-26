@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+source "$(cd "$(dirname "$0")" && pwd)/cg-demo-lib.sh"
+
+ensure_cg_stack_up
+
 SIDECAR="${CG_SIDECAR_URL:-http://localhost:8101}"
 GATEWAY="${CG_GATEWAY_URL:-http://localhost:8100}"
 TOKEN="${CG_INTERNAL_TOKEN:-dev-cg-spine-token-change-me}"

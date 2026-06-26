@@ -20,11 +20,14 @@ Full ModelGovernor family guide: [docs/plug-and-play.md](../docs/plug-and-play.m
 ```bash
 # From repository root
 make demo-prereqs              # verify tools
-make cg-stack-up               # spine + 4 platforms + Postgres + Redis
-make cg-security-demo          # Shadow Gap scripted walkthrough
+make cg-security-demo          # auto-starts stack if needed, then Shadow Gap walkthrough
+# or explicitly:
+make cg-stack-up && make cg-security-demo
 ```
 
-**Ports:** gateway `8100`, sidecar `8101`, identity `8103`, egress `8104`, witness `8105`, lineage `8106`
+**Ports:** gateway `8100`, sidecar `8101`, identity `8103`, egress `8104`, witness `8105`, lineage `8106`, posture `8107`, content `8108`
+
+`make cg-security-demo` **auto-starts** the stack if it is not already running (first build may take ~2 min).
 
 **Talk track:** [CYBER-SALES-DEMO.md](../CYBER-SALES-DEMO.md)
 
