@@ -43,7 +43,7 @@ Use in RFPs, model risk questionnaires, and regulatory diligence. Status reflect
 | Prometheus SLOs + burn-rate alerts | 📋 Phase 2 | `/metrics/prometheus` | PrometheusRule |
 | Governance canary CronJobs | 📋 Phase 3 | — | K8s |
 | GitOps (ArgoCD + Helm) | 📋 Phase 3 | Manifests | `deploy/argocd` |
-| 4-tier CI (unit → Postgres → load → chaos) | 📋 Phase 2–3 | `ci.yml` | GitHub Actions |
+| 4-tier CI (unit → Postgres → load → chaos) | ✅ unit + Postgres + Helm in CI | `make fg-spine-test` | GitHub Actions `finance-governor-test` |
 
 Legend: 🎯 Phase 1 target | 📋 Planned phase
 
