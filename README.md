@@ -44,18 +44,18 @@ The **Cybersecurity Governor** ecosystem adapts the institutional++ spine for se
 
 | Platform | Problem |
 |----------|---------|
-| **IdentityGate** | Session hijack / token binding mismatch |
-| **EgressLock** | Ungoverned data exfiltration |
-| **WitnessBridge** | Log erasure / telemetry silence |
+| **IdentityGovern** | Session hijack / token binding mismatch |
+| **EgressGovern** | Ungoverned data exfiltration |
+| **ThreatProxy** | Log erasure / telemetry silence |
 
-- [Platform vision](docs/cyber-governor/README.md)
-- [Cybersecurity Governor spine](docs/cyber-governor/spine.md) — own gateway/sidecar/reconciler (`cyber-governor/`)
-- [Threat Crystal Protocol](docs/cyber-governor/threat-crystal-protocol.md)
-- [Integrations — Okta, CloudTrail, generic](docs/cyber-governor/integrations.md)
-- [Standalone vs spine deployment](docs/cyber-governor/platform-model.md)
+- [Platform vision](docs/cybersecurity-governor/README.md)
+- [Cybersecurity Governor spine](docs/cybersecurity-governor/security-enforcement-mesh.md) — gateway/sidecar/reconciler (`cybersecurity-governor/`)
+- [L4 certification](docs/cybersecurity-governor/l4-certification.md)
+- [Operations runbook](docs/cybersecurity-governor/operations-runbook.md)
 
 ```bash
-make cg-proof-test        # institutional++ tiers 1, 2, 4
+make cg-spine-test            # unit tests (SQLite)
+make cg-certification-l4-ci   # L4 Gold CI gate
 ```
 
 See [CYBER-SALES-DEMO.md](CYBER-SALES-DEMO.md) for the CISO talk track.
@@ -230,7 +230,7 @@ tests/
     finance_ops_finals/              # AI Finance Ops Finals for LLMs
     cost_attribution_accountability/ # AI Cost Attribution & Agent Accountability
 finance-governor/                    # Finance Governor spine + platforms
-cyber-governor/                      # Cybersecurity Governor spine + platforms
+cybersecurity-governor/              # Cybersecurity Governor spine + platforms (canonical)
   integration/
     conftest.py         # Postgres session fixtures
     test_postgres_vigorous.py

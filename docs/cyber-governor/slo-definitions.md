@@ -11,7 +11,7 @@
 
 ## Burn-rate alerts (Prometheus)
 
-See `cyber-governor/deploy/base/prometheus-rules.yaml`:
+See `deploy/helm/cybersecuritygovernor/templates/prometheus-rules.yaml` (when enabled):
 
 - `CybersecurityGovernorSecurityChainInvalid` — critical
 - `CybersecurityGovernorSecurityAnchorFailed` — warning

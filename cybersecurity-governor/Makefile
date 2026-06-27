@@ -1,4 +1,4 @@
-.PHONY: cg-spine-up cg-spine-down cg-stack-up cg-stack-down cg-spine-test cg-spine-smoke claim-gate-demo cg-demo cg-certification cg-certification-strict cg-certification-l4 cg-certification-l4-ci cg-helm-enterprise cg-platform-conformance cg-load-test cg-chaos-test cg-ha-up cg-ha-down cg-pilot-attestation cg-cluster-attestation cg-rail-smoke cg-design-partner-package ig-claim-gate-load cg-full-rehearsal cg-embedded-rehearsal cg-examiner-evidence bind-authority-demo parametric-oracle-demo cg-test-deps
+.PHONY: cg-spine-up cg-spine-down cg-stack-up cg-stack-down cg-spine-test cg-spine-smoke cg-property-test claim-gate-demo cg-demo cg-certification cg-certification-strict cg-certification-l4 cg-certification-l4-ci cg-helm-enterprise cg-platform-conformance cg-load-test cg-chaos-test cg-ha-up cg-ha-down cg-pilot-attestation cg-cluster-attestation cg-rail-smoke cg-design-partner-package cg-full-rehearsal cg-embedded-rehearsal cg-examiner-evidence cg-test-deps
 
 cg-test-deps:
 	python3 -m pip install --upgrade pip
@@ -26,6 +26,10 @@ cg-spine-test:
 	  cybersecurity-governor/tests/ -q \
 	  --ignore=cybersecurity-governor/tests/chaos \
 	  --ignore=cybersecurity-governor/tests/load
+
+cg-property-test:
+	cd .. && PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor python3 -m pytest \
+	  cybersecurity-governor/tests/test_property_security_chain.py -q
 
 cg-spine-smoke:
 	@echo "==> cg-sidecar health"
@@ -128,26 +132,23 @@ cg-ha-down:
 	docker compose -f docker-compose.ha.yml down
 
 cg-pilot-attestation:
-	chmod +x scripts/cg-pilot-attestation.sh scripts/attestation_runner.py
-	cd .. && cybersecurity-governor/scripts/cg-pilot-attestation.sh
+	chmod +x scripts/ig-pilot-attestation.sh scripts/attestation_runner.py
+	cd .. && cybersecurity-governor/scripts/ig-pilot-attestation.sh
 
 cg-cluster-attestation:
-	chmod +x scripts/cg-cluster-attestation.sh
-	cd .. && cybersecurity-governor/scripts/cg-cluster-attestation.sh
+	chmod +x scripts/ig-cluster-attestation.sh
+	cd .. && cybersecurity-governor/scripts/ig-cluster-attestation.sh
 
 cg-rail-smoke:
-	chmod +x scripts/cg-rail-smoke.sh
-	cd .. && cybersecurity-governor/scripts/cg-rail-smoke.sh
+	chmod +x scripts/ig-rail-smoke.sh
+	cd .. && cybersecurity-governor/scripts/ig-rail-smoke.sh
 
 cg-design-partner-package:
 	cd .. && python3 cybersecurity-governor/scripts/generate_design_partner_attestation.py
 
-ig-claim-gate-load:
-	cd .. && python3 -m pytest cybersecurity-governor/tests/load/test_claim_gate_production.py -q
-
 cg-full-rehearsal:
-	chmod +x scripts/cg-full-rehearsal.sh scripts/mock_fednow_sandbox.py scripts/publish_data_room.py scripts/attestation_embedded_rehearsal.py
-	cd .. && cybersecurity-governor/scripts/cg-full-rehearsal.sh
+	chmod +x scripts/ig-full-rehearsal.sh scripts/mock_fednow_sandbox.py scripts/publish_data_room.py scripts/attestation_embedded_rehearsal.py
+	cd .. && cybersecurity-governor/scripts/ig-full-rehearsal.sh
 
 cg-embedded-rehearsal:
 	chmod +x scripts/attestation_embedded_rehearsal.py scripts/publish_data_room.py

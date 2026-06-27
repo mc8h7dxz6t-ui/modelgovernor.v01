@@ -16,29 +16,29 @@ ROOT = Path(__file__).resolve().parents[1]
 SIDECAR = ROOT / "spine" / "sidecar"
 sys.path.insert(0, str(SIDECAR))
 
-from tests.helpers import create_sqlite_engine, session_factory
+from tests.helpers import cg_settings, create_sqlite_engine, session_factory
 
 pytest.importorskip("hypothesis")
 
 EVENT_TYPES = st.sampled_from(
     ["CRYSTALLIZED", "COMMITTED", "STRANDED_HOLD", "MESH_BLOCK", "WITNESS_RECEIVED"]
 )
-EXPOSURE = st.decimals(min_value=Decimal("0"), max_value=Decimal("1000"), places=2)
+RESERVE_DELTA = st.decimals(min_value=Decimal("0"), max_value=Decimal("1000"), places=2)
 META_KEYS = st.text(min_size=1, max_size=12, alphabet=st.characters(whitelist_categories=("L", "N")))
 
 
 @hyp_settings(max_examples=30, deadline=None)
 @given(
     event_count=st.integers(min_value=1, max_value=12),
-    exposures=st.lists(EXPOSURE, min_size=1, max_size=12),
+    reserves=st.lists(RESERVE_DELTA, min_size=1, max_size=12),
     types=st.lists(EVENT_TYPES, min_size=1, max_size=12),
 )
 def test_append_events_always_yields_valid_chain(
     event_count: int,
-    exposures: list[Decimal],
+    reserves: list[Decimal],
     types: list[str],
 ) -> None:
-    from app.event_ledger import append_security_event
+    from app.security_events import append_security_event
     from app.security_seal import verify_security_chain
 
     db_path = Path(mkdtemp()) / f"prop-chain-{uuid4().hex}.sqlite3"
@@ -53,7 +53,7 @@ def test_append_events_always_yields_valid_chain(
                 crystal_id=f"tcrys-{i}",
                 account_id="tenant-default",
                 event_type=types[i % len(types)],
-                exposure_delta=exposures[i % len(exposures)],
+                reserve_delta=reserves[i % len(reserves)],
                 metadata={"seq": i, "probe": "hypothesis"},
             )
             s.commit()
@@ -65,9 +65,9 @@ def test_append_events_always_yields_valid_chain(
 
 
 @hyp_settings(max_examples=20, deadline=None)
-@given(exposure=EXPOSURE, event_type=EVENT_TYPES)
-def test_tampered_row_hash_breaks_chain(exposure: Decimal, event_type: str) -> None:
-    from app.event_ledger import append_security_event
+@given(reserve=RESERVE_DELTA, event_type=EVENT_TYPES)
+def test_tampered_row_hash_breaks_chain(reserve: Decimal, event_type: str) -> None:
+    from app.security_events import append_security_event
     from app.security_seal import verify_security_chain
 
     db_path = Path(mkdtemp()) / f"prop-tamper-{uuid4().hex}.sqlite3"
@@ -82,7 +82,8 @@ def test_tampered_row_hash_breaks_chain(exposure: Decimal, event_type: str) -> N
                 crystal_id=f"tcrys-{i}",
                 account_id="tenant-default",
                 event_type=event_type,
-                exposure_delta=exposure,
+                reserve_delta=reserve,
+                metadata={},
             )
             s.commit()
         s.execute(
@@ -97,9 +98,9 @@ def test_tampered_row_hash_breaks_chain(exposure: Decimal, event_type: str) -> N
 
 
 @hyp_settings(max_examples=20, deadline=None)
-@given(exposure=EXPOSURE)
-def test_tampered_prev_hash_breaks_chain(exposure: Decimal) -> None:
-    from app.event_ledger import append_security_event
+@given(reserve=RESERVE_DELTA)
+def test_tampered_prev_hash_breaks_chain(reserve: Decimal) -> None:
+    from app.security_events import append_security_event
     from app.security_seal import verify_security_chain
 
     db_path = Path(mkdtemp()) / f"prop-prev-{uuid4().hex}.sqlite3"
@@ -114,7 +115,8 @@ def test_tampered_prev_hash_breaks_chain(exposure: Decimal) -> None:
                 crystal_id=f"tcrys-{i}",
                 account_id="tenant-default",
                 event_type="COMMITTED",
-                exposure_delta=exposure,
+                reserve_delta=reserve,
+                metadata={},
             )
             s.commit()
         s.execute(
@@ -131,19 +133,19 @@ def test_tampered_prev_hash_breaks_chain(exposure: Decimal) -> None:
 @hyp_settings(max_examples=25, deadline=None)
 @given(
     operation_id=st.text(min_size=4, max_size=24, alphabet=st.characters(whitelist_categories=("L", "N"))),
-    exposure=EXPOSURE,
+    reserve=RESERVE_DELTA,
     meta_key=META_KEYS,
 )
 def test_compute_row_hash_is_deterministic(
     operation_id: str,
-    exposure: Decimal,
+    reserve: Decimal,
     meta_key: str,
 ) -> None:
     from app.currency import quantize_money
     from app.security_seal import compute_row_hash
 
     metadata = {meta_key: "value"}
-    exposure_str = str(quantize_money(exposure))
+    reserve_str = str(quantize_money(reserve))
     recorded_at = "2026-01-01T00:00:00+00:00"
     kwargs = dict(
         event_id=1,
@@ -151,7 +153,7 @@ def test_compute_row_hash_is_deterministic(
         crystal_id="tcrys-1",
         account_id="tenant-default",
         event_type="COMMITTED",
-        exposure_delta=exposure_str,
+        reserve_delta=reserve_str,
         metadata=metadata,
         prev_hash="0" * 64,
         recorded_at=recorded_at,
@@ -166,11 +168,13 @@ def test_crystallize_idempotent_replay_preserves_single_crystal(replays: int) ->
 
     db_path = Path(mkdtemp()) / f"prop-replay-{uuid4().hex}.sqlite3"
     engine = create_sqlite_engine(db_path)
-    from tests.helpers import cg_settings
-
     settings = cg_settings(str(engine.url))
     Session = session_factory(engine)
-    facets = {"session_state": "AUTHORIZED", "user_id": "prop@corp.example"}
+    facets = {
+        "principal": "prop@corp.example",
+        "workload_sa": "cluster.local/ns/cg/sa/workload",
+        "identity_decision": "VERIFIED",
+    }
 
     first_id = None
     for _ in range(replays):
@@ -178,12 +182,14 @@ def test_crystallize_idempotent_replay_preserves_single_crystal(replays: int) ->
             cr = crystallize_operation(
                 s,
                 settings,
-                platform="identity_gate",
+                platform="identity_govern",
                 operation_id="prop-replay-op",
                 account_id="tenant-default",
-                risk_tier="critical",
+                risk_tier="high",
                 facets=facets,
+                policy_id="identity-high-us",
             )
+            s.commit()
             if first_id is None:
                 first_id = cr.crystal_id
             else:
@@ -192,6 +198,6 @@ def test_crystallize_idempotent_replay_preserves_single_crystal(replays: int) ->
 
     with Session() as s:
         count = s.execute(
-            text("SELECT COUNT(*) FROM threat_crystals WHERE operation_id = 'prop-replay-op'")
+            text("SELECT COUNT(*) FROM governance_crystals WHERE operation_id = 'prop-replay-op'")
         ).scalar_one()
     assert int(count) == 1

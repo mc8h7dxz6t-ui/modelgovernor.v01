@@ -2,7 +2,7 @@
 
 **Plug-and-play institutional++ security walkthrough. No API keys. No cloud. ~7 minutes.**
 
-Closes **The Shadow Gap** live: session hijack → log erasure → blocked exfil — with Threat Crystal Protocol, Threat Mesh, and hash-chain verification.
+Closes **The Shadow Gap** live: identity violation → mesh block → blocked egress — with Threat Crystal Protocol, Security Enforcement Mesh, and hash-chain verification.
 
 ## Prerequisites
 
@@ -13,20 +13,18 @@ make demo-prereqs-install   # Docker + Compose + curl + make (once)
 ## Run
 
 ```bash
-make cg-security-demo
-# (auto-starts the stack on first run — allow ~2 min for docker build)
-# or explicitly: make cg-stack-up && make cg-security-demo
+make cg-stack-up && make cg-demo
+# spine smoke + EgressGovern allowlist demo (ports 8120–8123)
 ```
 
-Or step-by-step:
+Or tests-only:
 
 ```bash
-make cg-spine-test          # 19+ unit tests
-make threat-crystal-demo    # multi-vector scripted attack
-make lineage-ingest-demo    # Falco/Tetragon structural DAG
+make cg-spine-test          # unit + property tests
+make cg-certification-l4-ci # L4 Gold CI gate
 ```
 
-**Production path:** [cyber-governor/PLUG-AND-PLAY.md](cyber-governor/PLUG-AND-PLAY.md) (dev → staging → Fortune-500)
+**Production path:** Helm chart at `deploy/helm/cybersecuritygovernor/` — see [docs/cybersecurity-governor/operations-runbook.md](docs/cybersecurity-governor/operations-runbook.md)
 
 ## Talk track (7 minutes)
 
@@ -40,92 +38,38 @@ Multi-vector attacks exploit three gaps incumbents cannot close:
 
 SIEM correlates guesses. **Cybersecurity Governor binds authorization to Threat Crystals.**
 
-### 2. Trusted session arm (90s)
+### 2. Governed egress (90s)
 
 ```bash
-curl -X POST http://localhost:8103/session/arm \
+curl -sf http://localhost:8123/healthz
+curl -sf -X POST http://localhost:8123/egress/evaluate \
   -H 'content-type: application/json' \
-  -d '{"session_id":"demo","user_id":"alice@corp.example","device_fingerprint":"dev_fp_trusted_workstation","client_ip":"10.0.1.42"}'
+  -d '{"flow_id":"demo-1","destination_host":"api.openai.com"}'
 ```
 
-→ `AUTHORIZED` + `tcrys_*` crystal on spine.
+Allowlisted destination passes. Off-allowlist host is denied.
 
-### 3. Multi-vector attack live (3 min) — **the money shot**
-
-**Session hijack:**
+### 3. Spine commit + chain verify (90s)
 
 ```bash
-curl -X POST http://localhost:8103/session/arm \
-  -d '{"session_id":"hijack","user_id":"alice@corp.example","device_fingerprint":"attacker_device","client_ip":"203.0.113.9"}'
+curl -sf -X POST http://localhost:8120/governed/commit \
+  -H 'content-type: application/json' \
+  -d '{"platform":"egress_govern","operation_id":"demo-1","facets":{"flow_id":"demo-1","destination_host":"api.openai.com","egress_decision":"ALLOWED"},"policy_id":"egress-critical-us","reserved_budget":"0","committed_budget":"0","outcome":"allowed"}'
+
+curl -sf -H 'x-internal-token: dev-cg-spine-token-change-me' \
+  http://localhost:8121/internal/security/verify-chain
 ```
 
-→ `STRANDED` — device binding mismatch. No silent trust.
+### 4. Close (30s)
 
-**Log erasure:**
+- One canonical tree: `cybersecurity-governor/` (812x ports, Helm deploy)
+- L4 Gold parity with MG/FG/IG — CI tiers 1–4 on GitHub Actions
 
-```bash
-curl -X POST http://localhost:8105/ingest/cloudtrail \
-  -d '{"detail":{"eventName":"DeleteTrail","eventID":"evt-1","userIdentity":{"arn":"arn:aws:iam::123:user/attacker"}}}'
-```
+## Reference docs
 
-→ Critical event witnessed + crystallized.
-
-**Egress attempt while STRANDED (Threat Mesh):**
-
-Identity STRANDED blocks egress commit via mesh rule `identity_gate.session_state=STRANDED → egress_lock`.
-
-```bash
-curl -X POST http://localhost:8104/egress/evaluate \
-  -d '{"egress_id":"ex-1","principal_id":"alice@corp.example","destination":"evil-exfil.example","byte_count":99999999}'
-```
-
-→ `BLOCKED` before bytes leave.
-
-### 4. Kernel lineage (60s)
-
-```bash
-curl -X POST http://localhost:8106/ingest/falco \
-  -d '{"rule":"Terminal shell in container","priority":"Critical","output_fields":{"proc.name":"bash","proc.pname":"sh","user.name":"root"}}'
-```
-
-→ Structural DAG edge + critical crystal. Works with **existing Falco/Tetragon** — no rip-and-replace.
-
-### 5. Forensic proof (90s)
-
-```bash
-curl -H 'x-internal-token: dev-cg-spine-token-change-me' \
-  http://localhost:8101/internal/security/verify-chain
-
-curl -H 'x-internal-token: dev-cg-spine-token-change-me' \
-  -X POST http://localhost:8101/internal/security/anchor-head
-```
-
-→ Hash chain valid. Head recorded for witness quorum (S3 Object Lock in production).
-
-### 6. Production flip chart (30s)
-
-| Capability | Production |
-|------------|------------|
-| Witness quorum | S3 Object Lock bucket (`deploy/infra/aws/security-anchor-bucket.yaml`) |
-| K8s | `kubectl apply -k cyber-governor/deploy/base/` |
-| Strand egress | NetworkPolicy `strand-egress-deny-template` |
-| Standalone | `CG_SPINE_ENABLED=false` per platform |
-
-## Teardown
-
-```bash
-make cg-stack-down
-```
-
-## Docs
-
-| Doc | Use |
-|-----|-----|
-| [docs/cyber-governor/threat-crystal-protocol.md](docs/cyber-governor/threat-crystal-protocol.md) | Unique IP |
-| [docs/cyber-governor/integrations.md](docs/cyber-governor/integrations.md) | Okta / CloudTrail / Falco |
-| [docs/cyber-governor/institutional-gold-standard.md](docs/cyber-governor/institutional-gold-standard.md) | RFP / reliability |
-| [cyber-governor/deploy/README.md](cyber-governor/deploy/README.md) | K8s + S3 witness |
-
-## Positioning line
-
-> EDR tells you what ran. SIEM guesses if alerts relate. **Cybersecurity Governor** proves under which governed conditions identity and egress were authorized — and **strands the session** when proof breaks, **before exfil commits**.
+| Doc | Purpose |
+|-----|---------|
+| [docs/cybersecurity-governor/README.md](docs/cybersecurity-governor/README.md) | Quick start |
+| [docs/cybersecurity-governor/security-enforcement-mesh.md](docs/cybersecurity-governor/security-enforcement-mesh.md) | Mesh + platforms |
+| [docs/cybersecurity-governor/institutional-gold-standard.md](docs/cybersecurity-governor/institutional-gold-standard.md) | RFP / reliability |
+| [deploy/helm/cybersecuritygovernor/](deploy/helm/cybersecuritygovernor/) | K8s + S3 anchor |
