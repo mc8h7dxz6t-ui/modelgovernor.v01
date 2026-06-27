@@ -1,5 +1,7 @@
 -- Cybersecurity Governor platforms + Security Enforcement Mesh
 
+ALTER TABLE platform_registry ADD COLUMN IF NOT EXISTS manifest_json JSONB NOT NULL DEFAULT '{}'::jsonb;
+
 INSERT INTO security_policy_registry (
     policy_id, line_of_business, platform, jurisdiction, risk_classification,
     max_budget_per_commit, commit_horizon_ms, allow_auto_expire
