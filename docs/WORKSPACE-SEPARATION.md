@@ -1,63 +1,58 @@
-# Workspace separation — enterprise vs sports identity
+# Workspace separation — Hibs Racing vs Model Governor
 
-Two commercial identities must not share one git history or deploy surface:
+Two repos, two identities. Do not mix sports betting engineering with governor infrastructure.
 
-| Path | Identity | Contents |
-|------|----------|----------|
-| `~/src/hibs-racing-production/` | **Hibs Racing** (private) | `hibs_racing/`, `football/` — sports NLP / betting engineering |
-| `~/src/inst-spine-core/` | **Enterprise** (acquirable) | Governor spine, Proxy-Risk, chaos tests — zero hobby baggage |
+| Path | Identity | What lives here |
+|------|----------|-----------------|
+| `~/src/hibs-racing/` | **Hibs Racing** (private) | `hibs_racing/`, `football/` — sports NLP / betting |
+| `~/src/modelgovernor/` | **Model Governor** (enterprise) | MG, FG, CG governors — sidecar, gateway, reconciler, chaos tests |
+
+**Not** `inst-spine-core`. Governors stay under **modelgovernor**.
 
 ## This GitHub repo (`modelgovernor.v01`)
 
-**Already enterprise-clean.** There is no `hibs_racing/`, `football/`, or `pyproject.toml` sports workspace entry in this clone. Separation applies to your **local mixed monorepo** on your Mac, not to this remote.
+Already governor-only. No `hibs_racing/` or `football/` here. If your Mac still has a **mixed** monorepo with both, run the separation script locally.
 
-## Run the separation (local Mac)
+## Run on your Mac
 
 ```bash
-# 1. Point at your mixed monorepo (adjust path)
-export MONOREPO_PATH=~/src/your-current-monorepo-folder
+export MONOREPO_PATH=~/src/your-mixed-monorepo   # folder that still has both
 
-# 2. Dry run first
-DRY_RUN=1 bash scripts/separate-hibs-racing-identity.sh
-
-# 3. Execute
-bash scripts/separate-hibs-racing-identity.sh
+DRY_RUN=1 bash scripts/separate-hibs-racing-identity.sh   # preview
+bash scripts/separate-hibs-racing-identity.sh               # execute
 ```
 
 The script:
 
-1. Creates `~/workspace_backup_YYYYMMDD_HHMMSS.tar` (full monorepo backup)
-2. Moves `hibs_racing/` and `football/` → `~/src/hibs-racing-production/`
-3. `git init` in the hibs home (independent history)
-4. Strips `hibs-racing` / `hibs-bet` / `football` lines from `pyproject.toml` (and other manifests if present)
-5. Renames the enterprise folder → `~/src/inst-spine-core`
+1. Backs up the mixed repo → `~/workspace_backup_*.tar`
+2. Moves `hibs_racing/` + `football/` → `~/src/hibs-racing/`
+3. `git init` in hibs-racing (fresh sports history)
+4. Strips sports lines from `pyproject.toml` etc. in the governor tree
+5. Renames the remaining folder → `~/src/modelgovernor` (if not already named)
 
-### Override defaults
+### Defaults (override if needed)
 
 ```bash
-export HIBS_HOME=~/src/hibs-racing-production   # preferred name (default)
-export ENTERPRISE_NAME=inst-spine-core
+export HIBS_HOME=~/src/hibs-racing
+export ENTERPRISE_NAME=modelgovernor
 ```
 
-## Verify clean enterprise state
+## Verify
 
 ```bash
-cd ~/src/inst-spine-core
-rg -i 'hibs_racing|hibs-racing|football' --glob '!docs/**'
-# Expect: no matches in code; docs may mention delisted SKUs only
-make demo-gold   # or your CI proof target
-```
+# Governors — no sports code
+cd ~/src/modelgovernor
+rg -i 'hibs_racing|football' --glob '!docs/**'
+make demo-gold
 
-## Verify isolated sports repo
-
-```bash
-cd ~/src/hibs-racing-production
-git log --oneline
-git remote -v   # add private origin — never push to enterprise remote
+# Sports — separate remote, separate git identity
+cd ~/src/hibs-racing
+git remote add origin <your-private-repo>
+git config user.name "..."    # sports identity, not enterprise
 ```
 
 ## Why separate?
 
-- **TPRM / acquirer diligence:** enterprise data room must not contain betting IP or paths
-- **Compliance:** regulated infra buyers flag gambling-adjacent code in the same repo
-- **Git identity:** separate `user.name` / `user.email` per repo (`git config --local`)
+- Acquirer / TPRM diligence: governor data room must not contain betting paths
+- Compliance: regulated buyers flag gambling-adjacent code in infra repos
+- Git: independent history and remotes per commercial identity
