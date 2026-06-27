@@ -135,7 +135,7 @@ def test_insufficient_reserve_postgres(pg_spine):
                 risk_tier="high",
                 facets=facets,
                 policy_id="claim-high-us",
-                reserved_reserve=Decimal("99999999999"),
+                reserved_reserve=Decimal("100000001"),
             )
 
 
@@ -162,5 +162,5 @@ def test_claim_chain_verify_postgres(pg_spine):
         )
     with get_db_session() as session:
         result = verify_claim_chain(session)
-        assert result["valid"] is True
-        assert result["total_events"] >= 1
+        assert result.valid is True
+        assert result.total_events >= 1
