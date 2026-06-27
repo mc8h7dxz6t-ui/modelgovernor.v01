@@ -1,0 +1,28 @@
+# AWS RDS production overlay — managed Postgres with read replica routing
+# Usage:
+#   helm upgrade --install cg ./deploy/helm/cybersecuritygovernor \
+#     -f values-production.yaml -f values-enterprise.yaml -f values-rds.yaml \
+#     --set postgres.external.host=cg-prod.cluster-xxxx.us-east-1.rds.amazonaws.com \
+#     --set postgres.external.readReplica.host=cg-prod.cluster-ro-xxxx.us-east-1.rds.amazonaws.com
+
+postgres:
+  enabled: false
+  external:
+    enabled: true
+    host: cg-prod.cluster-xxxx.us-east-1.rds.amazonaws.com
+    port: 5432
+    sslMode: require
+    readReplica:
+      enabled: true
+      host: cg-prod.cluster-ro-xxxx.us-east-1.rds.amazonaws.com
+      port: 5432
+    rds:
+      enabled: true
+      iamAuth: false
+
+pgbouncer:
+  enabled: true
+  replicas: 3
+
+secrets:
+  databaseReadUrl: postgresql+psycopg://postgres:CHANGE_ME@pgbouncer-read:6432/cybersecuritygovernor

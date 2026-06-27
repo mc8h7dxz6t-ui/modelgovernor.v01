@@ -1,9 +1,19 @@
 .PHONY: fg-spine-up fg-spine-down fg-spine-test fg-spine-smoke fg-spine-logs \
 	fg-stack-up fg-stack-down crystal-demo algofreeze-demo wirematch-demo \
 	subledger-demo assetledger-demo credit-demo fg-all-platforms-demo \
-	fg-demo-gold-reliability fg-certification fg-demo-up fg-demo-down fg-demo-gold \
-	fg-test-postgres-up fg-test-postgres-down fg-integration-test fg-load-smoke \
+	fg-demo-gold-reliability fg-certification fg-certification-strict fg-certification-l4 \
+	fg-certification-l4-ci fg-demo-up fg-demo-down fg-demo-gold \
+	fg-test-postgres-up fg-test-postgres-down fg-integration-test fg-chaos-test fg-load-smoke \
+	fg-helm-enterprise fg-kustomize-install fg-kustomize-enterprise fg-platform-conformance \
+	fg-certification-external fg-certification-external-full fg-examiner-evidence fg-docker-build \
 	fg-test-deps fg-test-deps-check
+
+fg-test-deps:
+	chmod +x scripts/install-test-deps.sh
+	./scripts/install-test-deps.sh
+
+fg-test-deps-check:
+	@python3 -c "import pytest" 2>/dev/null || (echo "Run: make fg-test-deps" && exit 1)
 
 fg-spine-up:
 	docker compose up -d --build
@@ -35,23 +45,25 @@ fg-test-postgres-up:
 fg-test-postgres-down:
 	docker compose -f docker-compose.test.yml down
 
-fg-test-deps:
-	chmod +x scripts/install-test-deps.sh
-	./scripts/install-test-deps.sh
-
-fg-test-deps-check:
-	@python3 -c "import fastapi, sqlalchemy, pytest" 2>/dev/null || { \
-	  echo "Installing test dependencies into $$(python3 -c 'import sys; print(sys.executable)')..."; \
-	  $(MAKE) fg-test-deps; \
-	}
-
 fg-spine-test: fg-test-deps
 	python3 -m pytest tests/ -q --ignore=tests/integration
 
-fg-integration-test: fg-test-deps
+fg-integration-test:
 	@if command -v docker >/dev/null 2>&1; then $(MAKE) fg-test-postgres-up; else echo "docker not available — integration tests will skip if postgres unreachable"; fi
-	python3 -m pytest tests/integration/ -q; status=$$?; \
+	FG_POSTGRES_TEST_URL=postgresql+psycopg://postgres:postgres@localhost:5434/fg_test \
+	  python3 -m pytest tests/integration/ -q; status=$$?; \
 	if command -v docker >/dev/null 2>&1; then $(MAKE) fg-test-postgres-down; fi; \
+	exit $$status
+
+fg-chaos-test:
+	@if command -v docker >/dev/null 2>&1; then \
+	  docker compose -f docker-compose.chaos.yml up -d --wait fg-postgres-chaos toxiproxy && \
+	  docker compose -f docker-compose.chaos.yml run --rm toxiproxy-config; \
+	else echo "docker not available — skipping chaos"; exit 0; fi
+	FG_POSTGRES_TEST_URL=postgresql+psycopg://postgres:postgres@localhost:5437/fg_chaos \
+	  FG_TOXIPROXY_API=http://localhost:8475 \
+	  python3 -m pytest tests/chaos/test_toxiproxy_fg_spine.py -q; status=$$?; \
+	if command -v docker >/dev/null 2>&1; then docker compose -f docker-compose.chaos.yml down -v; fi; \
 	exit $$status
 
 fg-spine-smoke:
@@ -86,6 +98,31 @@ fg-helm-template:
 	  --set oidc.audience=finance-governor \
 	  --set s3Anchor.bucket=fg-anchor-demo \
 	  --set postgres.password=postgres
+
+fg-helm-enterprise:
+	helm template fg ./deploy/helm/finance-governor \
+	  -f ./deploy/helm/finance-governor/values-production.yaml \
+	  -f ./deploy/helm/finance-governor/values-enterprise.yaml \
+	  --set secrets.create=true \
+	  --set oidc.issuerUrl=https://idp.example.com/realms/fg \
+	  --set oidc.audience=finance-governor \
+	  --set s3Anchor.bucket=fg-anchor-l4 \
+	  --set postgres.password=postgres
+
+KUSTOMIZE_VERSION ?= v5.5.0
+KUSTOMIZE_BIN ?= $(CURDIR)/.bin/kustomize
+
+fg-kustomize-install:
+	@mkdir -p .bin
+	@if [ ! -x "$(KUSTOMIZE_BIN)" ]; then \
+	  echo "Installing kustomize $(KUSTOMIZE_VERSION) to $(KUSTOMIZE_BIN)"; \
+	  curl -sSLo /tmp/kustomize.tar.gz \
+	    "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F$(KUSTOMIZE_VERSION)/kustomize_$(KUSTOMIZE_VERSION)_linux_amd64.tar.gz"; \
+	  tar xzf /tmp/kustomize.tar.gz -C .bin; \
+	fi
+
+fg-kustomize-enterprise: fg-kustomize-install
+	$(KUSTOMIZE_BIN) build ./deploy/kustomize/overlays/enterprise
 
 fg-helm-install:
 	chmod +x scripts/*.sh
@@ -153,16 +190,77 @@ fg-demo-gold-reliability:
 crystal-demo:
 	./scripts/crystal-demo.sh
 
-fg-certification: fg-test-deps
-	@echo "==> Tier 1: unit + chaos (SQLite)"
-	python3 -m pytest tests/ -q --ignore=tests/integration
+fg-certification:
+	@echo "==> Tier 1: unit + platform tests"
+	python3 -m pytest tests/ -q --ignore=tests/integration --ignore=tests/chaos/test_toxiproxy_fg_spine.py
+	@echo "==> Tier 1b: reconciler + CCP invariant reliability"
+	python3 -m pytest tests/test_horizon_sweeper.py tests/test_reconciler_leader.py tests/test_commit_invariants.py tests/test_load_smoke_offline.py -q
 	@echo "==> Tier 2: Postgres integration (starts test DB if needed)"
 	@$(MAKE) fg-integration-test
-	@echo "==> Tier 3: load smoke (skipped if spine down)"
-	@python3 scripts/fg_load_smoke.py 2>/dev/null && echo "load smoke OK" || echo "load smoke skipped (spine not running)"
-	@echo "==> Tier 4: live chain verify (skipped if spine down)"
+	@echo "==> Tier 3: offline load smoke + reconciler invariants"
+	python3 -m pytest tests/test_load_smoke_offline.py tests/test_horizon_sweeper.py tests/test_commit_invariants.py -q
+	@echo "==> Tier 4: Toxiproxy chaos (skipped if docker unavailable)"
+	@$(MAKE) fg-chaos-test 2>/dev/null || echo "chaos skipped"
+	@echo "==> Tier 5: live chain verify (skipped if spine down)"
 	@if curl -sf -H 'x-internal-token: dev-fg-spine-token-change-me' \
 	  http://localhost:8091/internal/decisions/verify-chain 2>/dev/null \
 	  | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get('valid') is True, d" \
 	  2>/dev/null; then echo "chain verify OK"; else echo "chain verify skipped (spine not running)"; fi
-	@echo "fg-certification complete (L3 institutional++)"
+	@echo "fg-certification complete (institutional++)"
+
+fg-certification-strict:
+	@echo "==> Strict institutional++ gate (no skip fallbacks)"
+	@$(MAKE) fg-certification
+	@$(MAKE) fg-chaos-test
+	@python3 scripts/fg_load_smoke.py
+	@curl -sf -H 'x-internal-token: dev-fg-spine-token-change-me' \
+	  http://localhost:8091/internal/decisions/verify-chain \
+	  | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get('valid') is True, d"
+
+fg-platform-conformance:
+	python3 -m pytest tests/test_facet_schemas.py tests/test_platform_sdk.py tests/test_platform_registry.py -q
+
+fg-certification-external:
+	chmod +x scripts/fg_certification_report.py
+	FG_ECP_QUICK=1 python3 scripts/fg_certification_report.py --quick $(or $(LEVEL),L5) $(or $(PLATFORM),finance_governor)
+
+fg-certification-external-full:
+	chmod +x scripts/fg_certification_report.py scripts/fg_examiner_evidence_pack.py
+	python3 scripts/fg_certification_report.py $(or $(LEVEL),L5) $(or $(PLATFORM),finance_governor)
+
+fg-examiner-evidence:
+	chmod +x scripts/fg_examiner_evidence_pack.py
+	python3 scripts/fg_examiner_evidence_pack.py
+
+fg-certification-l4-ci:
+	@echo "==> L4 Gold CI gate (reliability + enterprise manifests)"
+	python3 -m pytest tests/test_l4_helm_enterprise.py tests/test_l4_certification.py \
+	  tests/test_horizon_sweeper.py tests/test_reconciler_leader.py \
+	  tests/test_commit_invariants.py tests/test_incremental_chain_verify.py \
+	  tests/test_load_smoke_offline.py -q
+	@$(MAKE) fg-helm-enterprise > /dev/null
+	@$(MAKE) fg-kustomize-enterprise > /dev/null
+	@echo "fg-certification-l4-ci complete"
+
+fg-certification-l4:
+	@echo "==> L4 Gold certification gate"
+	@$(MAKE) fg-certification
+	@echo "==> L4 Helm enterprise render"
+	@$(MAKE) fg-helm-enterprise > /dev/null
+	@echo "==> L4 Helm enterprise tests"
+	python3 -m pytest tests/test_l4_helm_enterprise.py tests/test_l4_certification.py -q
+	@echo "==> L4 Kustomize enterprise"
+	@$(MAKE) fg-kustomize-enterprise > /dev/null
+	@$(MAKE) fg-examiner-evidence
+	@echo "fg-certification-l4 complete (L4 Gold)"
+
+fg-docker-build:
+	docker build -f spine/sidecar/Dockerfile -t finance-governor-sidecar:local ..
+	docker build -f spine/gateway/Dockerfile -t finance-governor-gateway:local ..
+	docker build -f spine/reconciler/Dockerfile -t finance-governor-reconciler:local ..
+	docker build -f platforms/wire_match/Dockerfile -t finance-governor-wirematch:local ..
+	docker build -f platforms/algofreeze/Dockerfile -t finance-governor-algofreeze:local ..
+	docker build -f platforms/subledger_sync/Dockerfile -t finance-governor-subledger:local ..
+	docker build -f platforms/asset_ledger/Dockerfile -t finance-governor-assetledger:local ..
+	docker build -f platforms/credit_govern/Dockerfile -t finance-governor-creditgovern:local ..
+	@echo "fg-docker-build OK"

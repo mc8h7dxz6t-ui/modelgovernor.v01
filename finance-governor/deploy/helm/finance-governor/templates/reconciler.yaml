@@ -16,7 +16,10 @@ spec:
       labels:
         app.kubernetes.io/component: reconciler
         {{- include "fg.labels" . | nindent 8 }}
+      annotations:
+        {{- include "fg.istioPodAnnotations" . | nindent 8 }}
     spec:
+      {{- include "fg.podAntiAffinity" . | nindent 6 }}
       containers:
         - name: reconciler
           image: {{ .Values.image.reconciler }}
@@ -32,9 +35,9 @@ spec:
                   name: {{ include "fg.secretName" . }}
                   key: postgres-password
             - name: DATABASE_URL
-              value: postgresql+psycopg://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@fg-postgres:5432/{{ .Values.postgres.database }}
+              value: postgresql+psycopg://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@{{ include "fg.databaseHost" . }}:{{ include "fg.databasePort" . }}/{{ .Values.postgres.database }}
             - name: REDIS_URL
-              value: redis://fg-redis:6379/0
+              value: {{ include "fg.redisUrl" . | quote }}
             - name: RECONCILER_HEALTH_PORT
               value: "8092"
           readinessProbe:
@@ -42,3 +45,9 @@ spec:
               path: /healthz
               port: 8092
             initialDelaySeconds: 8
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8092
+            initialDelaySeconds: 15
+            periodSeconds: 20

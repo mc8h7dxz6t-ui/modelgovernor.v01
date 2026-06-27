@@ -8,15 +8,14 @@ from fastapi.testclient import TestClient
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from platforms.asset_ledger.main import app, _charged_periods, _events, _registry
+from platforms.asset_ledger.main import app, reset_state
 
 
 @pytest.fixture(autouse=True)
-def reset_state():
-    _registry._assets.clear()
-    _events.clear()
-    _charged_periods.clear()
+def reset_state_fixture():
+    reset_state()
     yield
+    reset_state()
 
 
 @pytest.fixture()

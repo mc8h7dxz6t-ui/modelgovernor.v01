@@ -3,12 +3,15 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from sidecar.app.config import Settings
 from sidecar.app.ledger_anchor_s3 import anchor_head_to_s3
 from sidecar.app.metrics import get_counters
 
 
 def test_anchor_head_to_s3_uses_object_lock_when_enabled() -> None:
+    pytest.importorskip("boto3")
     settings = Settings(
         database_url="sqlite:///:memory:",
         redis_url="redis://example/0",

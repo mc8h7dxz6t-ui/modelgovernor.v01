@@ -23,10 +23,15 @@ dist/
 .coverage
 htmlcov/
 tests/load/reports/
+insurance-governor/tests/load/load/reports/
 
 # Runtime/demo artifacts
 artifacts/reliability/latest_invariant_report.json
+artifacts/reliability/insurance-governor/
+artifacts/reliability/insurance-governor/latest_attestation.json
 *.sqlite3
+finance-governor/.bin/
+finance-governor/artifacts/certification/
 
 # OS/editor noise
 .DS_Store

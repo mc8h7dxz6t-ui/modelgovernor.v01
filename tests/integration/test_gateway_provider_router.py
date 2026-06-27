@@ -62,6 +62,7 @@ def test_mock_provider_dispatch() -> None:
 
 
 def test_openai_provider_dispatch_with_mocked_sdk() -> None:
+    pytest.importorskip("openai")
     settings = Settings(
         sidecar_internal_token="token",
         provider_mode="live",

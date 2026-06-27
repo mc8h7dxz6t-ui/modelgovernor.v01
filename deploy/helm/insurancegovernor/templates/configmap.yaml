@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: insurancegovernor-config
+  namespace: {{ include "insurancegovernor.namespace" . }}
+  labels:
+    {{- include "insurancegovernor.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+data:
+  COMMIT_TTL_SECONDS: {{ .Values.config.commitTtlSeconds | quote }}
+  DRIFT_ABSOLUTE_TOLERANCE: {{ .Values.config.driftAbsoluteTolerance | quote }}
+  DRIFT_RATIO_TOLERANCE: {{ .Values.config.driftRatioTolerance | quote }}
+  DB_POOL_SIZE: {{ .Values.config.dbPoolSize | quote }}
+  DB_MAX_OVERFLOW: {{ .Values.config.dbMaxOverflow | quote }}
+  DB_POOL_TIMEOUT_SECONDS: {{ .Values.config.dbPoolTimeoutSeconds | quote }}
+  DB_POOL_RECYCLE_SECONDS: {{ .Values.config.dbPoolRecycleSeconds | quote }}
+  SWEEP_INTERVAL_SECONDS: {{ .Values.reconciler.sweepIntervalSeconds | quote }}
+  GUARDRAILS_ENABLED: {{ .Values.config.guardrailsEnabled | quote }}
+  RATE_LIMIT_PER_MINUTE: {{ .Values.config.rateLimitPerMinute | quote }}
+  MAX_CLAIM_DEPTH: {{ .Values.config.maxClaimDepth | quote }}
+  MAX_ACCOUNT_INFLIGHT: {{ .Values.config.maxAccountInflight | quote }}
+  CIRCUIT_BREAKER_ENABLED: {{ .Values.config.circuitBreakerEnabled | quote }}
+  CIRCUIT_BREAKER_FAILURE_THRESHOLD: {{ .Values.config.circuitBreakerFailureThreshold | quote }}
+  CIRCUIT_BREAKER_WINDOW_SECONDS: {{ .Values.config.circuitBreakerWindowSeconds | quote }}
+  CIRCUIT_BREAKER_OPEN_SECONDS: {{ .Values.config.circuitBreakerOpenSeconds | quote }}
+  FALLBACK_GLOBAL_TOKENS_PER_SECOND: {{ .Values.config.fallbackGlobalTokensPerSecond | quote }}
+  FALLBACK_TOKEN_BUCKET_CAPACITY: {{ .Values.config.fallbackTokenBucketCapacity | quote }}
+  FALLBACK_RATE_LIMIT_PER_MINUTE: {{ .Values.config.fallbackRateLimitPerMinute | quote }}
+  FALLBACK_MAX_CLAIM_DEPTH: {{ .Values.config.fallbackMaxClaimDepth | quote }}
+  FALLBACK_MAX_ACCOUNT_INFLIGHT: {{ .Values.config.fallbackMaxAccountInflight | quote }}
+  OIDC_ENABLED: {{ .Values.config.oidcEnabled | quote }}
+  OIDC_ALLOW_INTERNAL_TOKEN_FALLBACK: {{ .Values.config.oidcAllowInternalTokenFallback | quote }}
+  OIDC_VIEWER_ROLES: {{ .Values.config.oidcViewerRoles | quote }}
+  OIDC_CLAIMS_ADMIN_ROLES: {{ .Values.config.oidcClaimsAdminRoles | quote }}
+  CLAIM_ANCHOR_S3_PREFIX: {{ .Values.config.claimAnchorS3Prefix | quote }}
+  CLAIM_ANCHOR_S3_OBJECT_LOCK_ENABLED: {{ .Values.config.claimAnchorS3ObjectLockEnabled | quote }}
+  CLAIM_ANCHOR_S3_OBJECT_LOCK_MODE: {{ .Values.config.claimAnchorS3ObjectLockMode | quote }}
+  CLAIM_ANCHOR_S3_RETENTION_DAYS: {{ .Values.config.claimAnchorS3RetentionDays | quote }}
+  PLATFORM_REGISTRY_ENFORCE: {{ .Values.config.platformRegistryEnforce | quote }}
+  {{- if .Values.config.claimAnchorS3Region }}
+  CLAIM_ANCHOR_S3_REGION: {{ .Values.config.claimAnchorS3Region | quote }}
+  {{- end }}

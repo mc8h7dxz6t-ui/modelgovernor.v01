@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import time
 from dataclasses import dataclass
 from typing import Any
 
@@ -107,6 +108,32 @@ class SpineAdapter:
             if should_strand_on_expiry(crystal.risk_tier):
                 raise HorizonStranded("horizon expired")
 
+    def strand(self, crystal_id: str, reason: str = "manual_strand") -> None:
+        if self.spine_enabled:
+            self._http_strand(crystal_id, reason)
+            return
+        crystal = self._local.get(crystal_id)
+        if crystal is None:
+            raise SurpriseCommitBlocked(f"unknown crystal: {crystal_id}")
+
+    def _request_with_retry(self, method: str, url: str, **kwargs: Any) -> httpx.Response:
+        last_exc: Exception | None = None
+        for attempt in range(3):
+            try:
+                with httpx.Client(timeout=30.0) as client:
+                    response = getattr(client, method)(url, **kwargs)
+                if response.status_code >= 500 and attempt < 2:
+                    time.sleep(0.1 * (2**attempt))
+                    continue
+                return response
+            except httpx.HTTPError as exc:
+                last_exc = exc
+                if attempt < 2:
+                    time.sleep(0.1 * (2**attempt))
+        if last_exc:
+            raise SpineAdapterError(str(last_exc)) from last_exc
+        raise SpineAdapterError("request failed")
+
     def _http_crystallize(
         self,
         operation_id: str,
@@ -119,23 +146,23 @@ class SpineAdapter:
     ) -> Crystal:
         from datetime import datetime
 
-        with httpx.Client(timeout=30.0) as client:
-            r = client.post(
-                f"{self.base_url}/crystallize",
-                headers=self._headers(),
-                json={
-                    "platform": self.platform,
-                    "operation_id": operation_id,
-                    "account_id": account_id,
-                    "risk_tier": risk_tier,
-                    "facets": facets,
-                    "policy_id": policy_id,
-                    "reserved_exposure": reserved_exposure,
-                    "parent_crystal_id": parent_crystal_id,
-                },
-            )
-            r.raise_for_status()
-            data = r.json()
+        r = self._request_with_retry(
+            "post",
+            f"{self.base_url}/crystallize",
+            headers=self._headers(),
+            json={
+                "platform": self.platform,
+                "operation_id": operation_id,
+                "account_id": account_id,
+                "risk_tier": risk_tier,
+                "facets": facets,
+                "policy_id": policy_id,
+                "reserved_exposure": reserved_exposure,
+                "parent_crystal_id": parent_crystal_id,
+            },
+        )
+        r.raise_for_status()
+        data = r.json()
         local = seal_crystal(
             platform=self.platform,
             operation_id=operation_id,
@@ -160,21 +187,32 @@ class SpineAdapter:
         )
 
     def _http_commit(self, outcome: CommitOutcome) -> None:
-        with httpx.Client(timeout=30.0) as client:
-            r = client.post(
-                f"{self.base_url}/commit",
-                headers=self._headers(),
-                json={
-                    "crystal_id": outcome.crystal_id,
-                    "facets": outcome.facets,
-                    "committed_exposure": outcome.committed_exposure,
-                    "outcome": outcome.outcome,
-                    "late_authority": bool((outcome.metadata or {}).get("late_authority")),
-                },
-            )
-            if r.status_code == 409:
-                detail = r.json().get("detail", "")
-                if "horizon" in str(detail).lower():
-                    raise HorizonStranded(detail)
-                raise SurpriseCommitBlocked(detail)
-            r.raise_for_status()
+        r = self._request_with_retry(
+            "post",
+            f"{self.base_url}/commit",
+            headers=self._headers(),
+            json={
+                "crystal_id": outcome.crystal_id,
+                "facets": outcome.facets,
+                "committed_exposure": outcome.committed_exposure,
+                "outcome": outcome.outcome,
+                "late_authority": bool((outcome.metadata or {}).get("late_authority")),
+            },
+        )
+        if r.status_code == 409:
+            detail = r.json().get("detail", "")
+            if "horizon" in str(detail).lower():
+                raise HorizonStranded(detail)
+            raise SurpriseCommitBlocked(detail)
+        r.raise_for_status()
+
+    def _http_strand(self, crystal_id: str, reason: str) -> None:
+        r = self._request_with_retry(
+            "post",
+            f"{self.base_url}/adjudicate",
+            headers=self._headers(),
+            json={"crystal_id": crystal_id, "action": "strand", "reason": reason},
+        )
+        if r.status_code == 409:
+            raise SurpriseCommitBlocked(r.json().get("detail", "strand blocked"))
+        r.raise_for_status()

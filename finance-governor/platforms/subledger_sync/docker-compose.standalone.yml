@@ -1,0 +1,17 @@
+services:
+  subledger:
+    build:
+      context: .
+      dockerfile: finance-governor/platforms/subledger_sync/Dockerfile
+    environment:
+      FG_SPINE_ENABLED: "false"
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/subledger
+    ports:
+      - "8095:8095"
+    depends_on:
+      - postgres
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: subledger
+      POSTGRES_PASSWORD: postgres

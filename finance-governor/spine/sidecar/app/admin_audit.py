@@ -39,7 +39,7 @@ def record_admin_action(
         return None
 
     meta = metadata or {}
-    meta_sql = ":meta" if session.bind.dialect.name == "sqlite" else ":meta::jsonb"
+    meta_sql = ":meta" if session.bind.dialect.name == "sqlite" else "CAST(:meta AS jsonb)"
     prev_hash = (
         session.execute(
             text("SELECT row_hash FROM admin_audit_log WHERE row_hash IS NOT NULL ORDER BY audit_id DESC LIMIT 1")

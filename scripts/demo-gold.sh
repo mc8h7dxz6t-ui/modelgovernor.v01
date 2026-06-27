@@ -20,7 +20,7 @@ echo "Audience: enterprise buyers | Mode: mock providers (zero external deps)"
 echo "Duration: ~5 minutes | Command: make demo-gold"
 echo ""
 
-step "1/11  Platform health — all control-plane surfaces ready"
+step "1/12  Platform health — all control-plane surfaces ready"
 curl -fsS "http://localhost:8081/readyz" | head -c 200 && echo " … sidecar ✓"
 curl -fsS "http://localhost:8080/readyz" | head -c 200 && echo " … gateway ✓"
 RECON_HEALTH=$(curl -fsS "http://localhost:8082/readyz")
@@ -30,7 +30,7 @@ echo ""
 echo "  Reconciler leader election: leader=$RECON_LEADER (Postgres advisory lock)"
 echo "  Sales point: HA topology — gateway + policy sidecar + leader-elected reconciler"
 
-step "2/11  Governed dispatch — reserve → provider → settle (gateway OIDC-ready)"
+step "2/12  Governed dispatch — reserve → provider → settle (gateway OIDC-ready)"
 OP_KEY="gold-demo-$(date +%s)"
 DISPATCH=$(curl_post_expect "governed dispatch" 200 "http://localhost:8080/governed/dispatch" \
   "${GW_HDR[@]}" \
@@ -46,7 +46,7 @@ echo "$OPENAI_RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); print
 echo ""
 echo "  Sales point: OpenAI / Anthropic / Vertex routers plug in with PROVIDER_MODE=live"
 
-step "3/11  Multi-provider routing (mock — same gateway, different models)"
+step "3/12  Multi-provider routing (mock — same gateway, different models)"
 for MODEL in "anthropic/claude-3-5-haiku-latest" "vertex/gemini-1.5-flash"; do
   SUB_KEY="gold-${MODEL//\//-}-$(date +%s)-${RANDOM}"
   TRACE_MULTI="trace-multi-${SUB_KEY}"
@@ -60,7 +60,7 @@ done
 echo ""
 echo "  Sales point: one governance gateway, every LLM supplier — unified ledger"
 
-step "4/11  Tamper-evident ledger — hash-chain verification"
+step "4/12  Tamper-evident ledger — hash-chain verification"
 VERIFY=$(curl -fsS "http://localhost:8081/internal/ledger/verify-chain" -H "x-internal-token: $TOKEN" || true)
 if echo "$VERIFY" | grep -q '"valid"'; then
   echo "$VERIFY" | python3 -m json.tool 2>/dev/null || echo "$VERIFY"
@@ -70,7 +70,7 @@ else
   curl -fsS "http://localhost:8081/internal/events/recent?limit=5" -H "x-internal-token: $TOKEN" | python3 -m json.tool 2>/dev/null | head -20
 fi
 
-step "5/11  Diagnostic mode — finance incident without bricking ops"
+step "5/12  Diagnostic mode — finance incident without bricking ops"
 redis-cli -h localhost HSET mg:diagnostic_mode active 1 component sales-demo reason "synthetic audit drill" >/dev/null 2>&1 || \
   redis_cli HSET mg:diagnostic_mode active 1 component sales-demo reason "synthetic audit drill" >/dev/null
 DENY_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "http://localhost:8081/reserve" \
@@ -83,7 +83,7 @@ curl -fsS -X POST "http://localhost:8081/internal/diagnostic/clear" -H "x-intern
 echo "  Operator recovery: POST /internal/diagnostic/clear → writes admin audit log"
 echo "  Sales point: poison-pill fix — sweeps halt, admin APIs stay up, cluster recovers"
 
-step "6/11  Observability — SLO metrics + invariant counters"
+step "6/12  Observability — SLO metrics + invariant counters"
 echo "  Prometheus scrape (unauthenticated):"
 curl -fsS "http://localhost:8081/metrics/prometheus" | grep -E "modelgovernor_http|invariant" | head -8 || true
 echo ""

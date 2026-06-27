@@ -1,0 +1,53 @@
+sidecar:
+  replicas: 3
+  hpa:
+    minReplicas: 3
+    maxReplicas: 12
+
+gateway:
+  replicas: 2
+
+reconciler:
+  replicas: 2
+
+postgres:
+  enabled: true
+
+redis:
+  enabled: false
+  sentinel:
+    enabled: true
+    masterName: mymaster
+    replicas: 3
+
+externalSecrets:
+  enabled: true
+
+secrets:
+  create: false
+
+config:
+  oidcEnabled: "true"
+  oidcIssuerUrl: ""
+  oidcAudience: insurancegovernor
+  claimAnchorS3ObjectLockEnabled: "true"
+  claimAnchorS3Region: "us-east-1"
+
+syntheticProbe:
+  enabled: true
+
+enterprise:
+  istio:
+    enabled: true
+    mtlsMode: STRICT
+
+serviceAccounts:
+  create: true
+
+integrations:
+  paymentRailMode: fednow
+  oracleFeedMode: live
+  oracleFeedSource: usgs-live
+  fednowApiUrl: ""
+  clearinghouseApiUrl: ""
+  oracleFeedUrl: ""

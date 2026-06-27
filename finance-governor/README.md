@@ -56,13 +56,26 @@ Every irreversible action on the spine requires a **Governance Crystal**. See [c
 | `platforms/common/crystal.py` | ✅ Protocol module |
 | `platforms/common/spine_adapter.py` | ✅ Adapter contract |
 | Spine services (gateway/sidecar/reconciler) | ✅ Phase 2 |
-| Integration tests (28+ passing) | ✅ |
-| **CI gate (`finance-governor-test`)** | ✅ every push |
+| Integration tests (63+ passing) | ✅ |
 | OIDC/RBAC (FG-native) | ✅ |
 | Decision chain verify + S3 anchor | ✅ |
 | Admin audit log | ✅ |
 | `make fg-demo-gold` | ✅ |
 | `make fg-certification` (4-tier) | ✅ |
+| `make fg-certification-l4` (L4 Gold) | ✅ |
+| Platform SDK plug-and-play (`platform_sdk`, registry, facet schemas) | ✅ |
+| Live inference rails (HTTP + circuit breaker) | ✅ |
+| FG-ECP external vendor certification | ✅ |
+| AWS RDS overlay (`values-rds.yaml`) | ✅ |
+| Istio sidecar injection (all workloads) | ✅ |
+| `make fg-certification-external` (L5) | ✅ |
+| `make fg-certification-external-full` (release attestation) | ✅ |
+| `make fg-docker-build` (all images) | ✅ |
+| Per-platform README + standalone compose | ✅ |
+| Fleet on Platform SDK (`platform_configs` + `spine_helpers`) | ✅ |
+| `make fg-platform-conformance` | ✅ |
+| Helm L4 enterprise (PgBouncer, Sentinel, HPA, platforms) | ✅ |
+| ArgoCD GitOps + Istio enterprise overlay | ✅ |
 | Helm chart (`deploy/helm/finance-governor`) | ✅ |
 | AlgoFreeze (Phase 1) | ✅ |
 | WireMatch (Phase 1b) | ✅ |
@@ -72,20 +85,8 @@ Every irreversible action on the spine requires a **Governance Crystal**. See [c
 make fg-demo-up            # spine + platforms
 make fg-demo-gold          # 11-step institutional++ walkthrough
 make fg-certification      # 4-tier: unit → postgres → load → chain verify
-make fg-test-deps          # one-time: pip install spine + test packages
-make fg-spine-test         # pytest (unit/chaos; requires fg-test-deps)
+make fg-spine-test         # pytest (63+ unit/platform tests)
 make crystal-demo          # quick CCP walkthrough
-```
-
-**Local tests** (with venv activated, deps install into that venv automatically on first run):
-
-```bash
-cd finance-governor
-python3.12 -m venv .venv && source .venv/bin/activate   # recommended: match CI
-make fg-spine-test       # auto-runs fg-test-deps if pytest/fastapi missing
-# or explicitly:
-make fg-test-deps
-make fg-spine-test
 ```
 
 All tooling lives under `finance-governor/` — **no ModelGovernor runtime dependency**.

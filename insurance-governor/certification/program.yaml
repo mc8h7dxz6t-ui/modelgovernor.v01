@@ -1,0 +1,69 @@
+# Insurance Governor External Certification Program (IG-ECP)
+# Third-party and partner platforms submit attestation reports against this manifest.
+
+program:
+  id: ig-ecp-v1
+  name: Insurance Governor External Certification Program
+  issuer: Insurance Governor / ModelGovernor institutional++ lineage
+  version: "1.0.0"
+
+levels:
+  L1:
+    title: Platform Ready
+    requirements:
+      - standalone_health_endpoints
+      - tier1_unit_tests
+      - facet_schema_declared
+  L2:
+    title: Institutional
+    extends: L1
+    requirements:
+      - diagnostic_mode_compatible
+      - invariant_counters
+      - idempotent_mutations
+  L3:
+    title: Institutional++
+    extends: L2
+    requirements:
+      - spine_adapter_integration
+      - postgres_integration_tests
+      - platform_registry_row
+      - ig_platform_conformance
+  L4:
+    title: Gold Enterprise
+    extends: L3
+    requirements:
+      - ig_certification_l4
+      - helm_enterprise_render
+      - chaos_toxiproxy
+      - gitops_manifests
+  L5:
+    title: Industry Leading
+    extends: L4
+    requirements:
+      - live_payment_rail_or_equivalent
+      - managed_postgres_rds_overlay
+      - istio_strict_mtls_all_workloads
+      - external_attestation_report
+      - examiner_evidence_pack
+
+evidence_artifacts:
+  - path: docs/insurance-governor/capability-matrix.md
+    id: capability_matrix
+  - path: docs/insurance-governor/operations-runbook.md
+    id: operations_runbook
+  - path: insurance-governor/scripts/ig_examiner_evidence_pack.py
+    id: examiner_evidence_generator
+
+submission:
+  report_format: json
+  report_schema_version: "1"
+  required_fields:
+    - program_id
+    - level_claimed
+    - platform_name
+    - git_commit
+    - generated_at
+    - checks
+    - report_sha256
+  contact: certification@insurance-governor.example

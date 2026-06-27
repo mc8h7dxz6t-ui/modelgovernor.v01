@@ -1,0 +1,3 @@
+{{- if .Values.monitoring.prometheusRules.enabled }}
+{{ .Files.Get "files/prometheus-rules.yaml" }}
+{{- end }}

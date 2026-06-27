@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run institutional++ reliability steps (7–11) after the core demo stack is up.
+# Run institutional++ reliability steps (7–12) after the core demo stack is up.
 set -euo pipefail
 
 source "$(cd "$(dirname "$0")" && pwd)/demo-gold-lib.sh"
@@ -12,7 +12,7 @@ ensure_redis_up
 TOKEN="${SIDECAR_PRIMARY_TOKEN}"
 HDR=(-H "x-internal-token: $TOKEN" -H "content-type: application/json")
 
-banner "ModelGovernor — institutional++ reliability drill (steps 7–11)"
+banner "ModelGovernor — institutional++ reliability drill (steps 7–12)"
 # shellcheck disable=SC1091
 source "$(cd "$(dirname "$0")" && pwd)/demo-gold-reliability.sh"
 

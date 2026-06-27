@@ -19,13 +19,13 @@ spec:
                 - name: FG_TOKEN
                   valueFrom:
                     secretKeyRef:
-                      name: fg-internal
+                      name: {{ include "fg.secretName" . }}
                       key: fg-internal-tokens
               command: ["/bin/sh", "-c"]
               args:
                 - |
                   set -e
                   curl -sf -H "x-internal-token: ${FG_TOKEN}" \
-                    http://fg-sidecar:8091/internal/decisions/verify-chain
+                    http://fg-sidecar:8091/internal/decisions/verify-chain | grep -q '"valid":true'
                   echo "fg decision chain verify ok"
 {{- end }}

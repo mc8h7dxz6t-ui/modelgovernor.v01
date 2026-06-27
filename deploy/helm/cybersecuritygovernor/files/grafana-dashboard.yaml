@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-cybersecuritygovernor
+  namespace: cybersecuritygovernor
+  labels:
+    grafana_dashboard: "1"
+data:
+  cybersecuritygovernor.json: |
+    {
+      "title": "CybersecurityGovernor SLOs",
+      "uid": "cybersecuritygovernor-slos",
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "version": 1,
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "Reserve success rate (5m)",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          "targets": [
+            {"expr": "cybersecuritygovernor:reserve_success_rate:5m", "legendFormat": "success_rate"}
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Reserve p95 latency (5m)",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "targets": [
+            {"expr": "cybersecuritygovernor:reserve_p95_latency:5m", "legendFormat": "p95_seconds"}
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Invariant events",
+          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8},
+          "targets": [
+            {"expr": "increase(cybersecuritygovernor_invariant_events_total[15m])", "legendFormat": "{{event}}"}
+          ]
+        }
+      ]
+    }

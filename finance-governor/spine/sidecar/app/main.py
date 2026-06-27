@@ -8,8 +8,11 @@ from .db import get_db_session
 from .diagnostic_mode import diagnostic_snapshot
 from .metrics import get_counters
 from .routes_admin import router as admin_router
+from .routes_adjudicate import router as adjudicate_router
 from .routes_commit import router as commit_router
 from .routes_crystallize import router as crystallize_router
+from .routes_metrics import router as metrics_router
+from .routes_platforms import router as platforms_router
 from .routes_regulatory import router as regulatory_router
 from .schemas import HealthResponse
 
@@ -46,5 +49,8 @@ def metrics_json() -> dict:
 
 app.include_router(crystallize_router)
 app.include_router(commit_router)
+app.include_router(adjudicate_router)
+app.include_router(platforms_router)
 app.include_router(admin_router)
 app.include_router(regulatory_router)
+app.include_router(metrics_router)

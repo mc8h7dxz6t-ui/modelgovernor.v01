@@ -1,0 +1,174 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sidecar
+  namespace: {{ include "insurancegovernor.namespace" . }}
+  labels:
+    app: sidecar
+    app.kubernetes.io/component: policy-sidecar
+    {{- include "insurancegovernor.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  replicas: {{ .Values.sidecar.replicas }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: sidecar
+  template:
+    metadata:
+      labels:
+        app: sidecar
+      annotations:
+        {{- include "insurancegovernor.istioPodAnnotations" . | nindent 8 }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: sidecar
+          image: {{ .Values.images.sidecar.repository }}:{{ .Values.images.sidecar.tag }}
+          imagePullPolicy: {{ .Values.images.sidecar.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - name: http
+              containerPort: 8101
+          envFrom:
+            - configMapRef:
+                name: insurancegovernor-config
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "insurancegovernor.secretName" . }}
+                  key: database-url
+            {{- if or .Values.postgres.external.readReplica.enabled .Values.secrets.databaseReadUrl }}
+            - name: DATABASE_READ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "insurancegovernor.secretName" . }}
+                  key: database-read-url
+                  optional: true
+            {{- end }}
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "insurancegovernor.secretName" . }}
+                  key: redis-url
+            - name: IG_INTERNAL_TOKENS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "insurancegovernor.secretName" . }}
+                  key: sidecar-internal-tokens
+            {{- if or .Values.secrets.claimAnchorS3Bucket .Values.externalSecrets.remoteRefs.claimAnchorS3Bucket }}
+            - name: CLAIM_ANCHOR_S3_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "insurancegovernor.secretName" . }}
+                  key: claim-anchor-s3-bucket
+                  optional: true
+            {{- end }}
+            {{- if .Values.config.oidcEnabled }}
+            {{- if .Values.externalSecrets.enabled }}
+            - name: OIDC_ISSUER_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "insurancegovernor.secretName" . }}
+                  key: oidc-issuer-url
+                  optional: true
+            - name: OIDC_AUDIENCE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "insurancegovernor.secretName" . }}
+                  key: oidc-audience
+                  optional: true
+            {{- else if .Values.config.oidcIssuerUrl }}
+            - name: OIDC_ISSUER_URL
+              value: {{ .Values.config.oidcIssuerUrl | quote }}
+            - name: OIDC_AUDIENCE
+              value: {{ .Values.config.oidcAudience | quote }}
+            {{- end }}
+            {{- end }}
+            {{- if .Values.otelCollector.enabled }}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ .Values.sidecar.otel.endpoint | quote }}
+            - name: OTEL_SERVICE_NAME
+              value: {{ .Values.sidecar.otel.serviceName | quote }}
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8101
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8101
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.sidecar.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sidecar
+  namespace: {{ include "insurancegovernor.namespace" . }}
+  labels:
+    app: sidecar
+    {{- include "insurancegovernor.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: sidecar
+  ports:
+    - name: http
+      port: 8101
+      targetPort: 8101
+{{- if .Values.sidecar.pdb.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: sidecar-pdb
+  namespace: {{ include "insurancegovernor.namespace" . }}
+  labels:
+    {{- include "insurancegovernor.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.sidecar.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      app: sidecar
+{{- end }}
+{{- if .Values.sidecar.hpa.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: sidecar-hpa
+  namespace: {{ include "insurancegovernor.namespace" . }}
+  labels:
+    {{- include "insurancegovernor.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: sidecar
+  minReplicas: {{ .Values.sidecar.hpa.minReplicas }}
+  maxReplicas: {{ .Values.sidecar.hpa.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.sidecar.hpa.targetCPUUtilization }}
+{{- end }}

@@ -1,0 +1,9 @@
+name: bind_authority
+display_name: BindAuthority
+default_policy_id: bind-standard-us
+default_risk_tier: high
+port: 8104
+required_facet_keys:
+  - application_id
+commit_decisions:
+  - BOUND

@@ -1,0 +1,90 @@
+{{- if .Values.pgbouncer.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pgbouncer-config
+  namespace: {{ include "insurancegovernor.namespace" . }}
+  labels:
+    {{- include "insurancegovernor.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+data:
+  pgbouncer.ini: |
+    [databases]
+    {{ .Values.postgres.database }} = host={{ include "insurancegovernor.postgresBackendHost" . }} port={{ include "insurancegovernor.postgresBackendPort" . }} dbname={{ .Values.postgres.database }}
+
+    [pgbouncer]
+    listen_addr = 0.0.0.0
+    listen_port = 6432
+    auth_type = plain
+    auth_file = /etc/pgbouncer/userlist.txt
+    pool_mode = {{ .Values.pgbouncer.poolMode }}
+    max_client_conn = {{ .Values.pgbouncer.maxClientConn }}
+    default_pool_size = {{ .Values.pgbouncer.defaultPoolSize }}
+    min_pool_size = 5
+    reserve_pool_size = 5
+    server_reset_query = DISCARD ALL
+    ignore_startup_parameters = extra_float_digits
+    admin_users = {{ .Values.postgres.user }}
+  userlist.txt: |
+    "{{ .Values.postgres.user }}" "{{ .Values.secrets.postgresPassword }}"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pgbouncer
+  namespace: {{ include "insurancegovernor.namespace" . }}
+  labels:
+    app: pgbouncer
+    {{- include "insurancegovernor.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  replicas: {{ .Values.pgbouncer.replicas }}
+  selector:
+    matchLabels:
+      app: pgbouncer
+  template:
+    metadata:
+      labels:
+        app: pgbouncer
+    spec:
+      containers:
+        - name: pgbouncer
+          image: {{ .Values.images.pgbouncer.repository }}:{{ .Values.images.pgbouncer.tag }}
+          imagePullPolicy: {{ .Values.images.pgbouncer.pullPolicy }}
+          ports:
+            - containerPort: 6432
+          volumeMounts:
+            - name: config
+              mountPath: /etc/pgbouncer/pgbouncer.ini
+              subPath: pgbouncer.ini
+            - name: config
+              mountPath: /etc/pgbouncer/userlist.txt
+              subPath: userlist.txt
+          readinessProbe:
+            tcpSocket:
+              port: 6432
+            initialDelaySeconds: 3
+            periodSeconds: 10
+      volumes:
+        - name: config
+          configMap:
+            name: pgbouncer-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pgbouncer
+  namespace: {{ include "insurancegovernor.namespace" . }}
+  labels:
+    app: pgbouncer
+    {{- include "insurancegovernor.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: pgbouncer
+  ports:
+    - name: pgbouncer
+      port: 6432
+      targetPort: 6432
+{{- end }}

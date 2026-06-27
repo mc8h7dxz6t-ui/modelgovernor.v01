@@ -33,10 +33,10 @@ def spine_db(monkeypatch):
         future=True,
     )
     with engine.begin() as conn:
-        for stmt in SCHEMA.split(";"):
-            s = stmt.strip()
-            if s:
-                conn.execute(text(s))
+        from tests.support.fg_migrations import sql_fragments
+
+        for fragment in sql_fragments(SCHEMA):
+            conn.execute(text(fragment))
 
     from app.config import Settings, get_settings
     from app.db import override_engine

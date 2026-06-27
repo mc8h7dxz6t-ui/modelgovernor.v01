@@ -9,6 +9,10 @@ services:
       POSTGRES_PASSWORD: postgres
     ports:
       - "5434:5432"
+    volumes:
+      - ./migrations/0001_fg_spine_init.sql:/docker-entrypoint-initdb.d/0001_init.sql:ro
+      - ./migrations/0002_fg_hardening.sql:/docker-entrypoint-initdb.d/0002_hardening.sql:ro
+      - ./migrations/0003_platform_persistence.sql:/docker-entrypoint-initdb.d/0003_platform.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d fg_test"]
       interval: 3s

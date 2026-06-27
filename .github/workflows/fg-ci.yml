@@ -1,0 +1,219 @@
+name: Finance Governor CI
+
+on:
+  push:
+    paths:
+      - "finance-governor/**"
+      - ".github/workflows/fg-ci.yml"
+  pull_request:
+    paths:
+      - "finance-governor/**"
+      - ".github/workflows/fg-ci.yml"
+
+jobs:
+  fg-tier1:
+    name: FG Tier 1 — unit + platform tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: finance-governor
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install -r platforms/requirements.txt
+          pip install -r spine/sidecar/requirements.txt
+          pip install pytest
+      - name: Tier 1 tests
+        run: python3 -m pytest tests/ -q --ignore=tests/integration --ignore=tests/chaos/test_toxiproxy_fg_spine.py
+
+  fg-tier2:
+    name: FG Tier 2 — Postgres integration
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: fg_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-retries 15
+    defaults:
+      run:
+        working-directory: finance-governor
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install -r platforms/requirements.txt
+          pip install -r spine/sidecar/requirements.txt
+          pip install pytest
+      - name: Tier 2 Postgres
+        env:
+          FG_POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5432/fg_test
+          FG_TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/fg_test
+        run: python3 -m pytest tests/integration/ -q --maxfail=1
+
+  fg-tier3:
+    name: FG Tier 3 — load smoke
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: finance-governor
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install -r platforms/requirements.txt
+          pip install -r spine/sidecar/requirements.txt
+          pip install pytest
+      - name: Tier 3 offline load smoke
+        run: python3 -m pytest tests/test_load_smoke_offline.py tests/test_horizon_sweeper.py tests/test_commit_invariants.py -q
+
+  fg-tier4:
+    name: FG Tier 4 — Toxiproxy chaos
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: finance-governor
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install -r platforms/requirements.txt
+          pip install -r spine/sidecar/requirements.txt
+          pip install pytest requests
+      - name: Start chaos stack
+        run: |
+          docker compose -f docker-compose.chaos.yml up -d --wait fg-postgres-chaos toxiproxy
+          docker compose -f docker-compose.chaos.yml run --rm toxiproxy-config
+      - name: Tier 4 chaos tests
+        env:
+          FG_POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5437/fg_chaos
+          FG_TOXIPROXY_API: http://localhost:8475
+        run: python3 -m pytest tests/chaos/test_toxiproxy_fg_spine.py -q --maxfail=1
+      - name: Tear down
+        if: always()
+        run: docker compose -f docker-compose.chaos.yml down -v
+
+  fg-helm:
+    name: FG Helm template gate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: finance-governor
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - run: make fg-helm-template
+
+  fg-helm-enterprise:
+    name: FG L4 Helm enterprise gate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: finance-governor
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pytest pyyaml
+      - run: make fg-helm-enterprise
+      - run: python3 -m pytest tests/test_l4_helm_enterprise.py tests/test_l4_certification.py -q
+
+  fg-platform-conformance:
+    name: FG Platform SDK conformance
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: finance-governor
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: |
+          pip install -r platforms/requirements.txt
+          pip install -r spine/sidecar/requirements.txt
+          pip install pytest
+      - run: make fg-platform-conformance
+
+  fg-certification-external:
+    name: FG-ECP external attestation (L5)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: finance-governor
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: |
+          pip install -r platforms/requirements.txt
+          pip install -r spine/sidecar/requirements.txt
+          pip install pytest uvicorn
+      - run: make fg-certification-external-full
+
+  fg-docker-build:
+    name: FG Docker image build gate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: finance-governor
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - run: make fg-docker-build
+
+  fg-kustomize-enterprise:
+    name: FG L4 Kustomize enterprise gate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: finance-governor
+    steps:
+      - uses: actions/checkout@v4
+      - run: make fg-kustomize-enterprise
+
+  fg-certification-l4:
+    name: FG L4 Gold certification gate
+    runs-on: ubuntu-latest
+    needs: [fg-tier1, fg-tier2, fg-tier3, fg-tier4, fg-helm-enterprise, fg-kustomize-enterprise, fg-platform-conformance]
+    defaults:
+      run:
+        working-directory: finance-governor
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: azure/setup-helm@v4
+      - name: Install dependencies
+        run: |
+          pip install -r platforms/requirements.txt
+          pip install -r spine/sidecar/requirements.txt
+          pip install pytest pyyaml
+      - run: make fg-certification-l4-ci
+      - run: make fg-examiner-evidence

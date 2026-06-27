@@ -16,13 +16,17 @@ spec:
       labels:
         app.kubernetes.io/component: gateway
         {{- include "fg.labels" . | nindent 8 }}
+      annotations:
+        {{- include "fg.istioPodAnnotations" . | nindent 8 }}
     spec:
+      {{- include "fg.podAntiAffinity" . | nindent 6 }}
       containers:
         - name: gateway
           image: {{ .Values.image.gateway }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
-            - containerPort: 8090
+            - name: http
+              containerPort: 8090
           envFrom:
             - configMapRef:
                 name: {{ include "fg.configMapName" . }}

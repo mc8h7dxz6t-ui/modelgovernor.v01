@@ -10,19 +10,21 @@ from sqlalchemy import create_engine, text
 
 ROOT = Path(__file__).resolve().parents[2]
 SIDECAR = ROOT / "spine" / "sidecar"
-MIGRATIONS = ROOT / "migrations"
 
 POSTGRES_URL = os.environ.get(
-    "FG_TEST_DATABASE_URL",
-    "postgresql+psycopg://postgres:postgres@localhost:5434/fg_test",
+    "FG_POSTGRES_TEST_URL",
+    os.environ.get(
+        "FG_TEST_DATABASE_URL",
+        "postgresql+psycopg://postgres:postgres@localhost:5434/fg_test",
+    ),
 )
 
 
 def _apply_migrations(engine) -> None:
-    for path in sorted(MIGRATIONS.glob("*.sql")):
-        sql = path.read_text()
-        with engine.begin() as conn:
-            conn.execute(text(sql))
+    sys.path.insert(0, str(ROOT))
+    from tests.support.fg_migrations import apply_fg_migrations
+
+    apply_fg_migrations(engine)
 
 
 @pytest.fixture(scope="session")

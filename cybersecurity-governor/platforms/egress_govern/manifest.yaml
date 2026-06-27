@@ -1,0 +1,15 @@
+name: egress_govern
+display_name: EgressGovern
+default_policy_id: egress-critical-us
+default_risk_tier: critical
+port: 8123
+required_facet_keys:
+  - flow_id
+  - destination_host
+  - egress_decision
+commit_decisions:
+  - ALLOWED
+invariant_counters:
+  - egress_denied_total
+  - egress_allowlisted_total
+  - egress_shadow_it_blocked_total

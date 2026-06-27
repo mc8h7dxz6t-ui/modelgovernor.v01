@@ -1,16 +1,20 @@
 .PHONY: demo-up demo-down demo-reset demo-smoke demo-drift-lock demo-status demo-ledger demo-events \
 	demo-gold-up demo-gold demo-gold-reliability demo-gold-down demo-gold-reset demo-gold-diagnose \
-	demo-all-platforms demo-all-platforms-live demo-all-platforms-manifests demo-all-platforms-proof \
+	demo-all demo-all-platforms demo-all-platforms-live demo-all-platforms-manifests demo-all-platforms-proof \
 	demo-prereqs demo-prereqs-install proof-test load-test \
 	fg-spine-up fg-stack-up fg-spine-down fg-stack-down fg-spine-test fg-spine-smoke \
 	crystal-demo algofreeze-demo wirematch-demo fg-certification \
 	fg-demo-up fg-demo-down fg-demo-gold fg-integration-test fg-load-smoke \
-	fg-prod-setup fg-aws-anchor-bucket fg-helm-template fg-helm-install fg-test-deps \
-	cg-spine-up cg-stack-up cg-spine-down cg-stack-down cg-stack-reset cg-spine-test cg-spine-smoke \
-	threat-crystal-demo identity-gate-demo egress-lock-demo witness-bridge-demo \
-	cg-security-demo lineage-ingest-demo posture-reconcile-demo content-guard-demo \
-	cg-bootstrap cg-prod-bootstrap cg-test-deps \
-	cg-postgres-test cg-proof-test cg-deploy-dry-run
+	fg-prod-setup fg-aws-anchor-bucket fg-helm-template fg-helm-install fg-examiner-evidence \
+	fg-test-deps cg-test-deps \
+	ig-spine-up ig-stack-up ig-spine-down ig-stack-down ig-spine-test ig-spine-smoke \
+	claim-gate-demo ig-demo ig-certification ig-certification-strict ig-certification-l4 ig-certification-l4-ci \
+	ig-helm-enterprise ig-platform-conformance ig-load-test ig-ha-up ig-pilot-attestation \
+	ig-cluster-attestation ig-rail-smoke ig-design-partner-package ig-claim-gate-load \
+	ig-full-rehearsal ig-embedded-rehearsal ig-examiner-evidence \
+	cg-spine-up cg-stack-up cg-spine-down cg-stack-down cg-spine-test cg-spine-smoke \
+	egress-govern-demo cg-demo cg-certification cg-certification-strict cg-certification-l4 cg-certification-l4-ci \
+	cg-helm-enterprise cg-platform-conformance cg-load-test cg-examiner-evidence
 
 demo-prereqs:
 	./scripts/install-demo-prereqs.sh --check-only
@@ -35,6 +39,9 @@ demo-gold-reset:
 
 demo-gold-diagnose:
 	./scripts/demo-gold-diagnose.sh
+
+demo-all:
+	./scripts/demo-all.sh
 
 demo-up:
 	./scripts/demo-up.sh
@@ -82,9 +89,6 @@ fg-stack-down:
 fg-spine-test:
 	$(MAKE) -C finance-governor fg-spine-test
 
-fg-test-deps:
-	$(MAKE) -C finance-governor fg-test-deps
-
 fg-spine-smoke:
 	$(MAKE) -C finance-governor fg-spine-smoke
 
@@ -127,66 +131,144 @@ fg-helm-template:
 fg-helm-install:
 	$(MAKE) -C finance-governor fg-helm-install
 
-# Cybersecurity Governor spine
+fg-examiner-evidence:
+	$(MAKE) -C finance-governor fg-examiner-evidence
+
+# Insurance Governor spine (sibling to ModelGovernor / Finance Governor)
+ig-spine-up:
+	$(MAKE) -C insurance-governor ig-spine-up
+
+ig-stack-up:
+	$(MAKE) -C insurance-governor ig-stack-up
+
+ig-spine-down:
+	$(MAKE) -C insurance-governor ig-spine-down
+
+ig-stack-down:
+	$(MAKE) -C insurance-governor ig-stack-down
+
+ig-spine-test:
+	$(MAKE) -C insurance-governor ig-spine-test
+
+ig-spine-smoke:
+	$(MAKE) -C insurance-governor ig-spine-smoke
+
+claim-gate-demo:
+	$(MAKE) -C insurance-governor claim-gate-demo
+
+ig-demo:
+	$(MAKE) -C insurance-governor ig-demo
+
+ig-certification:
+	$(MAKE) -C insurance-governor ig-certification
+
+ig-certification-strict:
+	$(MAKE) -C insurance-governor ig-certification-strict
+
+ig-certification-l4:
+	$(MAKE) -C insurance-governor ig-certification-l4
+
+ig-certification-l4-ci:
+	$(MAKE) -C insurance-governor ig-certification-l4-ci
+
+ig-helm-enterprise:
+	$(MAKE) -C insurance-governor ig-helm-enterprise
+
+ig-platform-conformance:
+	$(MAKE) -C insurance-governor ig-platform-conformance
+
+ig-examiner-evidence:
+	$(MAKE) -C insurance-governor ig-examiner-evidence
+
+ig-load-test:
+	$(MAKE) -C insurance-governor ig-load-test
+
+ig-ha-up:
+	$(MAKE) -C insurance-governor ig-ha-up
+
+ig-pilot-attestation:
+	$(MAKE) -C insurance-governor ig-pilot-attestation
+
+ig-cluster-attestation:
+	$(MAKE) -C insurance-governor ig-cluster-attestation
+
+ig-rail-smoke:
+	$(MAKE) -C insurance-governor ig-rail-smoke
+
+ig-design-partner-package:
+	$(MAKE) -C insurance-governor ig-design-partner-package
+
+ig-claim-gate-load:
+	$(MAKE) -C insurance-governor ig-claim-gate-load
+
+ig-full-rehearsal:
+	$(MAKE) -C insurance-governor ig-full-rehearsal
+
+ig-embedded-rehearsal:
+	$(MAKE) -C insurance-governor ig-embedded-rehearsal
+
 cg-spine-up:
-	$(MAKE) -C cyber-governor cg-spine-up
+	$(MAKE) -C cybersecurity-governor cg-spine-up
 
 cg-stack-up:
-	$(MAKE) -C cyber-governor cg-stack-up
+	$(MAKE) -C cybersecurity-governor cg-stack-up
 
 cg-spine-down:
-	$(MAKE) -C cyber-governor cg-spine-down
+	$(MAKE) -C cybersecurity-governor cg-spine-down
 
 cg-stack-down:
-	$(MAKE) -C cyber-governor cg-stack-down
-
-cg-stack-reset:
-	$(MAKE) -C cyber-governor cg-stack-reset
+	$(MAKE) -C cybersecurity-governor cg-stack-down
 
 cg-spine-test:
-	$(MAKE) -C cyber-governor cg-spine-test
-
-cg-test-deps:
-	$(MAKE) -C cyber-governor cg-test-deps
+	$(MAKE) -C cybersecurity-governor cg-spine-test
 
 cg-spine-smoke:
-	$(MAKE) -C cyber-governor cg-spine-smoke
+	$(MAKE) -C cybersecurity-governor cg-spine-smoke
 
-threat-crystal-demo:
-	$(MAKE) -C cyber-governor threat-crystal-demo
+egress-govern-demo:
+	$(MAKE) -C cybersecurity-governor egress-govern-demo
 
-identity-gate-demo:
-	$(MAKE) -C cyber-governor identity-gate-demo
+cg-demo:
+	$(MAKE) -C cybersecurity-governor cg-demo
 
-egress-lock-demo:
-	$(MAKE) -C cyber-governor egress-lock-demo
+cg-certification:
+	$(MAKE) -C cybersecurity-governor cg-certification
 
-witness-bridge-demo:
-	$(MAKE) -C cyber-governor witness-bridge-demo
+cg-certification-strict:
+	$(MAKE) -C cybersecurity-governor cg-certification-strict
 
-cg-security-demo:
-	$(MAKE) -C cyber-governor cg-security-demo
+cg-certification-l4:
+	$(MAKE) -C cybersecurity-governor cg-certification-l4
 
-lineage-ingest-demo:
-	$(MAKE) -C cyber-governor lineage-ingest-demo
+cg-certification-l4-ci:
+	$(MAKE) -C cybersecurity-governor cg-certification-l4-ci
 
-posture-reconcile-demo:
-	$(MAKE) -C cyber-governor posture-reconcile-demo
+cg-helm-enterprise:
+	$(MAKE) -C cybersecurity-governor cg-helm-enterprise
 
-content-guard-demo:
-	$(MAKE) -C cyber-governor content-guard-demo
+cg-platform-conformance:
+	$(MAKE) -C cybersecurity-governor cg-platform-conformance
 
-cg-postgres-test:
-	$(MAKE) -C cyber-governor cg-postgres-test
+cg-examiner-evidence:
+	$(MAKE) -C cybersecurity-governor cg-examiner-evidence
 
-cg-proof-test:
-	$(MAKE) -C cyber-governor cg-proof-test
+cg-load-test:
+	$(MAKE) -C cybersecurity-governor cg-load-test
 
-cg-deploy-dry-run:
-	$(MAKE) -C cyber-governor cg-deploy-dry-run
+fg-test-deps:
+	$(MAKE) -C finance-governor fg-test-deps
 
-cg-bootstrap:
-	$(MAKE) -C cyber-governor cg-bootstrap
+cg-test-deps:
+	$(MAKE) -C cybersecurity-governor cg-test-deps
 
-cg-prod-bootstrap:
-	$(MAKE) -C cyber-governor cg-prod-bootstrap
+demo-all-platforms:
+	./scripts/demo-all-platforms.sh
+
+demo-all-platforms-live:
+	./scripts/demo-all-platforms.sh --live-only
+
+demo-all-platforms-manifests:
+	./scripts/demo-all-platforms.sh --manifests-only
+
+demo-all-platforms-proof:
+	./scripts/demo-all-platforms.sh --with-proof

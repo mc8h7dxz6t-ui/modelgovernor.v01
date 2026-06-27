@@ -3,18 +3,24 @@ from __future__ import annotations
 
 import hashlib
 import logging
-import os
 from decimal import Decimal
 
 from fastapi import FastAPI
 from pydantic import BaseModel
+
+from platforms.common.platform_configs import WIRE_MATCH_CONFIG
+from platforms.common.platform_sdk import create_platform_app, increment_invariant, spine_adapter_for
+from platforms.common.platform_store import append_platform_event
+from platforms.common.spine_helpers import crystallize_and_commit
 
 from .semantic_matcher import GOLDEN_RECORD_VERSION, GoldenRecord, evaluate_wire
 from .wire_schema import WireRequest
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="wirematch", version="0.1.0")
+CONFIG = WIRE_MATCH_CONFIG
+app = create_platform_app(CONFIG)
+adapter = spine_adapter_for(CONFIG)
 
 _GOLDEN = GoldenRecord(
     beneficiary_name="Revlon Lenders Group",
@@ -31,9 +37,11 @@ class EvaluateResponse(BaseModel):
     crystal_id: str | None = None
 
 
-@app.get("/healthz")
-def healthz() -> dict:
-    return {"status": "ok"}
+@app.get("/events")
+def list_events(limit: int = 20) -> list:
+    from platforms.common.platform_store import list_platform_events
+
+    return list_platform_events("wire_match", limit=limit)
 
 
 @app.post("/wire/evaluate", response_model=EvaluateResponse)
@@ -45,6 +53,13 @@ def evaluate(wire: WireRequest) -> EvaluateResponse:
         amount=amount,
         golden=_GOLDEN,
     )
+    if result.approved and result.score < 0.6:
+        increment_invariant(CONFIG.name, "wire_sent_below_threshold_total")
+    if result.approved:
+        increment_invariant(CONFIG.name, "wire_approved_total")
+    else:
+        increment_invariant(CONFIG.name, "wire_held_total")
+
     facets = {
         "amount": wire.amount,
         "amount_quantum": wire.amount,
@@ -53,7 +68,30 @@ def evaluate(wire: WireRequest) -> EvaluateResponse:
         "semantic_match_score": result.score,
         "golden_record_version": GOLDEN_RECORD_VERSION,
     }
-    crystal_id = _crystallize_if_spine(wire.wire_id, facets, approved=result.approved)
+    crystal_id = None
+    if result.approved:
+        crystal_id = crystallize_and_commit(
+            CONFIG,
+            wire.wire_id,
+            facets,
+            committed_exposure=wire.amount,
+            outcome="approved",
+        )
+    else:
+        crystal_id = crystallize_and_commit(
+            CONFIG,
+            wire.wire_id,
+            facets,
+            committed_exposure="0",
+            outcome="held",
+        )
+
+    append_platform_event(
+        "wire_match",
+        "APPROVED" if result.approved else "HELD",
+        wire.wire_id,
+        {"reason": result.reason, "score": result.score},
+    )
 
     return EvaluateResponse(
         wire_id=wire.wire_id,
@@ -62,32 +100,3 @@ def evaluate(wire: WireRequest) -> EvaluateResponse:
         reason=result.reason,
         crystal_id=crystal_id,
     )
-
-
-def _crystallize_if_spine(operation_id: str, facets: dict, *, approved: bool) -> str | None:
-    if os.environ.get("FG_SPINE_ENABLED", "false").lower() != "true":
-        return None
-    try:
-        from platforms.common.spine_adapter import CommitOutcome, SpineAdapter
-
-        adapter = SpineAdapter(platform="wire_match", spine_enabled=True)
-        crystal = adapter.crystallize(
-            operation_id=operation_id,
-            risk_tier="critical",
-            facets=facets,
-            policy_id="wire-critical-us",
-        )
-        if approved:
-            adapter.commit(
-                CommitOutcome(
-                    operation_id=operation_id,
-                    crystal_id=crystal.crystal_id,
-                    facets=facets,
-                    outcome="approved",
-                    committed_exposure=facets.get("amount", "0"),
-                )
-            )
-        return crystal.crystal_id
-    except Exception as exc:
-        logger.warning("spine crystallize/commit failed operation=%s: %s", operation_id, exc)
-        return None

@@ -1,0 +1,95 @@
+{{- if .Values.syntheticCanary.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: fg-synthetic-canary
+  namespace: {{ include "fg.namespace" . }}
+  labels:
+    {{- include "fg.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.syntheticCanary.schedule | quote }}
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: canary
+              image: curlimages/curl:8.5.0
+              env:
+                - name: FG_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "fg.secretName" . }}
+                      key: fg-internal-tokens
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -e
+                  curl -sf http://fg-gateway:8090/healthz
+                  curl -sf -H "x-internal-token: ${FG_TOKEN}" http://fg-sidecar:8091/readyz
+                  curl -sf http://fg-reconciler:8092/healthz
+                  curl -sf -H "x-internal-token: ${FG_TOKEN}" \
+                    http://fg-sidecar:8091/internal/decisions/verify-chain | grep -q '"valid":true'
+                  echo "fg synthetic canary ok"
+{{- end }}
+---
+{{- if .Values.algofreezeVersionProbe.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: fg-algofreeze-version-probe
+  namespace: {{ include "fg.namespace" . }}
+  labels:
+    {{- include "fg.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.algofreezeVersionProbe.schedule | quote }}
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: probe
+              image: curlimages/curl:8.5.0
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -e
+                  curl -sf http://fg-algofreeze:8094/healthz
+                  curl -sf http://fg-algofreeze:8094/status | grep -q freeze_state
+                  echo "algofreeze version probe ok"
+{{- end }}
+---
+{{- if .Values.wirematchGoldenProbe.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: fg-wirematch-golden-probe
+  namespace: {{ include "fg.namespace" . }}
+  labels:
+    {{- include "fg.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.wirematchGoldenProbe.schedule | quote }}
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: probe
+              image: curlimages/curl:8.5.0
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -e
+                  curl -sf http://fg-wirematch:8093/healthz
+                  curl -sf -X POST http://fg-wirematch:8093/wire/evaluate \
+                    -H 'content-type: application/json' \
+                    -d '{"wire_id":"golden-probe","beneficiary_name":"Revlon Lenders Group","beneficiary_account":"US12REV001","reference":"probe","amount":"100.00"}' \
+                    | grep -q operation_id
+                  echo "wirematch golden probe ok"
+{{- end }}

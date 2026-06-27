@@ -14,9 +14,13 @@ spec:
         - alert: FgReserveAvailabilityLow
           expr: |
             (
-              sum(rate(fg_crystallize_success_total[5m]))
+              sum(rate(fg_invariant_events_total{event="crystallize_success_total"}[5m]))
               /
-              (sum(rate(fg_crystallize_success_total[5m])) + sum(rate(fg_surprise_commit_blocked_total[5m])) + 1e-9)
+              (
+                sum(rate(fg_invariant_events_total{event="crystallize_success_total"}[5m]))
+                + sum(rate(fg_invariant_events_total{event="surprise_commit_blocked_total"}[5m]))
+                + 1e-9
+              )
             ) < 0.995
           for: 10m
           labels:
@@ -26,8 +30,50 @@ spec:
             summary: "Finance Governor reserve availability below 99.5% SLO"
             description: "Crystallize success ratio dropped below 99.5% over 10 minutes."
 
+        - alert: FgReserveAvailabilityFastBurn
+          expr: |
+            (
+              1 - (
+                sum(rate(fg_invariant_events_total{event="crystallize_success_total"}[1h]))
+                /
+                (
+                  sum(rate(fg_invariant_events_total{event="crystallize_success_total"}[1h]))
+                  + sum(rate(fg_invariant_events_total{event="surprise_commit_blocked_total"}[1h]))
+                  + 1e-9
+                )
+              )
+            ) > (14.4 * 0.005)
+          for: 5m
+          labels:
+            severity: critical
+            service: finance-governor
+          annotations:
+            summary: "Finance Governor fast SLO burn"
+            description: "Reserve availability error budget burning >14.4x in 1h."
+
+        - alert: FgReserveAvailabilitySlowBurn
+          expr: |
+            (
+              1 - (
+                sum(rate(fg_invariant_events_total{event="crystallize_success_total"}[6h]))
+                /
+                (
+                  sum(rate(fg_invariant_events_total{event="crystallize_success_total"}[6h]))
+                  + sum(rate(fg_invariant_events_total{event="surprise_commit_blocked_total"}[6h]))
+                  + 1e-9
+                )
+              )
+            ) > (3 * 0.005)
+          for: 30m
+          labels:
+            severity: warning
+            service: finance-governor
+          annotations:
+            summary: "Finance Governor slow SLO burn"
+            description: "Reserve availability error budget burning >3x over 6h."
+
         - alert: FgDecisionChainVerificationFailed
-          expr: increase(fg_ledger_chain_verification_failed_total[15m]) > 0
+          expr: increase(fg_invariant_events_total{event="ledger_chain_verification_failed_total"}[15m]) > 0
           for: 5m
           labels:
             severity: critical
@@ -37,7 +83,7 @@ spec:
             description: "Hash chain integrity check failed — halt writes and run forensic export."
 
         - alert: FgDriftLockoutSpike
-          expr: increase(fg_drift_enforced_total[1h]) > 5
+          expr: increase(fg_invariant_events_total{event="drift_enforced_total"}[1h]) > 5
           for: 15m
           labels:
             severity: warning
@@ -47,7 +93,7 @@ spec:
             description: "More than 5 drift-enforced account lockouts in the past hour."
 
         - alert: FgDiagnosticModeActive
-          expr: increase(fg_regulatory_audit_diagnostic_entered_total[5m]) > 0
+          expr: increase(fg_invariant_events_total{event="regulatory_audit_diagnostic_entered_total"}[5m]) > 0
           for: 1m
           labels:
             severity: warning
@@ -55,4 +101,24 @@ spec:
           annotations:
             summary: "Finance Governor diagnostic mode entered"
             description: "Invariant violation triggered diagnostic write halt."
+
+        - alert: FgNegativeBalanceDetected
+          expr: increase(fg_invariant_events_total{event="negative_balance_detected_total"}[5m]) > 0
+          for: 0m
+          labels:
+            severity: critical
+            service: finance-governor
+          annotations:
+            summary: "Finance Governor negative balance detected"
+            description: "Exposure ledger invariant violation — immediate examiner review required."
+
+        - alert: FgNegativeBookValueDetected
+          expr: increase(fg_negative_book_value_total[5m]) > 0
+          for: 0m
+          labels:
+            severity: critical
+            service: finance-governor
+          annotations:
+            summary: "Finance Governor platform negative book value"
+            description: "Platform store detected negative book value on a ledger line."
 {{- end }}
