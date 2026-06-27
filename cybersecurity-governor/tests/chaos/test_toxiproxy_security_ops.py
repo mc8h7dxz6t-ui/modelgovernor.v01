@@ -21,6 +21,7 @@ if str(TESTS) not in sys.path:
     sys.path.insert(0, str(TESTS))
 
 from support.cg_migrations import apply_cg_migrations
+from support.cyber_fixtures import EGRESS_PLATFORM, EGRESS_POLICY, egress_facets
 
 TOXIPROXY_API = os.getenv("TOXIPROXY_API", "http://localhost:8475")
 PROXY_NAME = "postgres"
@@ -109,8 +110,6 @@ def _settings(database_url: str):
 def test_security_ops_survives_toxiproxy_latency(chaos_engine) -> None:
     from app.security_ops import assert_security_ops_invariants
     from app.commit_ledger import crystallize_operation
-
-    from support.cyber_fixtures import EGRESS_PLATFORM, EGRESS_POLICY, egress_facets
 
     _reset_proxy()
     _add_latency(250)
