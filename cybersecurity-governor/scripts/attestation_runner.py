@@ -97,26 +97,27 @@ def run_attestation() -> dict[str, Any]:
     probes.append(_probe("verify_chain", verify_chain))
     probes.append(_probe("anchor_head", lambda: _post(f"{sidecar}/internal/security/anchor-head", {}, headers)))
 
-    _optional_url_probe(
-        probes,
-        "egress_govern_evaluate",
-        f"{egress}/healthz",
-        lambda: _post(f"{egress}/egress/evaluate", {"flow_id": "attest-1", "destination_host": "api.openai.com"}),
+    probes.append(
+        _probe(
+            "egress_govern_evaluate",
+            lambda: _post(f"{egress}/egress/evaluate", {"flow_id": "attest-1", "destination_host": "api.openai.com"}),
+        )
     )
-    _optional_url_probe(
-        probes,
-        "identity_session_arm",
-        f"{identity}/healthz",
-        lambda: _post(
-            f"{identity}/session/arm",
-            {
-                "session_id": "attest-session",
-                "user_id": "alice@corp.example",
-                "device_fingerprint": "dev_fp_trusted_workstation",
-                "client_ip": "10.0.1.42",
-            },
-        ),
+    probes.append(
+        _probe(
+            "identity_session_arm",
+            lambda: _post(
+                f"{identity}/session/arm",
+                {
+                    "session_id": "attest-session",
+                    "user_id": "alice@corp.example",
+                    "device_fingerprint": "dev_fp_trusted_workstation",
+                    "client_ip": "10.0.1.42",
+                },
+            ),
+        )
     )
+
     _optional_url_probe(
         probes,
         "witness_cloudtrail",

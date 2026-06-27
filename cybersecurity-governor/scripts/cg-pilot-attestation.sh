@@ -1,17 +1,31 @@
 #!/usr/bin/env bash
-# Cybersecurity Governor pilot attestation — spine + sales SKU platforms
+# Cybersecurity Governor pilot attestation — required: spine, egress_govern, identity_govern, verify-chain
 set -euo pipefail
 
 TOKEN="${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}"
 SIDECAR="${CG_SIDECAR_URL:-http://localhost:8121}"
 GATEWAY="${CG_GATEWAY_URL:-http://localhost:8120}"
+EGRESS="${CG_EGRESS_GOVERN_URL:-http://localhost:8123}"
+IDENTITY="${CG_IDENTITY_GOVERN_URL:-http://localhost:8124}"
 
 echo "==> Cybersecurity Governor Pilot Attestation"
-echo "    sidecar=$SIDECAR gateway=$GATEWAY"
+echo "    sidecar=$SIDECAR gateway=$GATEWAY egress=$EGRESS identity=$IDENTITY"
 
 curl -sf "$SIDECAR/readyz" >/dev/null
 curl -sf "$GATEWAY/readyz" >/dev/null
 echo "OK  spine ready"
+
+curl -sf "$EGRESS/healthz" >/dev/null
+curl -sf -X POST "$EGRESS/egress/evaluate" \
+  -H 'content-type: application/json' \
+  -d '{"flow_id":"pilot-eg-1","destination_host":"api.openai.com"}' >/dev/null
+echo "OK  EgressGovern evaluate"
+
+curl -sf "$IDENTITY/healthz" >/dev/null
+curl -sf -X POST "$IDENTITY/session/arm" \
+  -H 'content-type: application/json' \
+  -d '{"session_id":"pilot-id-1","user_id":"alice@corp.example","device_fingerprint":"dev_fp_trusted_workstation","client_ip":"10.0.1.42"}' >/dev/null
+echo "OK  IdentityGovern session arm"
 
 curl -sf -X POST "$GATEWAY/governed/commit" \
   -H 'content-type: application/json' \
@@ -27,39 +41,25 @@ ANCHOR="$(curl -sf -X POST -H "x-internal-token: $TOKEN" "$SIDECAR/internal/secu
 echo "$ANCHOR" | python3 -c "import json,sys; d=json.load(sys.stdin); assert d.get('anchored') or d.get('head_hash'), d"
 echo "OK  chain head anchored"
 
-if curl -sf http://localhost:8124/healthz >/dev/null 2>&1; then
-  curl -sf -X POST http://localhost:8124/session/arm \
-    -H 'content-type: application/json' \
-    -d '{"session_id":"pilot-id-1","user_id":"alice@corp.example","device_fingerprint":"dev_fp_trusted_workstation","client_ip":"10.0.1.42"}' >/dev/null
-  echo "OK  IdentityGovern session arm"
-fi
-
-if curl -sf http://localhost:8123/healthz >/dev/null 2>&1; then
-  curl -sf -X POST http://localhost:8123/egress/evaluate \
-    -H 'content-type: application/json' \
-    -d '{"flow_id":"pilot-eg-1","destination_host":"api.openai.com"}' >/dev/null
-  echo "OK  EgressGovern evaluate"
-fi
-
 if curl -sf http://localhost:8129/healthz >/dev/null 2>&1; then
   curl -sf -X POST http://localhost:8129/ingest/cloudtrail \
     -H 'content-type: application/json' \
     -d '{"detail":{"eventName":"DeleteTrail","eventID":"evt-pilot-1","userIdentity":{"arn":"arn:aws:iam::123:user/bob"}}}' >/dev/null
-  echo "OK  WitnessBridge CloudTrail ingest"
+  echo "OK  WitnessBridge CloudTrail ingest (optional)"
 fi
 
 if curl -sf http://localhost:8130/healthz >/dev/null 2>&1; then
   curl -sf -X POST http://localhost:8130/ingest/falco \
     -H 'content-type: application/json' \
     -d '{"rule":"Terminal shell in container","priority":"Critical","output_fields":{"proc.name":"bash","user.name":"root"}}' >/dev/null
-  echo "OK  LineageIngest Falco ingest"
+  echo "OK  LineageIngest Falco ingest (optional)"
 fi
 
 if curl -sf http://localhost:8131/healthz >/dev/null 2>&1; then
   curl -sf -X POST http://localhost:8131/content/evaluate \
     -H 'content-type: application/json' \
     -d '{"content_id":"pilot-cg-1","principal_id":"alice@corp.example","text_body":"hello world"}' >/dev/null
-  echo "OK  ContentGuard evaluate"
+  echo "OK  ContentGuard evaluate (optional)"
 fi
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"

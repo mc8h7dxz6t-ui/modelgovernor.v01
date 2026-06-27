@@ -1,6 +1,8 @@
 # Cybersecurity Governor
 
-Fourth governor in the ModelGovernor institutional++ lineage — **runtime security enforcement** with L4 Gold certification parity.
+Fourth governor in the ModelGovernor institutional++ lineage — **tamper-evident authorization ledger for security commits**.
+
+L4 Gold = institutional test + deploy kit gate — not a Fortune 500 cyber product claim.
 
 ## What this is
 
@@ -46,18 +48,28 @@ make cg-spine-up          # spine only
 make cg-stack-up          # spine + all platforms
 make cg-spine-test        # unit + property tests
 make cg-certification-l4-ci
+make cg-egress-wedge-demo # defensible wedge: ext_authz + chain verify
 make cg-security-demo     # multi-vector sales demo
 ```
+
+## Defensible wedge
+
+**Story:** No commit to exfil path without allowlisted crystal; parent identity violation blocks child egress commit.
+
+1. `POST /session/arm` on IdentityGovern (8124)
+2. Threat Mesh blocks egress commit when parent state is VIOLATION/DRIFT/BLOCKED
+3. `POST /envoy/authz/check` on EgressGovern (8123) — wire Envoy ext_authz HTTP filter here
+4. `GET /internal/security/verify-chain` on sidecar (8121)
 
 ## Sales SKU API map
 
 | SKU | Platform | Key API |
 |-----|----------|---------|
 | CG-IDENTITYGATE | `identity_govern` | `POST /session/arm` |
-| CG-EGRESSLOCK | `egress_govern` | `POST /egress/evaluate` |
+| CG-EGRESSLOCK | `egress_govern` | `POST /egress/evaluate`, `POST /envoy/authz/check` |
 | CG-WITNESSBRIDGE | `witness_bridge` | `POST /ingest/{okta\|cloudtrail\|generic}` |
 | CG-LINEAGEINGEST | `lineage_ingest` | `POST /ingest/{falco\|tetragon\|generic}` |
-| CG-POSTURERECONCILE | `posture_reconcile` | `POST /posture/ingest` |
+| CG-POSTURERECONCILE | `posture_reconcile` | `POST /posture/evaluate` |
 | CG-CONTENTGUARD | `content_guard` | `POST /content/evaluate` |
 
 Full spec: [docs/cybersecurity-governor/institutional-gold-standard.md](../docs/cybersecurity-governor/institutional-gold-standard.md)

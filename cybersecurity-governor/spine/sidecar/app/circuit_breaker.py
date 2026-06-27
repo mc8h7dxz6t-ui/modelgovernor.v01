@@ -87,7 +87,7 @@ class DependencyCircuitBreaker:
             _LOCAL_FALLBACK.assert_closed(dependency_name, settings=self._settings)
             return
         try:
-            open_key = f"ig:circuit:{dependency_name}:open"
+            open_key = f"cg:circuit:{dependency_name}:open"
             if self._redis.exists(open_key):
                 get_counters().increment("dependency_circuit_open_total")
                 raise CircuitOpenError(f"circuit open for dependency {dependency_name}")
@@ -104,12 +104,12 @@ class DependencyCircuitBreaker:
             _LOCAL_FALLBACK.record_failure(dependency_name, settings=self._settings)
             return
         try:
-            fail_key = f"ig:circuit:{dependency_name}:failures"
+            fail_key = f"cg:circuit:{dependency_name}:failures"
             count = int(self._redis.incr(fail_key))
             if count == 1:
                 self._redis.expire(fail_key, self._settings.circuit_breaker_window_seconds)
             if count >= self._settings.circuit_breaker_failure_threshold:
-                open_key = f"ig:circuit:{dependency_name}:open"
+                open_key = f"cg:circuit:{dependency_name}:open"
                 self._redis.set(open_key, "1", ex=self._settings.circuit_breaker_open_seconds)
                 get_counters().increment("dependency_circuit_open_total")
         except Exception as exc:
@@ -124,8 +124,8 @@ class DependencyCircuitBreaker:
             return
         try:
             self._redis.delete(
-                f"ig:circuit:{dependency_name}:failures",
-                f"ig:circuit:{dependency_name}:open",
+                f"cg:circuit:{dependency_name}:failures",
+                f"cg:circuit:{dependency_name}:open",
             )
         except Exception:
             pass

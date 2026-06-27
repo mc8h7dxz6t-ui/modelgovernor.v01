@@ -99,7 +99,7 @@ class GuardrailService:
             get_counters().increment("rate_limit_exceeded_total")
             raise RateLimitExceeded(f"rate limit exceeded for account {account_id}")
 
-        scope_key = f"cg:trace:{trace_scope_id}:ops"
+        scope_key = f"cg:op:{trace_scope_id}:ops"
         self._redis.sadd(scope_key, operation_id)
         self._redis.expire(scope_key, 3600)
         if int(self._redis.scard(scope_key)) > self._settings.max_action_depth:
@@ -118,7 +118,7 @@ class GuardrailService:
     def release_crystallize(self, *, account_id: str) -> None:
         if not self._degraded and self._redis is not None:
             try:
-                inflight_key = f"ig:inflight:{account_id}"
+                inflight_key = f"cg:inflight:{account_id}"
                 remaining = int(self._redis.decr(inflight_key))
                 if remaining < 0:
                     self._redis.set(inflight_key, 0, ex=self._settings.commit_ttl_seconds + 120)

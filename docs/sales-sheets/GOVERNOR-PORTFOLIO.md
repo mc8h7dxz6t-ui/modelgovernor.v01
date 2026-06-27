@@ -14,7 +14,9 @@
 | **Production institutional++** | **Yes with wiring** | Secrets, IdP, optional S3 anchor — `PLUG-AND-PLAY.md` |
 | **Design-partner SKUs** | **Roadmap** | FG: SubledgerSync, AssetLedger, CreditGovern (spec/schema) |
 
-**Cyber wedges:** six shipped (`CG-IDENTITYGATE` … `CG-CONTENTGUARD`).
+**Cyber wedges:** nine platforms in canonical tree — six sales SKUs plus ThreatProxy, IR gate, ComplianceLogger (thin FastAPI wedges; spine carries the IP).
+
+**Honest CG pitch:** *Tamper-evident authorization ledger for security commits* — not a Fortune 500 cyber suite.
 
 **Mode A rule:** Almost every “concern” in diligence is **config, buyer credential, or SOW** — not missing spine IP. See [Deployment concern matrix](#deployment-concern-matrix) below.
 
@@ -95,19 +97,21 @@ How buyer objections map to **Single VPC pilot (A)** vs **Multi-instance product
 ## CG-SPINE — Cybersecurity Governor
 
 **Buyer:** CISO, SOC lead, zero-trust architects  
-**One line:** **Threat Crystal Protocol (TCP)** — authorize only with cryptographic crystals; close the Shadow Gap.
+**One line:** **Threat Crystal Protocol (TCP)** — tamper-evident authorization ledger for security commits.
 
-| vs Competitor | What they do | **Our tech edge** |
-|---------------|--------------|-------------------|
-| **SIEM (Splunk, etc.)** | Correlate probabilistic alerts | **Deterministic crystallize-before-authorize**; chain proof |
-| **XDR / EDR** | Endpoint detection | **Governance layer on top** — mesh blocks egress on STRANDED session |
-| **Okta / IGA** | Identity lifecycle ($7–14/user/mo) | **Session arm + device binding crystal**; hijack → STRANDED at commit |
-| **Zscaler DLP** | Network egress policy | **EgressLock + Threat Mesh** — identity state blocks egress **commit** |
-| **CNAPP (Wiz, Prisma)** | Cloud posture alerts | **LineageIngest** structural DAG + crystal-bound facets |
+| vs Category | What incumbents do | **What we actually ship** |
+|-------------|-------------------|---------------------------|
+| **SIEM** | Correlate probabilistic alerts | **Deterministic crystallize-before-commit** + hash chain proof |
+| **XDR / EDR** | Endpoint detection | **Mesh blocks egress/IR commits** when parent state is VIOLATION/DRIFT/BLOCKED |
+| **IdP / IGA** | Identity lifecycle | **Session arm + mesh parent** — integration wedge, not Okta replacement |
+| **Network DLP / proxy** | Inline byte policy | **EgressGovern allowlist + Envoy ext_authz adapter** — wire to your proxy |
+| **CNAPP** | Cloud posture alerts | **PostureReconcile drift → mesh block** — not a cloud graph |
 
-**Unique primitive:** TCP + Threat Mesh + witness quorum (S3 Object Lock) + lineage DAG.
+**Unique primitive:** TCP + Threat Mesh + append-only security chain + optional S3 anchor.
 
-**Demo:** `make cg-security-demo` · **Pairs with:** four cyber wedges below.
+**Defensible demo (no apology):** `make cg-egress-wedge-demo` — identity arm → mesh blocks bad egress commit → Envoy ext_authz denies off-allowlist host → `verify-chain`.
+
+**Full multi-SKU story:** `make cg-security-demo` · **Pairs with:** wedges below.
 
 ---
 
@@ -168,39 +172,61 @@ How buyer objections map to **Single VPC pilot (A)** vs **Multi-instance product
 
 ---
 
-## Cybersecurity Governor wedges (6)
+## Cybersecurity Governor wedges (9 platforms)
+
+### Sales SKUs (6)
 
 ### `CG-IDENTITYGATE` ✅ Shipped
-- **Does:** `POST /session/arm` — device fingerprint + IP binding; hijack → STRANDED.
-- **vs:** Okta MFA — **crystal-bound commit**; mismatch strands at authorize, not alert-only.
-- **Tech edge:** Fingerprint mismatch blocks commit via TCP; Threat Mesh parent for egress.
+- **Does:** `POST /session/arm` — device fingerprint + IP binding; violation → mesh blocks child commits.
+- **vs:** IdP MFA — **crystal-bound commit gate**, not seat-based IGA.
+- **Tech edge:** Fingerprint mismatch strands at authorize via Threat Mesh parent.
+- **Port:** 8124
 
-### `CG-EGRESSLOCK` ✅ Shipped
-- **Does:** `POST /egress/evaluate` — destination/byte policy before bytes leave.
-- **vs:** Zscaler DLP — **mesh-aware** (STRANDED identity blocks egress commit).
-- **Tech edge:** Governed commit with exposure facets; strand egress NetworkPolicy template.
+### `CG-EGRESSLOCK` ✅ Shipped — **defensible wedge**
+- **Does:** `POST /egress/evaluate` + `POST /envoy/authz/check` — allowlist before bytes leave.
+- **vs:** Corporate HTTP proxy — **mesh-aware** (parent VIOLATION blocks egress commit).
+- **Tech edge:** Envoy ext_authz adapter; governed commit with exposure facets.
+- **Demo:** `make cg-egress-wedge-demo` · **Port:** 8123
 
 ### `CG-WITNESSBRIDGE` ✅ Shipped
 - **Does:** Okta / CloudTrail / generic ingest; critical events witnessed + crystallized.
-- **vs:** SIEM ingestion — **log erasure detection** + crystal at witness time.
+- **vs:** SIEM ingestion — **log erasure class** events get crystals at witness time.
 - **Tech edge:** DeleteTrail-class events → critical crystal; silence detection path.
+- **Port:** 8129
 
 ### `CG-LINEAGEINGEST` ✅ Shipped
 - **Does:** Falco / Tetragon / generic → `lineage_edges` structural DAG.
 - **vs:** CNAPP alerts — **crystal-bound lineage** for forensic reconstruct.
-- **Tech edge:** Parent/child edges feed Threat Mesh; eBPF structural, not ML correlation.
+- **Tech edge:** Parent/child edges feed Threat Mesh.
+- **Port:** 8130
 
 ### `CG-POSTURERECONCILE` ✅ Shipped
-- **Does:** `POST /posture/evaluate` — live CNAPP/K8s posture vs approved baseline crystal.
-- **vs:** Wiz/Prisma dashboards — **authorize-time STRAND**, not alert backlog.
-- **Tech edge:** Critical control drift → `STRANDED`; Threat Mesh blocks egress/content commits.
-- **Demo:** `make posture-reconcile-demo`
+- **Does:** `POST /posture/evaluate` (alias `/posture/ingest`) — CVE/patch lag vs tolerance.
+- **vs:** Posture dashboards — **authorize-time mesh block**, not alert backlog.
+- **Tech edge:** Critical control drift → mesh blocks egress/content commits.
+- **Demo:** `make posture-reconcile-demo` · **Port:** 8127
 
 ### `CG-CONTENTGUARD` ✅ Shipped
 - **Does:** `POST /content/evaluate` — PII/secret pattern gate before publish.
 - **vs:** Edge DLP only — **pre-publish crystal** + mesh blocks egress on BLOCKED.
-- **Tech edge:** REDACTED path with sealed facets; complements EgressLock byte policy.
-- **Demo:** `make content-guard-demo`
+- **Demo:** `make content-guard-demo` · **Port:** 8131
+
+### Spine-adjacent platforms (3) — thin wedges, honest pricing
+
+### `CG-THREATPROXY` ✅ Shipped (not on original sales sheet)
+- **Does:** `POST /threat/score` — pre-dispatch threat score gate.
+- **Reality:** ~80-line FastAPI wedge; mesh blocks downstream IR on BLOCKED.
+- **Port:** 8125 · **List ACV:** $40K – $90K (add-on)
+
+### `CG-IRGATE` ✅ Shipped
+- **Does:** `POST /ir/authorize` — playbook action authorization crystal.
+- **Reality:** Thin gate; value is mesh + chain, not SOAR replacement.
+- **Port:** 8126 · **List ACV:** $50K – $120K (add-on)
+
+### `CG-COMPLIANCELOGGER` ✅ Shipped
+- **Does:** Regulatory evidence export + sealed facets.
+- **Reality:** Export path + chain binding; not GRC workflow replacement.
+- **Port:** 8128 · **List ACV:** $40K – $100K (add-on)
 
 ---
 
@@ -239,33 +265,38 @@ These share the **same spine pattern**; Mode A sale-ready per matrix above.
 | `FG-SUBLEDGERSYNC` | $150K – $350K |
 | `FG-ASSETLEDGER` | $100K – $250K |
 | `FG-CREDITGOVERN` | $250K – $600K |
-| `CG-SPINE` | $200K – $450K |
-| `CG-IDENTITYGATE` | $120K – $300K |
-| `CG-EGRESSLOCK` | $150K – $350K |
-| `CG-WITNESSBRIDGE` | $100K – $250K |
-| `CG-LINEAGEINGEST` | $100K – $200K |
-| `CG-POSTURERECONCILE` | $120K – $280K |
-| `CG-CONTENTGUARD` | $100K – $250K |
+| `CG-SPINE` | $120K – $280K |
+| `CG-IDENTITYGATE` | $60K – $140K |
+| `CG-EGRESSLOCK` | $80K – $180K |
+| `CG-WITNESSBRIDGE` | $50K – $120K |
+| `CG-LINEAGEINGEST` | $50K – $110K |
+| `CG-POSTURERECONCILE` | $60K – $130K |
+| `CG-CONTENTGUARD` | $50K – $120K |
+| `CG-THREATPROXY` | $40K – $90K |
+| `CG-IRGATE` | $50K – $120K |
+| `CG-COMPLIANCELOGGER` | $40K – $100K |
+
+*Platform wedges are thin FastAPI services; price the **spine + mesh + chain** — not six pretend Fortune 500 products.*
 
 ## Bundle list
 
-| Bundle | List ACV |
-|--------|----------|
-| AI Governance Enterprise (MG prod + security) | $430K – $1.1M |
-| Finance Risk Critical (FG spine + AlgoFreeze + WireMatch) | $500K – $1.0M |
-| Cyber Institutional++ (CG spine + 6 wedges) | $700K – $1.4M |
-| Tri-Governor Portfolio | $1.2M – $2.5M |
+| Bundle | List ACV | Notes |
+|--------|----------|-------|
+| AI Governance Enterprise (MG prod + security) | $430K – $1.1M | |
+| Finance Risk Critical (FG spine + AlgoFreeze + WireMatch) | $500K – $1.0M | |
+| Cyber spine + EgressLock wedge (pilot) | $180K – $380K | **Recommended first deal** |
+| Cyber Institutional++ (CG spine + 6 sales SKUs) | $350K – $750K | Not $700K–$1.4M until dataplane SOW |
+| Tri-Governor Portfolio | $800K – $1.6M | |
 
 ## Market proof points
 
-| Comp | Typical enterprise $ | Why we price at/above |
-|------|---------------------|------------------------|
-| Portkey Enterprise | ~$100K/yr (AWS MP) | We add ledger + reconciler + anchor |
-| LiteLLM Enterprise | Custom $50K–$200K+ | Runtime enforcement, not keys-only |
-| Okta IGA (15K users) | $1.26M–$2.52M/yr | We price **per control plane**, not per seat |
-| Zscaler + DLP | $250K–$1M+ | Complement — mesh + crystal, not replacement |
-| BlackLine | $200K–$1M+/yr | Pre-execution wedge vs close management |
-| ValidMind / MRM | $150K–$500K+ | Runtime reserve-before-score |
+| Comp | Typical enterprise $ | Honest positioning |
+|------|---------------------|-------------------|
+| Portkey Enterprise | ~$100K/yr (AWS MP) | MG: ledger + reconciler + anchor |
+| LiteLLM Enterprise | Custom $50K–$200K+ | MG: runtime enforcement, not keys-only |
+| Corporate HTTP proxy + policy | $50K–$300K/yr | CG: **complement** — ext_authz + commit ledger |
+| GRC / evidence tools | $100K–$400K/yr | CG: sealed facets + chain, not workflow |
+| BlackLine | $200K–$1M+/yr | FG: pre-execution wedge vs close management |
 
 ---
 
@@ -284,7 +315,8 @@ Governors:   event → CRYSTALLIZE → (allow | freeze | hold | reserve) → com
 
 ```bash
 make demo-gold              # ModelGovernor
-make cg-security-demo       # Cyber Governor
+make cg-egress-wedge-demo   # Defensible CG wedge (ext_authz + chain verify)
+make cg-security-demo       # Multi-SKU CG story
 make posture-reconcile-demo # PostureReconcile wedge
 make content-guard-demo     # ContentGuard wedge
 make algofreeze-demo        # Finance wedge

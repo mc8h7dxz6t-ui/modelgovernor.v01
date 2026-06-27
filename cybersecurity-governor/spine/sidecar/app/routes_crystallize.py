@@ -25,9 +25,7 @@ def crystallize(request: CrystallizeRequest, _: None = Depends(require_internal_
     if get_settings().diagnostic_mode_blocks_writes and is_diagnostic_mode():
         raise HTTPException(status_code=503, detail="diagnostic mode: writes halted")
 
-    trace_scope_id = str(
-        request.facets.get("trace_scope_id", request.facets.get("claim_id", request.operation_id))
-    )
+    trace_scope_id = str(request.facets.get("trace_scope_id", request.operation_id))
     guardrails = get_guardrails()
     try:
         guardrails.check_crystallize(

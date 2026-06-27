@@ -36,6 +36,21 @@ def test_egress_govern_allows_listed_host():
     assert r.json()["decision"] == "ALLOWED"
 
 
+def test_egress_envoy_ext_authz_denies_off_allowlist():
+    from platforms.egress_govern.main import app
+
+    client = TestClient(app)
+    r = client.post(
+        "/envoy/authz/check",
+        json={
+            "attributes": {
+                "request": {"http": {"id": "f3", "host": "evil.example.com", "path": "/upload"}}
+            }
+        },
+    )
+    assert r.status_code == 403
+
+
 def test_threat_proxy_blocks_high_score():
     from platforms.threat_proxy.main import app
 

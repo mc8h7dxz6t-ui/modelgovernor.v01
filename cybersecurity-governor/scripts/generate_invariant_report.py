@@ -11,11 +11,16 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-ARTIFACTS = ROOT.parent / "artifacts" / "reliability" / "cybersecurity-governor"
+REPO = ROOT.parent
+ARTIFACTS = REPO / "artifacts" / "reliability" / "cybersecurity-governor"
 
 
 def _run(cmd: list[str], env: dict) -> subprocess.CompletedProcess:
-    return subprocess.run(cmd, cwd=ROOT.parent, capture_output=True, text=True, env=env)
+    return subprocess.run(cmd, cwd=REPO, capture_output=True, text=True, env=env)
+
+
+def _pytest(env: dict, *paths: str) -> subprocess.CompletedProcess:
+    return _run([sys.executable, "-m", "pytest", *paths, "-q"], env)
 
 
 def main() -> int:
@@ -23,9 +28,9 @@ def main() -> int:
     env = {
         **os.environ,
         "PYTHONPATH": (
-            f"{ROOT.parent}/cybersecurity-governor/spine/sidecar:"
-            f"{ROOT.parent}/cybersecurity-governor/tests:"
-            f"{ROOT.parent}/cybersecurity-governor"
+            f"{REPO}/cybersecurity-governor/spine/sidecar:"
+            f"{REPO}/cybersecurity-governor/tests:"
+            f"{REPO}/cybersecurity-governor"
         ),
     }
     tier1 = _run(
@@ -40,20 +45,37 @@ def main() -> int:
         ],
         env,
     )
-    load = _run(
-        [sys.executable, "-m", "pytest", "cybersecurity-governor/tests/load/test_cg_load_harness.py", "-q"],
+    load = _pytest(env, "cybersecurity-governor/tests/load/test_cg_load_harness.py")
+    platform_tests = _pytest(
         env,
-    )
-    platform_tests = [
         "cybersecurity-governor/tests/test_cyber_platforms.py",
         "cybersecurity-governor/tests/test_security_mesh.py",
         "cybersecurity-governor/tests/test_platform_invariant_counters.py",
         "cybersecurity-governor/tests/test_platform_sdk.py",
-    ]
-    platforms = _run([sys.executable, "-m", "pytest", *platform_tests, "-q"], env)
+    )
+    l4_artifacts = _pytest(env, "cybersecurity-governor/tests/test_l4_artifacts_present.py")
+    l4_runtime = _pytest(env, "cybersecurity-governor/tests/test_l4_runtime_enforcement.py")
+    helm = _run(
+        [
+            "helm",
+            "template",
+            "cg",
+            "deploy/helm/cybersecuritygovernor",
+            "-f",
+            "deploy/helm/cybersecuritygovernor/values-production.yaml",
+            "-f",
+            "deploy/helm/cybersecuritygovernor/values-enterprise.yaml",
+            "--set",
+            "secrets.create=true",
+            "--set",
+            "secrets.postgresPassword=postgres",
+        ],
+        env,
+    )
     report = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "certification_level": "L4_GOLD",
+        "framing": "institutional test + deploy kit gate — not a Fortune 500 cyber product claim",
         "platforms": [
             "egress_govern",
             "identity_govern",
@@ -68,17 +90,28 @@ def main() -> int:
         "tier1_exit_code": tier1.returncode,
         "tier1_summary": tier1.stdout.strip().splitlines()[-1] if tier1.stdout else "",
         "load_exit_code": load.returncode,
-        "platform_tests_exit_code": platforms.returncode,
-        "certification": tier1.returncode == 0 and load.returncode == 0 and platforms.returncode == 0,
+        "platform_tests_exit_code": platform_tests.returncode,
+        "l4_artifacts_exit_code": l4_artifacts.returncode,
+        "l4_runtime_exit_code": l4_runtime.returncode,
+        "helm_template_exit_code": helm.returncode,
+        "certification": all(
+            proc.returncode == 0
+            for proc in (tier1, load, platform_tests, l4_artifacts, l4_runtime, helm)
+        ),
         "attestation": {
-            "hash_chain_verify": tier1.returncode == 0,
-            "security_ops_probes": 7,
-            "ci_tiers": [1, 2, 3, 4],
-            "helm_deploy_kit": True,
-            "s3_object_lock_anchor_scaffold": True,
-            "security_enforcement_mesh_rules": 10,
+            "tier1_pytest_passed": tier1.returncode == 0,
+            "load_harness_passed": load.returncode == 0,
+            "platform_conformance_passed": platform_tests.returncode == 0,
+            "l4_artifacts_present": l4_artifacts.returncode == 0,
+            "l4_runtime_enforcement": l4_runtime.returncode == 0,
+            "helm_deploy_kit_renders": helm.returncode == 0,
+            "s3_object_lock_anchor_scaffold": (
+                REPO / "deploy/infra/aws/security-anchor-bucket.yaml"
+            ).is_file(),
         },
         "commercial": {
+            "honest_pitch": "Tamper-evident authorization ledger for security commits",
+            "defensible_wedge": "EgressGovern + mesh + chain verify + Envoy ext_authz adapter",
             "enforcement_wedges": [
                 "egress_govern",
                 "identity_govern",
@@ -90,8 +123,6 @@ def main() -> int:
                 "incident_response_gate",
                 "compliance_logger",
             ],
-            "security_mesh_rules": 10,
-            "jurisdictions": ["US"],
             "capability_matrix": "docs/cybersecurity-governor/capability-matrix.md",
             "security_mesh_doc": "docs/cybersecurity-governor/security-enforcement-mesh.md",
         },

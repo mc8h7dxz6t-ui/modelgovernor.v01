@@ -18,7 +18,7 @@ def load_cluster_attestation(path: Path | None = None) -> dict[str, Any]:
 
 def validate_cluster_attestation(data: dict[str, Any], *, min_passed: int = 7) -> None:
     if data.get("probes_note"):
-        raise SystemExit("cluster attestation is a stub (probes_note present) — run make cg-full-rehearsal")
+        raise SystemExit("cluster attestation is a stub (probes_note present) — run make cg-pilot-attestation")
     total = int(data.get("probes_total") or 0)
     passed = int(data.get("probes_passed") or 0)
     if total <= 0:
