@@ -37,12 +37,14 @@ levels:
       - chaos_toxiproxy
       - gitops_manifests
   L5:
-    title: Zero-Trust Enterprise
+    title: Institutional Self-Check Certified
     extends: L4
     requirements:
+      - portfolio_plug_harness
       - istio_strict_mtls
       - platform_sidecar_authorization_policy
       - security_enforcement_mesh
+      - live_compose_smoke_or_pilot_attestation
 
 platforms:
   - egress_govern

@@ -9,6 +9,8 @@
 | **L3 Institutional++** | Done | Hash chain verify, anchor table, guardrails + fallback |
 | **L4 Gold** | Done | 4-tier CI, Helm chart, load harness, Prometheus rules |
 | **L5 Zero-Trust** | Helm template ready | Istio STRICT mTLS manifests — not live cluster attestation |
+| **L5 Institutional Self-Check** | `make plug` + optional live | Portfolio harness; `compose-smoke-cg` / `cg-pilot-attestation` for live proof |
+| **Industry Leading** | External claim only | L4+L5 + design-partner attestation — see `governor-spine-core/docs/maturity-ladder.md` |
 
 ## Competitive tech edges (vs GRC / SIEM / CNAPP)
 

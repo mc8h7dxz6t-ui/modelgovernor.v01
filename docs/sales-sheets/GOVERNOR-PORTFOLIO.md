@@ -1,7 +1,23 @@
 # Governor Portfolio — Sales Sheet (Spec + Tech Edge)
 
-**As-of:** institutional++ packaging across ModelGovernor, Finance Governor, Cybersecurity Governor.  
+**As-of:** institutional++ packaging across ModelGovernor, Finance Governor, Insurance Governor, Cybersecurity Governor.  
 **Use:** investor decks, enterprise RFPs, first-call leave-behinds.
+
+---
+
+## Kernel verdict (for acquirers — no fluff)
+
+The **transactional kernel** is **industry-leading class architecture** — desirable to elite infrastructure buyers, **not** broadly marketable without packaging work.
+
+| | Kernel (engineering) | Product (commercial) |
+|--|---------------------|----------------------|
+| **Grade** | Industry Leading Gold Standard — crystallize-before-commit, hash chains, mesh 409 | Immature GTM — thin wedges, forked spines, connector SOWs |
+| **Proof** | `make plug`, 4-tier CI, `verify-chain` | Design-partner pilots, not self-serve PLG |
+| **Buyer** | VP Platform, CRO, CISO, strategic acquirer | Not dashboard / GRC / SIEM shoppers |
+
+Full analysis: [governor-spine-core/docs/transactional-kernel-strategy.md](../governor-spine-core/docs/transactional-kernel-strategy.md)
+
+**Elevator (survives diligence):** *Pre-execution control plane — enforce before irreversible commit, prove with hash chain — not observe-after dashboards.*
 
 ---
 
@@ -46,7 +62,8 @@ How buyer objections map to **Single VPC pilot (A)** vs **Multi-instance product
 | Capability | Tech edge vs market |
 |------------|---------------------|
 | **Crystallize → act → commit** | Competitors **observe after**; we **enforce before** irreversible action |
-| **Append-only hash chain** | LiteLLM/Portkey log requests; we **seal events** + verify CronJob + S3 anchor |
+| **Append-only hash chain** | LiteLLM/Portkey log requests; we **seal events** (`prev_hash`→`row_hash`) + `verify-chain` + S3 anchor scaffold |
+| **HTTP 409 mesh / reserve reject** | Datadog alerts humans; we **fail-closed at wire** before dispatch |
 | **STRANDED semantics** | Timeouts → ambiguous hold, not silent wrong state (Knight/Citigroup/hijack class) |
 | **Reconciler + leader election** | HA sweep without dual-write; chaos-tested (Toxiproxy) |
 | **Diagnostic mode** | Writes halt, reads continue — **no poison pill** (vs circuit breakers that brick prod) |
@@ -54,7 +71,7 @@ How buyer objections map to **Single VPC pilot (A)** vs **Multi-instance product
 
 ---
 
-# The three governors
+# The four governors
 
 ## MG-SPINE — ModelGovernor
 
@@ -112,6 +129,25 @@ How buyer objections map to **Single VPC pilot (A)** vs **Multi-instance product
 **Defensible demo (no apology):** `make cg-egress-wedge-demo` — identity arm → mesh blocks bad egress commit → Envoy ext_authz denies off-allowlist host → `verify-chain`.
 
 **Full multi-SKU story:** `make cg-security-demo` · **Pairs with:** wedges below.
+
+---
+
+## IG-SPINE — Insurance Governor
+
+**Buyer:** Chief Claims Officer, CUO, MGA platform lead  
+**One line:** **Claim Crystal Protocol** — no indemnity commit without governed reserve + hash-chained proof.
+
+| vs Category | What incumbents do | **What we actually ship** |
+|-------------|-------------------|---------------------------|
+| **Core PAS / Guidewire** | System of record | **Runtime gate in front** — ClaimGate wedge, not PAS replacement |
+| **SIU / fraud tools** | Post-adjudication rules | **Pre-payout crystallize** + payment-rail stub (live rail = buyer creds) |
+| **GRC evidence** | Manual examiner packs | `verify-chain` + `make ig-examiner-evidence` |
+
+**Unique primitive:** Claim reserve → crystallize → commit + Claim Mesh (parent state blocks child payout).
+
+**Demo:** `make ig-stack-up` + ClaimGate FNOL path · **Detail sheet:** [insurance-governor-production.md](insurance-governor-production.md)
+
+**Honest limit:** SpatialTwin, subrogation, parametric wedges = scaffold + tests; not production carrier connectors without SOW.
 
 ---
 
@@ -335,10 +371,12 @@ Related: [plug-and-play.md](../plug-and-play.md) · [cybersecurity-governor/](..
 
 ## Technical acquisition narrative (honest)
 
-**Say:** Pre-execution transaction control plane — crystallize-before-commit, tamper-evident hash chains, cross-platform mesh blocks. **Institutional Self-Check Certified** via `make plug` (pytest, port alignment, Helm render). Core IP in `governor-spine-core` port/ledger contract + four governor forks.
+**Say:** Pre-execution transaction control plane — crystallize-before-commit, tamper-evident hash chains, cross-platform mesh blocks. **L4 Gold** in CI; **Institutional Self-Check** via `make plug`; **Industry Leading** only with live attestation + external evidence. Core IP in `governor-spine-core` contract + four governor forks.
 
 **Do not say:** Fully operational enterprise suite that replaces Okta, Zscaler, Guidewire, or Splunk out of the box.
 
-**Structure:** Price the **spine kernel**; thin wedges (SubledgerSync, ThreatProxy, SpatialTwin, etc.) are **integration scaffolds** for buyer-specific connectors.
+**Structure:** Price the **spine kernel** to elite infrastructure buyers; thin wedges are **integration scaffolds** for buyer-specific connectors.
+
+**Who pays:** VP Platform, CRO, CISO, strategic acquirer — not broad SaaS / dashboard market. See [transactional-kernel-strategy.md](../governor-spine-core/docs/transactional-kernel-strategy.md).
 
 **Verification:** `make plug` (offline) · `make compose-smoke-cg` (live CG) · per-governor `verify-chain` HTTP APIs.
