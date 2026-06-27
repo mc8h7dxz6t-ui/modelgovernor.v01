@@ -14,7 +14,8 @@ Status reflects **implemented** state on the L4 Gold track.
 | **L2 Institutional** | + diagnostic mode, `security_ops` probes | Tier 1 pytest |
 | **L3 Institutional++** | + hash chain verify, anchor, guardrails | `GET /internal/security/verify-chain` |
 | **L4 Gold** | + artifact presence, runtime enforcement tests, Helm render | `make cg-certification-l4-ci` |
-| **L5 Enterprise** | + Istio mTLS, zero-trust platform ingress | `test_l4_helm_enterprise.py` |
+| **L5 Enterprise overlay** | + Istio mTLS manifests (Helm template gate) | `test_l4_helm_enterprise.py` |
+| **L5 Institutional Self-Check** | + `make plug` portfolio harness | Not SOC2 — see maturity ladder |
 
 L4 Gold is an **institutional test + deploy kit gate** — not a production cyber suite certification.
 

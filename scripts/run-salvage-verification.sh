@@ -42,7 +42,8 @@ helm template mg deploy/helm/modelgovernor --set secrets.create=true \
 
 echo "=========================================================================="
 echo "  MATURITY PROFILE: Institutional Self-Check Certified"
+echo "  Portfolio readiness score: see governor-spine-core/docs/operational-architecture-scorecard.md"
 echo "  This run: pytest + port alignment + helm template render."
-echo "  This is NOT third-party L5 enterprise infrastructure audit certification."
+echo "  This is NOT SOC 2, ISO 27001, NHS DTAC, or third-party audit certification."
 echo "  Optional live gate: make compose-smoke-cg (requires Docker)"
 echo "=========================================================================="

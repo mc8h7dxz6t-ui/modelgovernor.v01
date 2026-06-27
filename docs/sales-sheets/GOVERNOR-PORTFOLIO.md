@@ -1,7 +1,34 @@
 # Governor Portfolio — Sales Sheet (Spec + Tech Edge)
 
-**As-of:** institutional++ packaging across ModelGovernor, Finance Governor, Cybersecurity Governor.  
-**Use:** investor decks, enterprise RFPs, first-call leave-behinds.
+**As-of:** institutional++ packaging across ModelGovernor, Finance Governor, Insurance Governor, Cybersecurity Governor.  
+**Use:** acquirer decks, technical-founder IP sales, design-partner scoping — **not** enterprise procurement as turnkey vendor.
+
+**Maturity principle:** Implementation, not intent. Full scorecard: [operational-architecture-scorecard.md](../governor-spine-core/docs/operational-architecture-scorecard.md).
+
+---
+
+## Operational architecture scorecard
+
+```
+[ IDEAL GOLD STANDARD ] ══════════════════════════════════════════► 10/10
+
+[ REPOSITORY IMPLEMENTATION STATE ]
+• Core Transaction Kernel ──────────────────────► 8.5/10
+• ModelGovernor AI Spend Platform ──────────────► 7.0/10
+• Finance / Cyber / Insurance Wedges ───────────► 6.0/10
+• Combined Portfolio Readiness ─────────────────► 6.5/10  (credible source-code asset)
+```
+
+**Verdict:** Pre-hardened **control-plane IP** — not a completed corporate software business with audits and 24×7 support.
+
+---
+
+## Exit positioning
+
+| Path | Motion | Outcome |
+|------|--------|---------|
+| **Fantasy** | Pitch L5 12-SKU enterprise platform as vendor-of-record | Blocked by procurement, SOC2, references, SLAs |
+| **Realistic** | Pitch pre-hardened **source-code IP sale** to technical founders / acquirer engineering | Matches 6.5/10 asset; `make plug` + L4 CI as proof |
 
 ---
 
@@ -10,9 +37,9 @@
 | Motion | Ready? | Proof |
 |--------|--------|-------|
 | **Demo / first call (Mode A — single VPC)** | **Yes** | `make demo-gold`, `make plug`, `make cg-egress-wedge-demo` |
-| **Paid pilot (Mode B — customer VPC)** | **Yes** (MG + CG + FG spine + 2 FG wedges) | K8s overlays, `make plug`, 100+ tests per spine |
-| **Production institutional++** | **Yes with wiring** | Secrets, IdP, optional S3 anchor — `PLUG-AND-PLAY.md` |
-| **Design-partner SKUs** | **Roadmap** | FG: SubledgerSync, AssetLedger, CreditGovern (spec/schema) |
+| **Design-partner pilot (Mode B — buyer VPC)** | **Yes with scoping** | MG + CG spine + 1–2 wedges; K8s overlays; buyer operates |
+| **Vendor-of-record production** | **No** (without operating company) | No SOC2/ISO from repo; no support org — buyer or partner must own ops |
+| **Integration scaffolds** | **Spec only** | FG: SubledgerSync, AssetLedger, CreditGovern — connector SOW |
 
 **Cyber wedges:** nine platforms in canonical tree — six sales SKUs plus ThreatProxy, IR gate, ComplianceLogger (thin FastAPI wedges; spine carries the IP).
 
@@ -54,7 +81,7 @@ How buyer objections map to **Single VPC pilot (A)** vs **Multi-instance product
 
 ---
 
-# The three governors
+# The four governors
 
 ## MG-SPINE — ModelGovernor
 
@@ -112,6 +139,21 @@ How buyer objections map to **Single VPC pilot (A)** vs **Multi-instance product
 **Defensible demo (no apology):** `make cg-egress-wedge-demo` — identity arm → mesh blocks bad egress commit → Envoy ext_authz denies off-allowlist host → `verify-chain`.
 
 **Full multi-SKU story:** `make cg-security-demo` · **Pairs with:** wedges below.
+
+---
+
+## IG-SPINE — Insurance Governor (6.0/10 wedge band)
+
+**Buyer:** Chief Claims Officer, MGA platform lead  
+**One line:** Claim Crystal Protocol — governed reserve + hash-chained indemnity commits.
+
+| vs Category | Incumbents | **What we ship** |
+|-------------|-----------|------------------|
+| Core PAS | Guidewire system of record | Runtime gate — ClaimGate wedge, not PAS replacement |
+| FNOL integrations | Live vendor connectors | Webhook **shape normalizers** — production connector = SOW |
+| Payment rail | FedNow live | ACH stub default; live rail = buyer credentials |
+
+**Demo:** `make ig-stack-up` + ClaimGate · **Sheet:** [insurance-governor-production.md](insurance-governor-production.md)
 
 ---
 
@@ -335,10 +377,12 @@ Related: [plug-and-play.md](../plug-and-play.md) · [cybersecurity-governor/](..
 
 ## Technical acquisition narrative (honest)
 
-**Say:** Pre-execution transaction control plane — crystallize-before-commit, tamper-evident hash chains, cross-platform mesh blocks. **Institutional Self-Check Certified** via `make plug` (pytest, port alignment, Helm render). Core IP in `governor-spine-core` port/ledger contract + four governor forks.
+**Asset type:** Pre-hardened **source-code IP** (portfolio **6.5/10**) — kernel **8.5/10**.
 
-**Do not say:** Fully operational enterprise suite that replaces Okta, Zscaler, Guidewire, or Splunk out of the box.
+**Say:** Pre-execution transactional kernel — crystallize-before-commit, tamper-evident hash chains, mesh blocks. **L4 Gold** in CI; **Institutional Self-Check** via `make plug` (not SOC2/ISO). Ideal buyer: **technical founder or acquirer engineering team**.
 
-**Structure:** Price the **spine kernel**; thin wedges (SubledgerSync, ThreatProxy, SpatialTwin, etc.) are **integration scaffolds** for buyer-specific connectors.
+**Do not say:** Turnkey L5 12-SKU enterprise vendor; SOC2 certified; Fortune 500 replacement suite.
 
-**Verification:** `make plug` (offline) · `make compose-smoke-cg` (live CG) · per-governor `verify-chain` HTTP APIs.
+**Structure:** Price the **spine kernel**; wedges are **integration scaffolds** unless demo-ready (AlgoFreeze, WireMatch, EgressGovern, ClaimGate).
+
+**Verification:** `make plug` · `make compose-smoke-cg` · per-governor `verify-chain` · [operational-architecture-scorecard.md](../governor-spine-core/docs/operational-architecture-scorecard.md)

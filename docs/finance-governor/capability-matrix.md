@@ -1,6 +1,6 @@
 # Finance Governor — Capability Matrix (institutional++)
 
-Use in RFPs, model risk questionnaires, and regulatory diligence. Status reflects **implemented** state as of FG-ECP v1 (industry-leading track).
+Use in RFPs, model risk questionnaires, and regulatory diligence. Status reflects **implemented** state as of FG-ECP v1. Portfolio readiness: **6.0/10** wedge band — see [operational-architecture-scorecard.md](../../governor-spine-core/docs/operational-architecture-scorecard.md).
 
 **Deep dives:** [desirability](desirability.md) · [institutional gold standard](institutional-gold-standard.md) · [external certification](../../finance-governor/docs/external-certification.md)
 
@@ -12,7 +12,7 @@ Use in RFPs, model risk questionnaires, and regulatory diligence. Status reflect
 | **L2 Institutional** | + diagnostic mode, invariants, metrics | `make fg-certification` tier 1–2 |
 | **L3 Institutional++** | + hash chain, SLO alerts, Postgres, chaos, reconciler sweeps | `make fg-certification` |
 | **L4 Gold** | + K8s HA, PgBouncer, Sentinel, GitOps, synthetic probes | `make fg-certification-l4` |
-| **L5 Institutional Self-Check** | + live rails, RDS, Istio all workloads, FG-ECP full attestation | `make fg-certification-external-full` |
+| **L5 Institutional Self-Check** | + live rails, RDS, Istio overlays, self-run FG-ECP attestation | `make fg-certification-external-full` |
 
 Legend: ✅ Implemented · 🔌 Deploy-time config · 📄 Documented operator step
 

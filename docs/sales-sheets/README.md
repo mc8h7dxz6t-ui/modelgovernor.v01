@@ -1,6 +1,9 @@
 # Platform sales sheets — index
 
-Full specification and commercial packaging for each ModelGovernor deployment platform. Use in investor decks, enterprise RFPs, and partner enablement.
+**Portfolio readiness:** **6.5/10** — [operational-architecture-scorecard.md](../governor-spine-core/docs/operational-architecture-scorecard.md).  
+**Primary exit:** pre-hardened source-code IP sale to technical founders / acquirer engineering.
+
+Full specification and commercial packaging for each governor deployment platform.
 
 | Platform | Sheet | Primary audience | Suggested ACV (list) | Pre-revenue asset worth* |
 |---|---|---|---|---|

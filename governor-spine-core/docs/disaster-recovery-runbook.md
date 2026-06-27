@@ -1,7 +1,8 @@
 # Governor Spine — Disaster Recovery Runbook
 
 **Classification:** Operational runbook — deployment & business continuity  
-**Maturity:** Institutional Self-Check Certified (not third-party audit)
+**Maturity:** Institutional Self-Check Certified (`make plug`) — not SOC 2, ISO 27001, or third-party audit  
+**Portfolio readiness:** [operational-architecture-scorecard.md](operational-architecture-scorecard.md) (6.5/10 combined)
 
 ## Mode topology (honest)
 
