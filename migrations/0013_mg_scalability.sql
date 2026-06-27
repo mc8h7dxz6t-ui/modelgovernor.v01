@@ -1,5 +1,8 @@
 -- ModelGovernor — institutional++ scalability hardening
 
+ALTER TABLE ledger_events
+    ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(255) NOT NULL DEFAULT 'default-tenant';
+
 CREATE INDEX IF NOT EXISTS idx_mg_ledger_events_tenant
     ON ledger_events (tenant_id, recorded_at DESC);
 

@@ -44,6 +44,10 @@ spec:
                   key: postgres-password
             - name: DATABASE_URL
               value: postgresql+psycopg://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@{{ include "fg.databaseHost" . }}:{{ include "fg.databasePort" . }}/{{ .Values.postgres.database }}
+            {{- if .Values.secrets.databaseReadUrl }}
+            - name: DATABASE_READ_URL
+              value: {{ .Values.secrets.databaseReadUrl | quote }}
+            {{- end }}
             - name: REDIS_URL
               value: {{ include "fg.redisUrl" . | quote }}
             - name: FG_INTERNAL_TOKENS

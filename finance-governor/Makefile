@@ -228,7 +228,8 @@ fg-certification-l4-ci:
 	@echo "==> L4 Gold CI gate (reliability + enterprise manifests)"
 	python3 -m pytest tests/test_l4_helm_enterprise.py tests/test_l4_certification.py \
 	  tests/test_horizon_sweeper.py tests/test_reconciler_leader.py \
-	  tests/test_commit_invariants.py tests/test_load_smoke_offline.py -q
+	  tests/test_commit_invariants.py tests/test_incremental_chain_verify.py \
+	  tests/test_load_smoke_offline.py -q
 	@$(MAKE) fg-helm-enterprise > /dev/null
 	@$(MAKE) fg-kustomize-enterprise > /dev/null
 	@echo "fg-certification-l4-ci complete"

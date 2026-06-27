@@ -93,6 +93,7 @@ secrets:
   name: insurancegovernor-secrets
   databaseUrl: postgresql+psycopg://postgres:CHANGE_ME@pgbouncer:6432/insurancegovernor
   databaseUrlDirect: postgresql+psycopg://postgres:CHANGE_ME@postgres:5432/insurancegovernor
+  databaseReadUrl: ""
   postgresPassword: CHANGE_ME
   redisUrl: redis://redis:6379/0
   sidecarInternalTokens: CHANGE_ME
@@ -126,6 +127,10 @@ postgres:
     host: ""
     port: 5432
     sslMode: require
+    readReplica:
+      enabled: false
+      host: ""
+      port: 5432
     rds:
       enabled: false
       iamAuth: false
@@ -149,6 +154,7 @@ redis:
     enabled: false
     masterName: mymaster
     replicas: 3
+    replicaReplicas: 1
 
 sidecar:
   replicas: 3
@@ -174,6 +180,14 @@ sidecar:
 gateway:
   enabled: true
   replicas: 2
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilization: 70
+  pdb:
+    enabled: true
+    minAvailable: 2
   resources:
     requests:
       cpu: 50m

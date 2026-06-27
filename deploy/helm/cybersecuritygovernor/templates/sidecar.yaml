@@ -63,7 +63,7 @@ spec:
                 secretKeyRef:
                   name: {{ include "cybersecuritygovernor.secretName" . }}
                   key: redis-url
-            - name: IG_INTERNAL_TOKENS
+            - name: CG_INTERNAL_TOKENS
               valueFrom:
                 secretKeyRef:
                   name: {{ include "cybersecuritygovernor.secretName" . }}
