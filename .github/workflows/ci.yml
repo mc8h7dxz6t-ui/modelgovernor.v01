@@ -452,9 +452,9 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install IG sidecar dependencies
-        run: pip install -r insurance-governor/spine/sidecar/requirements.txt pytest httpx
+        run: pip install -r insurance-governor/spine/sidecar/requirements.txt pytest httpx pyyaml
       - name: Tier 1 insurance governor tests
-        run: pip install pyyaml && make ig-spine-test
+        run: make ig-spine-test
 
   ig-test-tier2:
     name: IG Tier 2 — Postgres vigorous
@@ -509,11 +509,24 @@ jobs:
         with:
           python-version: "3.12"
       - name: Verify IG migration bundle
-        run: PYTHONPATH=insurance-governor/spine/sidecar pytest insurance-governor/tests/test_migration_invariants.py -q
+        run: pip install pytest && PYTHONPATH=insurance-governor/spine/sidecar python3 -m pytest insurance-governor/tests/test_migration_invariants.py -q
 
   ig-test-tier3:
     name: IG Tier 3 — Load harness
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: ig_load
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-retries 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -523,6 +536,7 @@ jobs:
         run: pip install -r insurance-governor/spine/sidecar/requirements.txt pytest
       - name: Load harness
         env:
+          POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5432/ig_load
           LOAD_WORKERS: 8
           LOAD_OPS_PER_WORKER: 5
         run: make ig-load-test
@@ -628,7 +642,7 @@ jobs:
         env:
           POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5436/ig_chaos
           TOXIPROXY_API: http://localhost:8475
-        run: PYTHONPATH=insurance-governor/spine/sidecar pytest insurance-governor/tests/chaos/test_toxiproxy_claim_ops.py -q
+        run: PYTHONPATH=insurance-governor/spine/sidecar:insurance-governor/tests:insurance-governor python3 -m pytest insurance-governor/tests/chaos/test_toxiproxy_claim_ops.py -q
 
       - name: Tear down chaos stack
         if: always()
@@ -756,11 +770,24 @@ jobs:
         with:
           python-version: "3.12"
       - name: Verify CG migration bundle
-        run: PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor pytest cybersecurity-governor/tests/test_migration_invariants.py -q
+        run: pip install pytest && PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor python3 -m pytest cybersecurity-governor/tests/test_migration_invariants.py -q
 
   cg-test-tier3:
     name: CG Tier 3 — Load harness
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: cg_load
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-retries 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -770,6 +797,7 @@ jobs:
         run: pip install -r cybersecurity-governor/spine/sidecar/requirements.txt pytest
       - name: Load harness
         env:
+          POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5432/cg_load
           LOAD_WORKERS: 8
           LOAD_OPS_PER_WORKER: 5
         run: make cg-load-test
@@ -872,7 +900,7 @@ jobs:
         env:
           POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5436/cg_chaos
           TOXIPROXY_API: http://localhost:8475
-        run: PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor pytest cybersecurity-governor/tests/chaos/test_toxiproxy_security_ops.py -q
+        run: PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor python3 -m pytest cybersecurity-governor/tests/chaos/test_toxiproxy_security_ops.py -q
 
       - name: Tear down chaos stack
         if: always()
