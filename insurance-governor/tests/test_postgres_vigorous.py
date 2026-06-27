@@ -117,6 +117,7 @@ def test_insufficient_reserve_postgres(pg_spine):
     from decimal import Decimal
 
     import pytest
+    from sqlalchemy import text
 
     from app.commit_ledger import InsufficientReserveError, crystallize_operation
     from app.config import get_settings
@@ -124,6 +125,16 @@ def test_insufficient_reserve_postgres(pg_spine):
 
     facets = {"claim_id": "pg-broke", "payout_amount": "1.00"}
     settings = get_settings()
+    with get_db_session() as session:
+        session.execute(
+            text(
+                """
+                UPDATE reserve_ledgers SET balance = 10
+                WHERE account_id = 'carrier-default' AND ledger_type = 'case' AND currency = 'USD'
+                """
+            )
+        )
+        session.commit()
     with pytest.raises(InsufficientReserveError):
         with get_db_session() as session:
             crystallize_operation(
@@ -135,7 +146,7 @@ def test_insufficient_reserve_postgres(pg_spine):
                 risk_tier="high",
                 facets=facets,
                 policy_id="claim-high-us",
-                reserved_reserve=Decimal("100000001"),
+                reserved_reserve=Decimal("100"),
             )
 
 

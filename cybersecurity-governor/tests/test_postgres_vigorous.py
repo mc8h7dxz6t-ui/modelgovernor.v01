@@ -118,12 +118,25 @@ def test_full_lifecycle_commit_postgres(pg_spine):
 def test_insufficient_reserve_postgres(pg_spine):
     from decimal import Decimal
 
+    import pytest
+    from sqlalchemy import text
+
     from app.commit_ledger import InsufficientReserveError, crystallize_operation
     from app.config import get_settings
     from app.db import get_db_session
 
     facets = egress_facets(flow_id="pg-broke")
     settings = get_settings()
+    with get_db_session() as session:
+        session.execute(
+            text(
+                """
+                UPDATE security_budget_ledgers SET balance = 10
+                WHERE account_id = 'tenant-default' AND ledger_type = 'case' AND currency = 'USD'
+                """
+            )
+        )
+        session.commit()
     with pytest.raises(InsufficientReserveError):
         with get_db_session() as session:
             crystallize_operation(
@@ -135,7 +148,7 @@ def test_insufficient_reserve_postgres(pg_spine):
                 risk_tier="high",
                 facets=facets,
                 policy_id=EGRESS_POLICY,
-                reserved_budget=Decimal("99999999999"),
+                reserved_budget=Decimal("100"),
             )
 
 
@@ -162,5 +175,5 @@ def test_security_chain_verify_postgres(pg_spine):
         )
     with get_db_session() as session:
         result = verify_security_chain(session)
-        assert result["valid"] is True
-        assert result["total_events"] >= 1
+        assert result.valid is True
+        assert result.total_events >= 1

@@ -20,9 +20,7 @@ _TRUNCATE = [
     "admin_audit_log",
     "guardrail_incidents",
     "aggregate_limit_state",
-    "payment_idempotency",
-    "claim_commitments",
-    "oracle_feed_cache",
+    "crystal_mesh_rules",
 ]
 
 
