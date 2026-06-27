@@ -292,14 +292,15 @@ def verify_decision_chain(
     if incremental and checkpoints_enabled:
         checkpoint = load_checkpoint(verify_session, CHECKPOINT_TABLE)
         if checkpoint and current_head and checkpoint.verified_head_hash == current_head:
-            return DecisionChainVerificationResult(
-                valid=True,
-                sealed_count=checkpoint.sealed_count,
-                unsealed_count=0,
-                total_events=total_events,
-                head_hash=current_head,
-                incremental=True,
-            )
+            if total_events == checkpoint.total_events:
+                return DecisionChainVerificationResult(
+                    valid=True,
+                    sealed_count=checkpoint.sealed_count,
+                    unsealed_count=0,
+                    total_events=total_events,
+                    head_hash=current_head,
+                    incremental=True,
+                )
 
         if checkpoint and current_head:
             tail_result = _verify_decision_rows(

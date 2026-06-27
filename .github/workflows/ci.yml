@@ -757,7 +757,7 @@ jobs:
         env:
           POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5432/cg_test
         run: |
-          PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor pytest \
+          PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor python3 -m pytest \
             cybersecurity-governor/tests/test_postgres_vigorous.py \
             cybersecurity-governor/tests/test_postgres_reliability.py \
             cybersecurity-governor/tests/test_migration_invariants.py \

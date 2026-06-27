@@ -101,4 +101,24 @@ spec:
           annotations:
             summary: "Finance Governor diagnostic mode entered"
             description: "Invariant violation triggered diagnostic write halt."
+
+        - alert: FgNegativeBalanceDetected
+          expr: increase(fg_invariant_events_total{event="negative_balance_detected_total"}[5m]) > 0
+          for: 0m
+          labels:
+            severity: critical
+            service: finance-governor
+          annotations:
+            summary: "Finance Governor negative balance detected"
+            description: "Exposure ledger invariant violation — immediate examiner review required."
+
+        - alert: FgNegativeBookValueDetected
+          expr: increase(fg_negative_book_value_total[5m]) > 0
+          for: 0m
+          labels:
+            severity: critical
+            service: finance-governor
+          annotations:
+            summary: "Finance Governor platform negative book value"
+            description: "Platform store detected negative book value on a ledger line."
 {{- end }}

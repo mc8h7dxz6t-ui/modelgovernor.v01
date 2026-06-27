@@ -82,6 +82,7 @@ ig-certification-l4-ci:
 	  insurance-governor/tests/test_horizon_sweeper.py \
 	  insurance-governor/tests/test_commit_invariants.py \
 	  insurance-governor/tests/test_claim_seal_failclosed.py \
+	  insurance-governor/tests/test_incremental_chain_verify.py \
 	  insurance-governor/tests/test_platform_registry_failclosed.py \
 	  insurance-governor/tests/test_regulatory_export.py -q
 	@$(MAKE) ig-helm-enterprise > /dev/null

@@ -242,14 +242,15 @@ def verify_security_chain(
     if incremental and checkpoints_enabled:
         checkpoint = load_checkpoint(verify_session, CHECKPOINT_TABLE)
         if checkpoint and current_head and checkpoint.verified_head_hash == current_head:
-            return SecurityChainVerificationResult(
-                valid=True,
-                sealed_count=checkpoint.sealed_count,
-                unsealed_count=0,
-                total_events=total_events,
-                head_hash=current_head,
-                incremental=True,
-            )
+            if total_events == checkpoint.total_events:
+                return SecurityChainVerificationResult(
+                    valid=True,
+                    sealed_count=checkpoint.sealed_count,
+                    unsealed_count=0,
+                    total_events=total_events,
+                    head_hash=current_head,
+                    incremental=True,
+                )
 
         if checkpoint and current_head:
             expected_prev = _expected_prev_hash(verify_session, checkpoint.last_verified_event_id)
