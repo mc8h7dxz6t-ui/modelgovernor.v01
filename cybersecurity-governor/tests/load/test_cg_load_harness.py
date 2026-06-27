@@ -20,7 +20,9 @@ ROOT = Path(__file__).resolve().parents[2]
 SIDECAR = ROOT / "spine" / "sidecar"
 sys.path.insert(0, str(SIDECAR))
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "tests"))
 
+from support.cg_migrations import apply_cg_migrations
 from support.cyber_fixtures import EGRESS_PLATFORM, egress_facets
 
 SCHEMA_SQL = (Path(__file__).parent.parent / "schema_sqlite.sql").read_text()
@@ -31,11 +33,14 @@ _OPS = int(os.environ.get("LOAD_OPS_PER_WORKER", "5"))
 
 
 def _bootstrap(engine) -> sessionmaker:
-    with engine.begin() as conn:
-        for stmt in SCHEMA_SQL.split(";"):
-            s = stmt.strip()
-            if s:
-                conn.execute(text(s))
+    if os.environ.get("POSTGRES_TEST_URL"):
+        apply_cg_migrations(engine)
+    else:
+        with engine.begin() as conn:
+            for stmt in SCHEMA_SQL.split(";"):
+                s = stmt.strip()
+                if s:
+                    conn.execute(text(s))
     from app.config import Settings, override_settings
     from app.db import override_engine
     from app.guardrails import reset_guardrails

@@ -13,7 +13,11 @@ ig-stack-down:
 	docker compose down
 
 ig-spine-test:
-	cd .. && python3 -m pytest insurance-governor/tests/ -q
+	cd .. && PYTHONPATH=insurance-governor/spine/sidecar:insurance-governor/tests:insurance-governor python3 -m pytest \
+	  insurance-governor/tests/ -q \
+	  --ignore=insurance-governor/tests/chaos \
+	  --ignore=insurance-governor/tests/load \
+	  --ignore=insurance-governor/tests/integration
 
 ig-spine-smoke:
 	@echo "==> ig-sidecar health"
@@ -43,7 +47,7 @@ claim-gate-demo:
 ig-demo: ig-spine-smoke claim-gate-demo
 
 ig-load-test:
-	cd .. && python3 -m pytest insurance-governor/tests/load/test_ig_load_harness.py -q
+	cd .. && PYTHONPATH=insurance-governor/spine/sidecar:insurance-governor/tests:insurance-governor python3 -m pytest insurance-governor/tests/load/test_ig_load_harness.py -q
 
 ig-certification:
 	cd .. && python3 insurance-governor/scripts/generate_invariant_report.py

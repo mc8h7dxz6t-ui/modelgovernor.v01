@@ -13,6 +13,7 @@ REQUIRED = [
     "0003_admin_audit_log.sql",
     "0004_cg_platforms_mesh.sql",
     "0005_cg_production_state.sql",
+    "0006_cg_scalability.sql",
 ]
 
 
