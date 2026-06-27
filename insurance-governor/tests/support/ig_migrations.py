@@ -19,7 +19,28 @@ def sql_fragments(sql: str) -> list[str]:
     return [stmt.strip() for stmt in _strip_line_comments(sql).split(";") if stmt.strip()]
 
 
-def apply_ig_migrations(engine: Engine, *, migrations_dir: Path | None = None) -> None:
+def _schema_bootstrapped(engine: Engine) -> bool:
+    dialect = engine.dialect.name
+    with engine.connect() as conn:
+        if dialect == "sqlite":
+            row = conn.execute(
+                text("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'reserve_ledgers'")
+            ).first()
+        else:
+            row = conn.execute(
+                text(
+                    "SELECT 1 FROM information_schema.tables "
+                    "WHERE table_schema = 'public' AND table_name = 'reserve_ledgers'"
+                )
+            ).first()
+    return row is not None
+
+
+def apply_ig_migrations(
+    engine: Engine, *, migrations_dir: Path | None = None, force: bool = False
+) -> None:
+    if not force and _schema_bootstrapped(engine):
+        return
     root = migrations_dir or MIGRATIONS_DIR
     for path in sorted(root.glob("*.sql")):
         with engine.begin() as conn:

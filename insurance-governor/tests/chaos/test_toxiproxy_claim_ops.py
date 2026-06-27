@@ -14,14 +14,13 @@ from sqlalchemy.orm import Session, sessionmaker
 
 ROOT = Path(__file__).resolve().parents[2]
 SIDECAR = ROOT / "spine" / "sidecar"
+TESTS = ROOT / "tests"
 if str(SIDECAR) not in sys.path:
     sys.path.insert(0, str(SIDECAR))
+if str(TESTS) not in sys.path:
+    sys.path.insert(0, str(TESTS))
 
-MIGRATIONS = [
-    ROOT / "migrations" / "0001_ig_spine_init.sql",
-    ROOT / "migrations" / "0002_claim_chain_anchors.sql",
-    ROOT / "migrations" / "0003_admin_audit_log.sql",
-]
+from support.ig_migrations import apply_ig_migrations
 
 TOXIPROXY_API = os.getenv("TOXIPROXY_API", "http://localhost:8475")
 PROXY_NAME = "postgres"
@@ -38,12 +37,7 @@ def _postgres_url() -> str:
 
 
 def _apply_migrations(engine) -> None:
-    with engine.begin() as conn:
-        for mig in MIGRATIONS:
-            for stmt in mig.read_text().split(";"):
-                s = stmt.strip()
-                if s and not s.startswith("--"):
-                    conn.execute(text(s))
+    apply_ig_migrations(engine)
 
 
 def _reset_proxy(*, recreate: bool = False) -> None:

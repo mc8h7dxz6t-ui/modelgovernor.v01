@@ -55,7 +55,7 @@ egress-govern-demo:
 cg-demo: cg-spine-smoke egress-govern-demo
 
 cg-load-test:
-	cd .. && python3 -m pytest cybersecurity-governor/tests/load/test_cg_load_harness.py -q
+	cd .. && PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor python3 -m pytest cybersecurity-governor/tests/load/test_cg_load_harness.py -q
 
 cg-certification:
 	cd .. && python3 cybersecurity-governor/scripts/generate_invariant_report.py
