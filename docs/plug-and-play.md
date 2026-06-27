@@ -81,13 +81,14 @@ All production manifests are in-repo and CI-validated (`kustomize build`, `helm 
 
 ## Cybersecurity Governor (sibling spine)
 
-**Full checklist:** [cyber-governor/PLUG-AND-PLAY.md](../cyber-governor/PLUG-AND-PLAY.md)
+**Canonical tree:** [`cybersecurity-governor/`](../cybersecurity-governor/) — docs in [docs/cybersecurity-governor/](cybersecurity-governor/README.md).
 
 | Mode | Command |
 |------|---------|
-| Demo | `make cg-stack-up && make cg-security-demo` |
-| Dev secrets | `make -C cyber-governor cg-bootstrap` |
-| Staging K8s | `make -C cyber-governor cg-prod-bootstrap && kubectl apply -k cyber-governor/deploy/overlays/staging` |
-| Production | `WITH_S3=1 BUCKET_NAME=... make -C cyber-governor cg-prod-bootstrap` + production overlay |
+| Demo | `make cg-stack-up && make cg-demo` |
+| Unit tests | `make cg-spine-test` |
+| L4 CI gate | `make cg-certification-l4-ci` |
+| Helm render | `make cg-helm-enterprise` |
+| Production | `helm install` from `deploy/helm/cybersecuritygovernor/` |
 
-Fortune-500 hardening roadmap: [docs/cyber-governor/production-hardening.md](cyber-governor/production-hardening.md)
+Operations: [docs/cybersecurity-governor/operations-runbook.md](cybersecurity-governor/operations-runbook.md)

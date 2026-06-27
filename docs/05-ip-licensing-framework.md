@@ -65,4 +65,4 @@ These are **real shipped mechanisms** on `main`, not roadmap names:
 
 > Incumbents sell **detection volume** or **identity seats**. Cybersecurity Governor licenses **authorization proof** — a tamper-evident chain that answers *under which governed conditions was this action authorized?*
 
-Related: [GOVERNOR-PORTFOLIO.md](sales-sheets/GOVERNOR-PORTFOLIO.md) · [cyber-governor/PLUG-AND-PLAY.md](../cyber-governor/PLUG-AND-PLAY.md)
+Related: [GOVERNOR-PORTFOLIO.md](sales-sheets/GOVERNOR-PORTFOLIO.md) · [cybersecurity-governor/](../cybersecurity-governor/)

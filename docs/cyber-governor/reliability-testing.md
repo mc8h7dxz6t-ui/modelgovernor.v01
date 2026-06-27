@@ -17,7 +17,7 @@ Institutional++ test pyramid aligned with ModelGovernor / Finance Governor quali
 ## Tier 1 — SQLite unit + spine hardening (< 3s)
 
 ```bash
-cd cyber-governor && make cg-spine-test
+make cg-spine-test
 ```
 
 **Modules (42+ tests):**
@@ -130,5 +130,6 @@ On violation: `enter_diagnostic_mode()` + `security_audit_violation_total` incre
 ## CI
 
 `.github/workflows/ci.yml` jobs:
-- `cyber-governor-test` — Tier 1, property, Tier 2, invariant report, Kustomize
-- `cyber-governor-chaos` — Tier 4 Toxiproxy (latency, timeout recovery)
+- `cg-test-tier1` — Tier 1 unit + Hypothesis property tests
+- `cg-test-tier2` — Postgres integration
+- `cg-test-tier4-chaos` — Tier 4 Toxiproxy (latency, timeout recovery)

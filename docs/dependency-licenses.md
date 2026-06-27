@@ -19,7 +19,7 @@ From `sidecar/requirements.txt` and `reconciler/requirements.txt`:
 
 ### Cybersecurity Governor (Python application)
 
-From `cyber-governor/spine/sidecar/requirements.txt`, `cyber-governor/spine/gateway/requirements.txt`, and `cyber-governor/spine/reconciler/requirements.txt`:
+From `cybersecurity-governor/spine/sidecar/requirements.txt`, `cybersecurity-governor/spine/gateway/requirements.txt`, and `cybersecurity-governor/spine/reconciler/requirements.txt`:
 
 - FastAPI, Uvicorn, Pydantic, pydantic-settings, SQLAlchemy, Psycopg, Redis (same licenses as above)
 - PyJWT + cryptography (MIT) — OIDC on sidecar and gateway commit path

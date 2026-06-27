@@ -35,9 +35,9 @@ spec:
           ports:
             - containerPort: 8120
           env:
-            - name: IG_SIDECAR_URL
+            - name: CG_SIDECAR_URL
               value: http://sidecar:8121
-            - name: IG_INTERNAL_TOKEN
+            - name: CG_INTERNAL_TOKEN
               valueFrom:
                 secretKeyRef:
                   name: {{ include "cybersecuritygovernor.secretName" . }}

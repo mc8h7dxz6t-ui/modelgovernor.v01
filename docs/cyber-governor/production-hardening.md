@@ -7,7 +7,7 @@ How to move from **“bootstrap + kubectl”** to **near-zero-config enterprise*
 You can reach institutional++ production today with:
 
 ```bash
-cd cyber-governor
+make cg-stack-up
 WITH_S3=1 BUCKET_NAME=corp-cg-anchors make cg-prod-bootstrap
 # upload deploy/generated/secret-manager-keys.json to your vault
 kubectl apply -k deploy/overlays/production
@@ -196,4 +196,4 @@ Operator reconciles Deployments, CronJobs, ExternalSecrets, S3 bucket.
 3. Promote to `deploy/overlays/production` with OIDC + IRSA
 4. Track Helm/operator work as Phase 4 in your internal backlog
 
-Related: [PLUG-AND-PLAY.md](../../cyber-governor/PLUG-AND-PLAY.md) · [capability-matrix.md](capability-matrix.md) · [slo-definitions.md](slo-definitions.md)
+Related: [operations-runbook.md](../cybersecurity-governor/operations-runbook.md) · [capability-matrix.md](../cybersecurity-governor/capability-matrix.md) · [slo-definitions.md](slo-definitions.md)

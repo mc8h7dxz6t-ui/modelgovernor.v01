@@ -292,4 +292,4 @@ make wirematch-demo         # Finance wedge
 make demo-all-platforms     # Full MG SKU story
 ```
 
-Related: [plug-and-play.md](../plug-and-play.md) · [cyber-governor/PLUG-AND-PLAY.md](../../cyber-governor/PLUG-AND-PLAY.md) · [competitive-landscape.md](../finance-governor/competitive-landscape.md)
+Related: [plug-and-play.md](../plug-and-play.md) · [cybersecurity-governor/](../../cybersecurity-governor/) · [competitive-landscape.md](../finance-governor/competitive-landscape.md)

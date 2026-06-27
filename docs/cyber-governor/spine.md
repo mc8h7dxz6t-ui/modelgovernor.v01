@@ -69,7 +69,7 @@ Canonical specification for the **Cybersecurity Governor spine** — a ModelGove
 ## Deployment
 
 ```bash
-cd cyber-governor
+make cg-spine-up
 docker compose up -d
 curl http://localhost:8101/healthz
 ```
