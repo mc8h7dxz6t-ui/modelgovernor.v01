@@ -6,6 +6,7 @@
 	crystal-demo algofreeze-demo wirematch-demo fg-certification \
 	fg-demo-up fg-demo-down fg-demo-gold fg-integration-test fg-load-smoke \
 	fg-prod-setup fg-aws-anchor-bucket fg-helm-template fg-helm-install fg-examiner-evidence \
+	fg-test-deps cg-test-deps \
 	ig-spine-up ig-stack-up ig-spine-down ig-stack-down ig-spine-test ig-spine-smoke \
 	claim-gate-demo ig-demo ig-certification ig-certification-strict ig-certification-l4 ig-certification-l4-ci \
 	ig-helm-enterprise ig-platform-conformance ig-load-test ig-ha-up ig-pilot-attestation \
@@ -253,6 +254,12 @@ cg-examiner-evidence:
 
 cg-load-test:
 	$(MAKE) -C cybersecurity-governor cg-load-test
+
+fg-test-deps:
+	$(MAKE) -C finance-governor fg-test-deps
+
+cg-test-deps:
+	$(MAKE) -C cybersecurity-governor cg-test-deps
 
 demo-all-platforms:
 	./scripts/demo-all-platforms.sh

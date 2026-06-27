@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cg-gateway
+  namespace: cybersecuritygovernor
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cg-gateway
+  template:
+    metadata:
+      labels:
+        app: cg-gateway
+    spec:
+      containers:
+        - name: cg-gateway
+          image: cybersecuritygovernor/gateway:latest
+          ports:
+            - containerPort: 8100
+          env:
+            - name: CG_SIDECAR_URL
+              value: http://cg-sidecar:8101
+            - name: CG_INTERNAL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cybersecuritygovernor-secrets
+                  key: cg-internal-tokens
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cg-gateway
+  namespace: cybersecuritygovernor
+spec:
+  selector:
+    app: cg-gateway
+  ports:
+    - port: 8100
+      targetPort: 8100

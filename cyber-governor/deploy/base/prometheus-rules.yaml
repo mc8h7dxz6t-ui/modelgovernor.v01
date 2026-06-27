@@ -1,0 +1,30 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: cybersecuritygovernor-alerts
+  namespace: cybersecuritygovernor
+spec:
+  groups:
+    - name: cybersecuritygovernor
+      rules:
+        - alert: CybersecurityGovernorSecurityChainInvalid
+          expr: increase(security_chain_verification_failed_total[15m]) > 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Security events hash chain verification failed
+        - alert: CybersecurityGovernorSecurityAnchorFailed
+          expr: increase(security_chain_anchor_failed_total[1h]) > 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Security chain anchor to witness quorum failed
+        - alert: CybersecurityGovernorThreatHorizonStrand
+          expr: increase(threat_horizon_strand_total[30m]) > 0
+          for: 0m
+          labels:
+            severity: warning
+          annotations:
+            summary: Critical/high threat crystals stranded on horizon expiry
