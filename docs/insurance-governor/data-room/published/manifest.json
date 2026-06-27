@@ -1,0 +1,18 @@
+{
+  "published_at": "2026-06-25T16:26:52.402824+00:00",
+  "completion_level": "enterprise_rehearsal_100",
+  "cluster_attestation_sha256": "8ddc4a57c32e0d1c96cda31fa5e725b02b45effcdfb047cfecaecd418101dba2",
+  "certification_sha256": "5aef4d4bdd56625ec60c593fdaeebaf0f1964cb588d35788e76221b9b8094c22",
+  "probes_passed": 7,
+  "probes_total": 7,
+  "attestation_artifact_sha256": "c9cdef3ffdf79f6988689e5284faa7a3352e8c30e8545efb3301fd5833e0383e",
+  "environment": "local-embedded-rehearsal",
+  "files": [
+    "certification_attestation.json",
+    "cluster_attestation.json",
+    "design-partner-attestation-redacted.md",
+    "design-partner-package.json",
+    "design-partner-signed-letter.md",
+    "manifest.json"
+  ]
+}

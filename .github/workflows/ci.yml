@@ -217,6 +217,172 @@ jobs:
       - name: Verify invariant migration present
         run: PYTHONPATH=. python3 -m pytest tests/integration/test_migration_invariants.py::test_invariant_migration_file_present -q
 
+  cyber-governor-test:
+    name: Cybersecurity Governor — institutional++ gate
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: cg_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5444:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install cyber-governor dependencies
+        run: |
+          pip install -r cyber-governor/spine/sidecar/requirements.txt
+          pip install -r cyber-governor/spine/reconciler/requirements.txt
+          pip install -r cyber-governor/platforms/requirements.txt
+          pip install -r cyber-governor/tests/requirements-test.txt
+
+      - name: Apply cyber migrations
+        env:
+          PGPASSWORD: postgres
+        run: |
+          for f in cyber-governor/migrations/*.sql; do
+            psql -h localhost -p 5444 -U postgres -d cg_test -f "$f"
+          done
+
+      - name: Tier 1 — unit tests
+        run: make -C cyber-governor cg-spine-test
+
+      - name: Property tests (Hypothesis hash chain)
+        run: make -C cyber-governor cg-property-test
+
+      - name: Tier 2 — Postgres integration
+        env:
+          CG_POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5444/cg_test
+        run: |
+          cd cyber-governor
+          python3 -m pytest tests/integration/ -q
+
+      - name: Invariant report
+        run: make -C cyber-governor cg-invariant-report
+
+      - name: Tier 4 — Kustomize build
+        run: |
+          curl -sSLo kustomize.tar.gz \
+            https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.5.0/kustomize_v5.5.0_linux_amd64.tar.gz
+          tar xzf kustomize.tar.gz && chmod +x kustomize
+          for overlay in base staging production enterprise; do
+            echo "==> kustomize build deploy/overlays/$overlay (or deploy/$overlay)"
+            if [ "$overlay" = "base" ]; then
+              ./kustomize build --load-restrictor LoadRestrictionsNone cyber-governor/deploy/base/ > "/tmp/cg-k8s-$overlay.yaml"
+            else
+              ./kustomize build --load-restrictor LoadRestrictionsNone "cyber-governor/deploy/overlays/$overlay/" > "/tmp/cg-k8s-$overlay.yaml"
+            fi
+            wc -l "/tmp/cg-k8s-$overlay.yaml"
+          done
+
+  finance-governor-test:
+    name: Finance Governor — institutional++ gate
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: fg_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5445:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install finance-governor dependencies
+        run: make -C finance-governor fg-test-deps
+
+      - name: Apply finance migrations
+        env:
+          PGPASSWORD: postgres
+        run: |
+          for f in finance-governor/migrations/*.sql; do
+            psql -h localhost -p 5445 -U postgres -d fg_test -f "$f"
+          done
+
+      - name: Tier 1 — unit tests (all platforms)
+        run: make -C finance-governor fg-spine-test
+
+      - name: Tier 2 — Postgres integration
+        env:
+          FG_TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5445/fg_test
+        run: |
+          cd finance-governor
+          python3 -m pytest tests/integration/ -q
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Helm template gate
+        run: make -C finance-governor fg-helm-template
+
+  cyber-governor-chaos:
+    name: Tier 4 — Toxiproxy chaos (Cyber Governor)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -r cyber-governor/spine/sidecar/requirements.txt
+          pip install -r cyber-governor/tests/requirements-test.txt
+
+      - name: Start cyber toxiproxy chaos stack
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ok=0
+          for i in 1 2 3; do
+            if docker compose -f cyber-governor/docker-compose.chaos.yml pull cg-postgres-chaos cg-toxiproxy; then
+              ok=1
+              break
+            fi
+            echo "Docker pull failed, retry $i/3"
+            sleep 10
+          done
+
+          test "$ok" -eq 1
+
+          docker compose -f cyber-governor/docker-compose.chaos.yml up -d --wait cg-postgres-chaos cg-toxiproxy
+          docker compose -f cyber-governor/docker-compose.chaos.yml run --rm cg-toxiproxy-config
+
+      - name: Tier 4 toxiproxy cyber ops tests
+        env:
+          CG_CHAOS_POSTGRES_URL: postgresql+psycopg://postgres:postgres@localhost:5446/cg_chaos
+          TOXIPROXY_API: http://localhost:8475
+        run: make -C cyber-governor cg-chaos-test
+
+      - name: Tear down chaos stack
+        if: always()
+        run: docker compose -f cyber-governor/docker-compose.chaos.yml down -v
+
   test-tier4-chaos:
     name: Tier 4 — Toxiproxy chaos (Finance Ops)
     runs-on: ubuntu-latest
@@ -236,7 +402,22 @@ jobs:
           pip install pytest requests
 
       - name: Start toxiproxy chaos stack
+        shell: bash
         run: |
+          set -euo pipefail
+
+          ok=0
+          for i in 1 2 3; do
+            if docker compose -f docker-compose.chaos.yml pull postgres-chaos toxiproxy; then
+              ok=1
+              break
+            fi
+            echo "Docker pull failed, retry $i/3"
+            sleep 10
+          done
+
+          test "$ok" -eq 1
+
           docker compose -f docker-compose.chaos.yml up -d --wait postgres-chaos toxiproxy
           docker compose -f docker-compose.chaos.yml run --rm toxiproxy-config
 
@@ -261,3 +442,472 @@ jobs:
           docker build -f sidecar/Dockerfile -t modelgovernor/sidecar:ci .
           docker build -f reconciler/Dockerfile -t modelgovernor/reconciler:ci .
           docker build -f gateway/Dockerfile -t modelgovernor/gateway:ci .
+
+  ig-test-tier1:
+    name: IG Tier 1 — SQLite spine tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install IG sidecar dependencies
+        run: pip install -r insurance-governor/spine/sidecar/requirements.txt pytest httpx pyyaml
+      - name: Tier 1 insurance governor tests
+        run: make ig-spine-test
+
+  ig-test-tier2:
+    name: IG Tier 2 — Postgres vigorous
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: ig_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install -r insurance-governor/spine/sidecar/requirements.txt
+          pip install -r insurance-governor/spine/reconciler/requirements.txt
+          pip install pytest
+      - name: Apply IG migrations
+        env:
+          PGPASSWORD: postgres
+        run: |
+          for f in insurance-governor/migrations/*.sql; do
+            psql -h localhost -U postgres -d ig_test -f "$f"
+          done
+      - name: Tier 2 Postgres tests
+        env:
+          POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5432/ig_test
+        run: |
+          PYTHONPATH=insurance-governor/spine/sidecar:insurance-governor/tests:insurance-governor python3 -m pytest \
+            insurance-governor/tests/test_postgres_vigorous.py \
+            insurance-governor/tests/test_postgres_reliability.py \
+            insurance-governor/tests/test_migration_invariants.py \
+            insurance-governor/tests/test_reconciler_leader_election.py \
+            -q
+
+  ig-validate-migrations:
+    name: IG migration invariant definitions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify IG migration bundle
+        run: |
+          pip install -r insurance-governor/spine/sidecar/requirements.txt pytest
+          PYTHONPATH=insurance-governor/spine/sidecar:insurance-governor/tests:insurance-governor \
+            python3 -m pytest insurance-governor/tests/test_migration_invariants.py -q
+
+  ig-test-tier3:
+    name: IG Tier 3 — Load harness
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: ig_load
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r insurance-governor/spine/sidecar/requirements.txt pytest
+      - name: Load harness
+        env:
+          POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5432/ig_load
+          LOAD_WORKERS: 8
+          LOAD_OPS_PER_WORKER: 5
+        run: make ig-load-test
+
+      - name: Validate zero invariant violations in load report
+        run: |
+          python3 - <<'EOF'
+          import json
+          from pathlib import Path
+          reports = sorted(Path("insurance-governor/tests/load/load/reports").glob("crystallize_commit_*.json"))
+          if not reports:
+              raise SystemExit("No IG load report artifact generated")
+          report = json.loads(reports[-1].read_text())
+          violations = int(report.get("invariant_violations", 0))
+          if violations:
+              raise SystemExit(f"invariant_violations={violations}")
+          print(f"Validated: {reports[-1]}")
+          EOF
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ig-load-harness-report
+          path: insurance-governor/tests/load/load/reports/crystallize_commit_*.json
+          if-no-files-found: error
+
+  ig-validate-helm:
+    name: IG Helm chart lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - name: Helm lint insurancegovernor
+        run: helm lint deploy/helm/insurancegovernor -f deploy/helm/insurancegovernor/values-production.yaml
+      - name: Helm template production values
+        run: |
+          helm template insurancegovernor deploy/helm/insurancegovernor \
+            -f deploy/helm/insurancegovernor/values-production.yaml \
+            --namespace insurancegovernor > /tmp/ig-helm-production.yaml
+          wc -l /tmp/ig-helm-production.yaml
+
+  ig-certification-l4:
+    name: IG L4 Gold — enterprise certification CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: azure/setup-helm@v4
+      - name: Install dependencies
+        run: |
+          pip install -r insurance-governor/spine/sidecar/requirements.txt
+          pip install -r insurance-governor/platforms/requirements.txt
+          pip install pytest pyyaml httpx
+      - name: L4 Gold CI gate
+        run: make ig-certification-l4-ci
+
+  ig-build-images:
+    name: IG container image build gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build IG spine images
+        run: |
+          docker build -f insurance-governor/spine/sidecar/Dockerfile -t insurancegovernor/sidecar:ci .
+          docker build -f insurance-governor/spine/reconciler/Dockerfile -t insurancegovernor/reconciler:ci .
+          docker build -f insurance-governor/spine/gateway/Dockerfile -t insurancegovernor/gateway:ci .
+          docker build -f insurance-governor/platforms/claim_gate/Dockerfile -t insurancegovernor/claim-gate:ci .
+          docker build -f insurance-governor/platforms/bind_authority/Dockerfile -t insurancegovernor/bind-authority:ci .
+          docker build -f insurance-governor/platforms/parametric_oracle/Dockerfile -t insurancegovernor/parametric-oracle:ci .
+          docker build -f insurance-governor/platforms/zk_claim_audit/Dockerfile -t insurancegovernor/zk-claim-audit:ci .
+          docker build -f insurance-governor/platforms/spatial_twin/Dockerfile -t insurancegovernor/spatial-twin:ci .
+          docker build -f insurance-governor/platforms/battery_liability/Dockerfile -t insurancegovernor/battery-liability:ci .
+          docker build -f insurance-governor/platforms/subrogation_graph/Dockerfile -t insurancegovernor/subrogation-graph:ci .
+          docker build -f insurance-governor/platforms/indemnity_pay_gate/Dockerfile -t insurancegovernor/indemnity-pay-gate:ci .
+          docker build -f insurance-governor/platforms/model_risk_freeze/Dockerfile -t insurancegovernor/model-risk-freeze:ci .
+          docker build -f insurance-governor/platforms/underwriting_govern/Dockerfile -t insurancegovernor/underwriting-govern:ci .
+          docker build -f insurance-governor/platforms/reserve_reconcile/Dockerfile -t insurancegovernor/reserve-reconcile:ci .
+
+  ig-test-tier4-chaos:
+    name: IG Tier 4 — Toxiproxy chaos (claim ops)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r insurance-governor/spine/sidecar/requirements.txt
+          pip install pytest requests
+
+      - name: Start IG toxiproxy chaos stack
+        run: |
+          docker compose -f insurance-governor/docker-compose.chaos.yml up -d --wait ig-postgres-chaos toxiproxy
+          docker compose -f insurance-governor/docker-compose.chaos.yml run --rm toxiproxy-config
+
+      - name: Tier 4 toxiproxy claim ops tests
+        env:
+          POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5436/ig_chaos
+          TOXIPROXY_API: http://localhost:8475
+        run: PYTHONPATH=insurance-governor/spine/sidecar:insurance-governor/tests:insurance-governor python3 -m pytest insurance-governor/tests/chaos/test_toxiproxy_claim_ops.py -q
+
+      - name: Tear down chaos stack
+        if: always()
+        run: docker compose -f insurance-governor/docker-compose.chaos.yml down -v
+
+  ig-enterprise-rehearsal-gate:
+    name: IG Enterprise — rehearsal gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install -r insurance-governor/spine/sidecar/requirements.txt
+          pip install -r insurance-governor/platforms/requirements.txt
+          pip install pytest httpx
+      - name: Migration invariants (0009 bundle)
+        run: PYTHONPATH=insurance-governor/spine/sidecar pytest insurance-governor/tests/test_migration_invariants.py -q
+      - name: FNOL + write-back unit tests
+        env:
+          PYTHONPATH: insurance-governor
+        run: |
+          pytest insurance-governor/tests/test_fnol_adapter.py \
+            insurance-governor/tests/test_fnol_writeback.py \
+            insurance-governor/tests/test_bank_rail_sandbox.py -q
+      - name: Data room publish script rejects stub attestation
+        run: |
+          mkdir -p artifacts/reliability/insurance-governor
+          echo '{"probes_note":"stub","certification":true}' > artifacts/reliability/insurance-governor/cluster_attestation.json
+          if python3 insurance-governor/scripts/publish_data_room.py; then
+            echo "expected publish to fail on stub attestation"
+            exit 1
+          fi
+      - name: Data room publish script accepts live-shaped attestation
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          probes = [{"name": f"p{i}", "status": "pass"} for i in range(8)]
+          data = {
+            "generated_at": "2026-01-01T00:00:00+00:00",
+            "attestation_type": "cluster",
+            "environment": "ci-mock",
+            "probes_total": 8,
+            "probes_passed": 8,
+            "artifact_sha256": "b" * 64,
+            "probes": probes,
+            "certification": True,
+          }
+          root = Path("artifacts/reliability/insurance-governor")
+          root.mkdir(parents=True, exist_ok=True)
+          (root / "cluster_attestation.json").write_text(json.dumps(data, indent=2))
+          (root / "latest_attestation.json").write_text('{"tier":"L4","valid":true}')
+          PY
+          python3 insurance-governor/scripts/publish_data_room.py
+          test -f docs/insurance-governor/data-room/published/manifest.json
+          python3 -c "import json; m=json.load(open('docs/insurance-governor/data-room/published/manifest.json')); assert m.get('probes_passed')==8"
+
+  cg-test-tier1:
+    name: CG Tier 1 — SQLite spine tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install CG sidecar dependencies
+        run: pip install -r cybersecurity-governor/spine/sidecar/requirements.txt pytest httpx pyyaml
+      - name: Tier 1 cybersecurity governor tests
+        run: make cg-spine-test
+
+  cg-test-tier2:
+    name: CG Tier 2 — Postgres vigorous
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: cg_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install -r cybersecurity-governor/spine/sidecar/requirements.txt
+          pip install -r cybersecurity-governor/spine/reconciler/requirements.txt
+          pip install pytest
+      - name: Apply CG migrations
+        env:
+          PGPASSWORD: postgres
+        run: |
+          for f in cybersecurity-governor/migrations/*.sql; do
+            psql -h localhost -U postgres -d cg_test -f "$f"
+          done
+      - name: Tier 2 Postgres tests
+        env:
+          POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5432/cg_test
+        run: |
+          PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor pytest \
+            cybersecurity-governor/tests/test_postgres_vigorous.py \
+            cybersecurity-governor/tests/test_postgres_reliability.py \
+            cybersecurity-governor/tests/test_migration_invariants.py \
+            cybersecurity-governor/tests/test_reconciler_leader_election.py \
+            -q
+
+  cg-validate-migrations:
+    name: CG migration invariant definitions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify CG migration bundle
+        run: |
+          pip install -r cybersecurity-governor/spine/sidecar/requirements.txt pytest
+          PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor \
+            python3 -m pytest cybersecurity-governor/tests/test_migration_invariants.py -q
+
+  cg-test-tier3:
+    name: CG Tier 3 — Load harness
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: cg_load
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r cybersecurity-governor/spine/sidecar/requirements.txt pytest
+      - name: Load harness
+        env:
+          POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5432/cg_load
+          LOAD_WORKERS: 8
+          LOAD_OPS_PER_WORKER: 5
+        run: make cg-load-test
+
+      - name: Validate zero invariant violations in load report
+        run: |
+          python3 - <<'EOF'
+          import json
+          from pathlib import Path
+          reports = sorted(Path("cybersecurity-governor/tests/load/reports").glob("crystallize_commit_*.json"))
+          if not reports:
+              raise SystemExit("No CG load report artifact generated")
+          report = json.loads(reports[-1].read_text())
+          violations = int(report.get("invariant_violations", 0))
+          if violations:
+              raise SystemExit(f"invariant_violations={violations}")
+          print(f"Validated: {reports[-1]}")
+          EOF
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cg-load-harness-report
+          path: cybersecurity-governor/tests/load/reports/crystallize_commit_*.json
+          if-no-files-found: error
+
+  cg-validate-helm:
+    name: CG Helm chart lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - name: Helm lint cybersecuritygovernor
+        run: helm lint deploy/helm/cybersecuritygovernor -f deploy/helm/cybersecuritygovernor/values-production.yaml
+      - name: Helm template enterprise values
+        run: |
+          helm template cg deploy/helm/cybersecuritygovernor \
+            -f deploy/helm/cybersecuritygovernor/values-production.yaml \
+            -f deploy/helm/cybersecuritygovernor/values-enterprise.yaml \
+            --set secrets.create=true \
+            --namespace cybersecuritygovernor > /tmp/cg-helm-enterprise.yaml
+          wc -l /tmp/cg-helm-enterprise.yaml
+
+  cg-certification-l4:
+    name: CG L4 Gold — enterprise certification CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: azure/setup-helm@v4
+      - name: Install dependencies
+        run: |
+          pip install -r cybersecurity-governor/spine/sidecar/requirements.txt
+          pip install -r cybersecurity-governor/platforms/requirements.txt
+          pip install pytest pyyaml httpx
+      - name: L4 Gold CI gate
+        run: make cg-certification-l4-ci
+
+  cg-build-images:
+    name: CG container image build gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build CG spine and platform images
+        run: |
+          docker build -f cybersecurity-governor/spine/sidecar/Dockerfile -t cybersecuritygovernor/sidecar:ci .
+          docker build -f cybersecurity-governor/spine/reconciler/Dockerfile -t cybersecuritygovernor/reconciler:ci .
+          docker build -f cybersecurity-governor/spine/gateway/Dockerfile -t cybersecuritygovernor/gateway:ci .
+          docker build -f cybersecurity-governor/platforms/egress_govern/Dockerfile -t cybersecuritygovernor/egress-govern:ci .
+          docker build -f cybersecurity-governor/platforms/identity_govern/Dockerfile -t cybersecuritygovernor/identity-govern:ci .
+          docker build -f cybersecurity-governor/platforms/threat_proxy/Dockerfile -t cybersecuritygovernor/threat-proxy:ci .
+          docker build -f cybersecurity-governor/platforms/incident_response_gate/Dockerfile -t cybersecuritygovernor/incident-response-gate:ci .
+          docker build -f cybersecurity-governor/platforms/posture_reconcile/Dockerfile -t cybersecuritygovernor/posture-reconcile:ci .
+          docker build -f cybersecurity-governor/platforms/compliance_logger/Dockerfile -t cybersecuritygovernor/compliance-logger:ci .
+
+  cg-test-tier4-chaos:
+    name: CG Tier 4 — Toxiproxy chaos (security ops)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r cybersecurity-governor/spine/sidecar/requirements.txt
+          pip install pytest requests
+
+      - name: Start CG toxiproxy chaos stack
+        run: |
+          docker compose -f cybersecurity-governor/docker-compose.chaos.yml up -d --wait cg-postgres-chaos toxiproxy
+          docker compose -f cybersecurity-governor/docker-compose.chaos.yml run --rm toxiproxy-config
+
+      - name: Tier 4 toxiproxy security ops tests
+        env:
+          POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5436/cg_chaos
+          TOXIPROXY_API: http://localhost:8475
+        run: PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor python3 -m pytest cybersecurity-governor/tests/chaos/test_toxiproxy_security_ops.py -q
+
+      - name: Tear down chaos stack
+        if: always()
+        run: docker compose -f cybersecurity-governor/docker-compose.chaos.yml down -v

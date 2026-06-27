@@ -1,0 +1,10 @@
+name: parametric_oracle
+display_name: ParametricOracle
+default_policy_id: parametric-cat-us
+default_risk_tier: critical
+port: 8105
+required_facet_keys:
+  - event_id
+  - oracle_attestation_hash
+commit_decisions:
+  - TRIGGERED

@@ -1,0 +1,8 @@
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: fg-strict-mtls
+  namespace: finance-governor
+spec:
+  mtls:
+    mode: STRICT

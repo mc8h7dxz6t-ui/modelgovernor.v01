@@ -1,0 +1,15 @@
+Finance Governor installed in namespace {{ include "fg.namespace" . }}.
+
+Gateway:  fg-gateway:{{ .Values.service.gateway.port }}
+Sidecar:  fg-sidecar:{{ .Values.service.sidecar.port }}
+
+Production checklist:
+  1. OIDC issuer + audience configured (OIDC_ENABLED=true)
+  2. DECISION_ANCHOR_S3_BUCKET set + IRSA on fg-sidecar ServiceAccount
+  3. Rotate FG_INTERNAL_TOKEN / fg-internal-tokens secret
+  4. Run migrations job: kubectl -n {{ include "fg.namespace" . }} wait --for=condition=complete job/fg-migrations --timeout=300s
+  5. Verify chain: kubectl -n {{ include "fg.namespace" . }} run fg-verify --rm -it --restart=Never --image=curlimages/curl:8.5.0 -- \
+       curl -sf -H "x-internal-token: $TOKEN" http://fg-sidecar:8091/internal/decisions/verify-chain
+
+Demo (port-forward):
+  kubectl -n {{ include "fg.namespace" . }} port-forward svc/fg-gateway 8090:8090

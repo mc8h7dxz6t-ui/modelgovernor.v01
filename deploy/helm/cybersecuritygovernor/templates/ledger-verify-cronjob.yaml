@@ -1,0 +1,39 @@
+{{- if .Values.ledgerChainVerify.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: security-chain-verify
+  namespace: {{ include "cybersecuritygovernor.namespace" . }}
+  labels:
+    {{- include "cybersecuritygovernor.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  schedule: {{ .Values.ledgerChainVerify.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: verify
+              image: curlimages/curl:8.5.0
+              env:
+                - name: SIDECAR_INTERNAL_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "cybersecuritygovernor.secretName" . }}
+                      key: sidecar-internal-tokens
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -e
+                  TOKEN="${SIDECAR_INTERNAL_TOKEN%%,*}"
+                  curl -sf \
+                    -H "x-internal-token: ${TOKEN}" \
+                    "http://sidecar:8121/internal/security/verify-chain"
+                  echo "ledger hash chain verification ok"
+{{- end }}

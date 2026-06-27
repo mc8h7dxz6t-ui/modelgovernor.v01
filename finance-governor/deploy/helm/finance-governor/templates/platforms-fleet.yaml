@@ -1,0 +1,67 @@
+{{- if and .Values.platforms.enabled .Values.platforms.fleet }}
+{{- range .Values.platforms.fleet }}
+{{- if .enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fg-{{ .name }}
+  namespace: {{ include "fg.namespace" $ }}
+  labels:
+    {{- include "fg.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ .name }}
+spec:
+  replicas: {{ .replicas | default 1 }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: {{ .name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: {{ .name }}
+        {{- include "fg.labels" $ | nindent 8 }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "{{ .port }}"
+        {{- include "fg.istioPodAnnotations" $ | nindent 8 }}
+    spec:
+      {{- include "fg.podAntiAffinity" $ | nindent 6 }}
+      containers:
+        - name: {{ .name }}
+          image: {{ .image }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .port }}
+          env:
+            {{- include "fg.platformEnv" $ | nindent 12 }}
+            - name: FG_PLATFORM_NAME
+              value: {{ .name | quote }}
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: {{ .port }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .port }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fg-{{ .name }}
+  namespace: {{ include "fg.namespace" $ }}
+  labels:
+    {{- include "fg.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ .name }}
+spec:
+  selector:
+    app.kubernetes.io/component: {{ .name }}
+  ports:
+    - port: {{ .port }}
+      targetPort: {{ .port }}
+{{- end }}
+{{- end }}
+{{- end }}

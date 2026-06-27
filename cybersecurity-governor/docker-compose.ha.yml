@@ -1,0 +1,86 @@
+# Cybersecurity Governor HA rehearsal — PgBouncer + multi-reconciler leader election
+#
+# Usage:
+#   docker compose -f cybersecurity-governor/docker-compose.ha.yml up -d --build \
+#     --scale ig-sidecar=2 --scale ig-reconciler=2
+#   curl http://localhost:8121/readyz
+#   curl http://localhost:8122/healthz
+
+services:
+  ig-postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: cybersecuritygovernor
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - cg_ha_postgres:/var/lib/postgresql/data
+      - ./migrations/0001_cg_spine_init.sql:/docker-entrypoint-initdb.d/0001_init.sql:ro
+      - ./migrations/0002_security_chain_anchors.sql:/docker-entrypoint-initdb.d/0002_anchors.sql:ro
+      - ./migrations/0003_admin_audit_log.sql:/docker-entrypoint-initdb.d/0003_audit.sql:ro
+      - ./migrations/0004_platform_policies.sql:/docker-entrypoint-initdb.d/0004_platforms.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d cybersecuritygovernor"]
+      interval: 3s
+      retries: 10
+
+  ig-pgbouncer:
+    image: edoburu/pgbouncer:1.22.1-p0
+    volumes:
+      - ./config/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ./config/pgbouncer-userlist.txt:/etc/pgbouncer/userlist.txt:ro
+    ports:
+      - "6433:6432"
+    depends_on:
+      ig-postgres:
+        condition: service_healthy
+
+  ig-redis:
+    image: redis:7
+    ports:
+      - "6382:6379"
+
+  ig-sidecar:
+    build:
+      context: ..
+      dockerfile: cybersecurity-governor/spine/sidecar/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@ig-pgbouncer:6432/cybersecuritygovernor
+      REDIS_URL: redis://ig-redis:6379/0
+      CG_INTERNAL_TOKENS: ${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}
+      DB_POOL_SIZE: 3
+      DB_MAX_OVERFLOW: 2
+    ports:
+      - "8101:8121"
+    depends_on:
+      - ig-pgbouncer
+      - ig-redis
+
+  ig-reconciler:
+    build:
+      context: ..
+      dockerfile: cybersecurity-governor/spine/reconciler/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@ig-pgbouncer:6432/cybersecuritygovernor
+      REDIS_URL: redis://ig-redis:6379/0
+      RECONCILER_HEALTH_PORT: 8102
+    ports:
+      - "8102:8122"
+    depends_on:
+      - ig-pgbouncer
+      - ig-redis
+
+  ig-gateway:
+    build:
+      context: ..
+      dockerfile: cybersecurity-governor/spine/gateway/Dockerfile
+    environment:
+      CG_SIDECAR_URL: http://ig-sidecar:8121
+      CG_INTERNAL_TOKEN: ${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}
+    ports:
+      - "8100:8120"
+    depends_on:
+      - ig-sidecar
+
+volumes:
+  cg_ha_postgres:

@@ -1,0 +1,247 @@
+# Insurance Governor — spine + optional platforms
+# Build context: repository root (parent of insurance-governor/)
+
+services:
+  ig-postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-insurancegovernor}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5434:5432"
+    volumes:
+      - ig_postgres_data:/var/lib/postgresql/data
+      - ./migrations/0001_ig_spine_init.sql:/docker-entrypoint-initdb.d/0001_init.sql:ro
+      - ./migrations/0002_claim_chain_anchors.sql:/docker-entrypoint-initdb.d/0002_anchors.sql:ro
+      - ./migrations/0003_admin_audit_log.sql:/docker-entrypoint-initdb.d/0003_audit.sql:ro
+      - ./migrations/0004_platform_policies.sql:/docker-entrypoint-initdb.d/0004_platforms.sql:ro
+      - ./migrations/0005_platform_manifest.sql:/docker-entrypoint-initdb.d/0005_manifest.sql:ro
+      - ./migrations/0006_extended_platforms.sql:/docker-entrypoint-initdb.d/0006_extended.sql:ro
+      - ./migrations/0007_uk_us_warranty_mesh.sql:/docker-entrypoint-initdb.d/0007_mesh.sql:ro
+      - ./migrations/0008_production_state.sql:/docker-entrypoint-initdb.d/0008_state.sql:ro
+      - ./migrations/0009_gbp_ledger_uk.sql:/docker-entrypoint-initdb.d/0009_gbp.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d insurancegovernor"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  ig-redis:
+    image: redis:7
+    ports:
+      - "6381:6379"
+
+  ig-sidecar:
+    build:
+      context: ..
+      dockerfile: insurance-governor/spine/sidecar/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@ig-postgres:5432/insurancegovernor
+      REDIS_URL: redis://ig-redis:6379/0
+      IG_INTERNAL_TOKENS: ${IG_INTERNAL_TOKENS:-dev-ig-spine-token-change-me}
+    ports:
+      - "8101:8101"
+    depends_on:
+      ig-postgres:
+        condition: service_healthy
+      ig-redis:
+        condition: service_started
+
+  ig-reconciler:
+    build:
+      context: ..
+      dockerfile: insurance-governor/spine/reconciler/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@ig-postgres:5432/insurancegovernor
+      REDIS_URL: redis://ig-redis:6379/0
+      RECONCILER_HEALTH_PORT: 8102
+    ports:
+      - "8102:8102"
+    depends_on:
+      ig-postgres:
+        condition: service_healthy
+      ig-sidecar:
+        condition: service_started
+
+  ig-gateway:
+    build:
+      context: ..
+      dockerfile: insurance-governor/spine/gateway/Dockerfile
+    environment:
+      IG_SIDECAR_URL: http://ig-sidecar:8101
+      IG_INTERNAL_TOKEN: ${IG_INTERNAL_TOKENS:-dev-ig-spine-token-change-me}
+    ports:
+      - "8100:8100"
+    depends_on:
+      - ig-sidecar
+
+  ig-claim-gate:
+    build:
+      context: ..
+      dockerfile: insurance-governor/platforms/claim_gate/Dockerfile
+    environment:
+      IG_SPINE_ENABLED: ${IG_SPINE_ENABLED:-true}
+      IG_SIDECAR_URL: http://ig-sidecar:8101
+      IG_INTERNAL_TOKEN: ${IG_INTERNAL_TOKENS:-dev-ig-spine-token-change-me}
+      IG_PLATFORM_DATABASE_URL: postgresql+psycopg://postgres:postgres@ig-postgres:5432/insurancegovernor
+      PAYMENT_RAIL_MODE: ${PAYMENT_RAIL_MODE:-stub}
+      FEDNOW_API_URL: ${FEDNOW_API_URL:-}
+      CLEARINGHOUSE_API_URL: ${CLEARINGHOUSE_API_URL:-}
+      BANK_RAIL_API_TOKEN: ${BANK_RAIL_API_TOKEN:-}
+    ports:
+      - "8103:8103"
+    depends_on:
+      ig-postgres:
+        condition: service_healthy
+      ig-sidecar:
+        condition: service_started
+
+  ig-bind-authority:
+    build:
+      context: ..
+      dockerfile: insurance-governor/platforms/bind_authority/Dockerfile
+    environment:
+      IG_SPINE_ENABLED: ${IG_SPINE_ENABLED:-true}
+      IG_SIDECAR_URL: http://ig-sidecar:8101
+      IG_INTERNAL_TOKEN: ${IG_INTERNAL_TOKENS:-dev-ig-spine-token-change-me}
+    ports:
+      - "8104:8104"
+    depends_on:
+      ig-sidecar:
+        condition: service_started
+
+  ig-parametric-oracle:
+    build:
+      context: ..
+      dockerfile: insurance-governor/platforms/parametric_oracle/Dockerfile
+    environment:
+      IG_SPINE_ENABLED: ${IG_SPINE_ENABLED:-true}
+      IG_SIDECAR_URL: http://ig-sidecar:8101
+      IG_INTERNAL_TOKEN: ${IG_INTERNAL_TOKENS:-dev-ig-spine-token-change-me}
+      ORACLE_FEED_SOURCE: ${ORACLE_FEED_SOURCE:-usgs-feed}
+      ORACLE_FEED_MODE: ${ORACLE_FEED_MODE:-mock}
+      ORACLE_FEED_URL: ${ORACLE_FEED_URL:-}
+      ORACLE_FEED_API_KEY: ${ORACLE_FEED_API_KEY:-}
+      USGS_FEED_URL: ${USGS_FEED_URL:-}
+    ports:
+      - "8105:8105"
+    depends_on:
+      ig-sidecar:
+        condition: service_started
+
+  ig-zk-claim-audit:
+    build:
+      context: ..
+      dockerfile: insurance-governor/platforms/zk_claim_audit/Dockerfile
+    environment:
+      IG_SPINE_ENABLED: ${IG_SPINE_ENABLED:-true}
+      IG_SIDECAR_URL: http://ig-sidecar:8101
+      IG_INTERNAL_TOKEN: ${IG_INTERNAL_TOKENS:-dev-ig-spine-token-change-me}
+      IG_PLATFORM_DATABASE_URL: postgresql+psycopg://postgres:postgres@ig-postgres:5432/insurancegovernor
+    ports:
+      - "8106:8106"
+    depends_on:
+      ig-sidecar:
+        condition: service_started
+
+  ig-spatial-twin:
+    build:
+      context: ..
+      dockerfile: insurance-governor/platforms/spatial_twin/Dockerfile
+    environment:
+      IG_SPINE_ENABLED: ${IG_SPINE_ENABLED:-true}
+      IG_SIDECAR_URL: http://ig-sidecar:8101
+      IG_INTERNAL_TOKEN: ${IG_INTERNAL_TOKENS:-dev-ig-spine-token-change-me}
+    ports:
+      - "8107:8107"
+    depends_on:
+      ig-sidecar:
+        condition: service_started
+
+  ig-battery-liability:
+    build:
+      context: ..
+      dockerfile: insurance-governor/platforms/battery_liability/Dockerfile
+    environment:
+      IG_SPINE_ENABLED: ${IG_SPINE_ENABLED:-true}
+      IG_SIDECAR_URL: http://ig-sidecar:8101
+      IG_INTERNAL_TOKEN: ${IG_INTERNAL_TOKENS:-dev-ig-spine-token-change-me}
+    ports:
+      - "8108:8108"
+    depends_on:
+      ig-sidecar:
+        condition: service_started
+
+  ig-subrogation-graph:
+    build:
+      context: ..
+      dockerfile: insurance-governor/platforms/subrogation_graph/Dockerfile
+    environment:
+      IG_SPINE_ENABLED: ${IG_SPINE_ENABLED:-true}
+      IG_SIDECAR_URL: http://ig-sidecar:8101
+      IG_INTERNAL_TOKEN: ${IG_INTERNAL_TOKENS:-dev-ig-spine-token-change-me}
+    ports:
+      - "8109:8109"
+    depends_on:
+      ig-sidecar:
+        condition: service_started
+
+  ig-indemnity-pay-gate:
+    build:
+      context: ..
+      dockerfile: insurance-governor/platforms/indemnity_pay_gate/Dockerfile
+    environment:
+      IG_SPINE_ENABLED: ${IG_SPINE_ENABLED:-true}
+      IG_SIDECAR_URL: http://ig-sidecar:8101
+      IG_INTERNAL_TOKEN: ${IG_INTERNAL_TOKENS:-dev-ig-spine-token-change-me}
+    ports:
+      - "8110:8110"
+    depends_on:
+      ig-sidecar:
+        condition: service_started
+
+  ig-model-risk-freeze:
+    build:
+      context: ..
+      dockerfile: insurance-governor/platforms/model_risk_freeze/Dockerfile
+    environment:
+      IG_SPINE_ENABLED: ${IG_SPINE_ENABLED:-true}
+      IG_SIDECAR_URL: http://ig-sidecar:8101
+      IG_INTERNAL_TOKEN: ${IG_INTERNAL_TOKENS:-dev-ig-spine-token-change-me}
+    ports:
+      - "8111:8111"
+    depends_on:
+      ig-sidecar:
+        condition: service_started
+
+  ig-underwriting-govern:
+    build:
+      context: ..
+      dockerfile: insurance-governor/platforms/underwriting_govern/Dockerfile
+    environment:
+      IG_SPINE_ENABLED: ${IG_SPINE_ENABLED:-true}
+      IG_SIDECAR_URL: http://ig-sidecar:8101
+      IG_INTERNAL_TOKEN: ${IG_INTERNAL_TOKENS:-dev-ig-spine-token-change-me}
+    ports:
+      - "8112:8112"
+    depends_on:
+      ig-sidecar:
+        condition: service_started
+
+  ig-reserve-reconcile:
+    build:
+      context: ..
+      dockerfile: insurance-governor/platforms/reserve_reconcile/Dockerfile
+    environment:
+      IG_SPINE_ENABLED: ${IG_SPINE_ENABLED:-true}
+      IG_SIDECAR_URL: http://ig-sidecar:8101
+      IG_INTERNAL_TOKEN: ${IG_INTERNAL_TOKENS:-dev-ig-spine-token-change-me}
+    ports:
+      - "8113:8113"
+    depends_on:
+      ig-sidecar:
+        condition: service_started
+
+volumes:
+  ig_postgres_data:

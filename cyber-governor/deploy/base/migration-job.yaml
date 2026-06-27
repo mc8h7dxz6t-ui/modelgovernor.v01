@@ -1,0 +1,50 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cybersecuritygovernor-migrations
+  namespace: cybersecuritygovernor
+spec:
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: migrate
+          image: python:3.12-slim
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              pip install -q 'psycopg[binary]'
+              python - <<'PY'
+              import glob, os, sqlite3
+              import psycopg
+              dsn = os.environ["DATABASE_URL"].replace("postgresql+psycopg://", "postgresql://")
+              for path in sorted(glob.glob("/migrations/*.sql")):
+                  sql = open(path, encoding="utf-8").read()
+                  buf = []
+                  with psycopg.connect(dsn, autocommit=True) as conn:
+                      with conn.cursor() as cur:
+                          for line in sql.splitlines():
+                              buf.append(line)
+                              cand = "\n".join(buf).strip()
+                              if cand and sqlite3.complete_statement(cand):
+                                  cur.execute(cand)
+                                  buf = []
+                          tail = "\n".join(buf).strip()
+                          if tail:
+                              cur.execute(tail)
+              print("cyber migrations applied")
+              PY
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: cybersecuritygovernor-secrets
+                  key: database-url-direct
+          volumeMounts:
+            - name: migrations
+              mountPath: /migrations
+      volumes:
+        - name: migrations
+          configMap:
+            name: cg-migrations-bundle

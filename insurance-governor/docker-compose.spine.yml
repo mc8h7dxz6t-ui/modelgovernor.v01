@@ -1,0 +1,64 @@
+# Insurance Governor spine only (no platforms)
+# Usage: docker compose -f docker-compose.spine.yml up --build
+
+services:
+  ig-postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: insurancegovernor
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - ./migrations/0001_ig_spine_init.sql:/docker-entrypoint-initdb.d/0001_init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d insurancegovernor"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  ig-redis:
+    image: redis:7
+    ports:
+      - "6381:6379"
+
+  ig-sidecar:
+    build:
+      context: ..
+      dockerfile: insurance-governor/spine/sidecar/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@ig-postgres:5432/insurancegovernor
+      REDIS_URL: redis://ig-redis:6379/0
+      IG_INTERNAL_TOKENS: dev-ig-spine-token-change-me
+    ports:
+      - "8101:8101"
+    depends_on:
+      ig-postgres:
+        condition: service_healthy
+
+  ig-reconciler:
+    build:
+      context: ..
+      dockerfile: insurance-governor/spine/reconciler/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@ig-postgres:5432/insurancegovernor
+      REDIS_URL: redis://ig-redis:6379/0
+      RECONCILER_HEALTH_PORT: 8102
+    ports:
+      - "8102:8102"
+    depends_on:
+      ig-postgres:
+        condition: service_healthy
+
+  ig-gateway:
+    build:
+      context: ..
+      dockerfile: insurance-governor/spine/gateway/Dockerfile
+    environment:
+      IG_SIDECAR_URL: http://ig-sidecar:8101
+      IG_INTERNAL_TOKEN: dev-ig-spine-token-change-me
+    ports:
+      - "8100:8100"
+    depends_on:
+      - ig-sidecar

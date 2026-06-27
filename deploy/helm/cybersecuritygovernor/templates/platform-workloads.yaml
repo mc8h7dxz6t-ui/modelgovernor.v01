@@ -1,0 +1,85 @@
+{{- range $key, $plat := .Values.platforms }}
+{{- if $plat.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $plat.name | replace "_" "-" }}
+  namespace: {{ include "cybersecuritygovernor.namespace" $ }}
+  labels:
+    app: {{ $plat.name | replace "_" "-" }}
+    cybersecuritygovernor.io/platform: {{ $plat.name | quote }}
+    {{- include "cybersecuritygovernor.labels" $ | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  replicas: {{ $plat.replicas }}
+  selector:
+    matchLabels:
+      app: {{ $plat.name | replace "_" "-" }}
+  template:
+    metadata:
+      labels:
+        app: {{ $plat.name | replace "_" "-" }}
+        cybersecuritygovernor.io/platform: {{ $plat.name | quote }}
+        cybersecuritygovernor.io/component: platform
+      annotations:
+        {{- include "cybersecuritygovernor.istioPodAnnotations" $ | nindent 8 }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      {{- $sa := include "cybersecuritygovernor.platformServiceAccountName" $ }}
+      {{- if $sa }}
+      serviceAccountName: {{ $sa }}
+      {{- end }}
+      containers:
+        - name: {{ $plat.name | replace "_" "-" }}
+          image: {{ index $.Values.images $plat.imageKey "repository" }}:{{ index $.Values.images $plat.imageKey "tag" }}
+          imagePullPolicy: {{ index $.Values.images $plat.imageKey "pullPolicy" }}
+          ports:
+            - containerPort: {{ $plat.port }}
+          env:
+            - name: CG_SPINE_ENABLED
+              value: "true"
+            - name: CG_SIDECAR_URL
+              value: http://sidecar:8121
+            - name: CG_INTERNAL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "cybersecuritygovernor.secretName" $ }}
+                  key: sidecar-internal-tokens
+            {{- include "cybersecuritygovernor.platformIntegrationEnv" (dict "root" $) | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ $plat.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: {{ $plat.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml $plat.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $plat.name | replace "_" "-" }}
+  namespace: {{ include "cybersecuritygovernor.namespace" $ }}
+  labels:
+    app: {{ $plat.name | replace "_" "-" }}
+    cybersecuritygovernor.io/platform: {{ $plat.name | quote }}
+    {{- include "cybersecuritygovernor.labels" $ | nindent 4 }}
+spec:
+  selector:
+    app: {{ $plat.name | replace "_" "-" }}
+  ports:
+    - name: http
+      port: {{ $plat.port }}
+      targetPort: {{ $plat.port }}
+{{- end }}
+{{- end }}

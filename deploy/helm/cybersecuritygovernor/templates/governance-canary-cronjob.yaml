@@ -1,0 +1,35 @@
+{{- if .Values.governanceCanary.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: governance-canary
+  namespace: {{ include "cybersecuritygovernor.namespace" . }}
+  labels:
+    {{- include "cybersecuritygovernor.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.governanceCanary.schedule | quote }}
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: canary
+              image: curlimages/curl:8.5.0
+              env:
+                - name: IG_INTERNAL_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "cybersecuritygovernor.secretName" . }}
+                      key: sidecar-internal-tokens
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -e
+                  TOKEN="${IG_INTERNAL_TOKEN%%,*}"
+                  curl -sf http://sidecar:8121/readyz
+                  curl -sf -H "x-internal-token: ${TOKEN}" http://sidecar:8121/internal/diagnostic/status
+                  curl -sf -H "x-internal-token: ${TOKEN}" http://sidecar:8121/internal/security/verify-chain
+                  echo "governance canary ok"
+{{- end }}

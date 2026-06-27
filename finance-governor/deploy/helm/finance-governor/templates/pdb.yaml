@@ -1,0 +1,79 @@
+{{- if .Values.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: fg-sidecar-pdb
+  namespace: {{ include "fg.namespace" . }}
+  labels:
+    {{- include "fg.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.sidecar.minAvailable }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: sidecar
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: fg-gateway-pdb
+  namespace: {{ include "fg.namespace" . }}
+  labels:
+    {{- include "fg.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.gateway.minAvailable }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: gateway
+{{- if .Values.podDisruptionBudget.reconciler.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: fg-reconciler-pdb
+  namespace: {{ include "fg.namespace" . }}
+  labels:
+    {{- include "fg.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.reconciler.minAvailable }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: reconciler
+{{- end }}
+{{- if and .Values.pgbouncer.enabled .Values.podDisruptionBudget.pgbouncer.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: fg-pgbouncer-pdb
+  namespace: {{ include "fg.namespace" . }}
+  labels:
+    {{- include "fg.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.pgbouncer.minAvailable }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: pgbouncer
+{{- end }}
+{{- if and .Values.platforms.enabled .Values.podDisruptionBudget.platforms.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: fg-platforms-pdb
+  namespace: {{ include "fg.namespace" . }}
+  labels:
+    {{- include "fg.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.platforms.minAvailable }}
+  selector:
+    matchExpressions:
+      - key: app.kubernetes.io/component
+        operator: In
+        values:
+          - wirematch
+          - algofreeze
+          - subledger
+          - assetledger
+          - creditgovern
+{{- end }}
+{{- end }}

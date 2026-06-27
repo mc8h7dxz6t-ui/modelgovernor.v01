@@ -191,7 +191,7 @@ def append_decision_event(
 
     prev = head_hash(session) or GENESIS_HASH
     now = datetime.now(timezone.utc)
-    meta_sql = ":meta" if session.bind.dialect.name == "sqlite" else ":meta::jsonb"
+    meta_sql = ":meta" if session.bind.dialect.name == "sqlite" else "CAST(:meta AS jsonb)"
     recorded_at_param = now.isoformat() if session.bind.dialect.name == "sqlite" else now
     amount = str(quantize_money(exposure_delta))
 
@@ -248,16 +248,21 @@ def verify_decision_chain(session: Session) -> DecisionChainVerificationResult:
 
     if not schema_supports_decision_seal(session):
         return DecisionChainVerificationResult(
-            valid=True,
+            valid=False,
             sealed_count=0,
             unsealed_count=0,
             total_events=0,
             head_hash=None,
+            first_break=DecisionChainBreak(event_id=0, reason="seal_schema_unavailable"),
         )
 
+    dialect = session.bind.dialect.name
+    recorded_col = (
+        "recorded_at::text AS recorded_at" if dialect == "postgresql" else "recorded_at"
+    )
     rows = session.execute(
         text(
-            """
+            f"""
             SELECT
                 event_id,
                 operation_id,
@@ -266,7 +271,7 @@ def verify_decision_chain(session: Session) -> DecisionChainVerificationResult:
                 event_type,
                 exposure_delta,
                 metadata,
-                recorded_at,
+                {recorded_col},
                 prev_hash,
                 row_hash
             FROM decision_events

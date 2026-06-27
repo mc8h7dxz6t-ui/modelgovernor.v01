@@ -1,0 +1,36 @@
+# Patch all Finance Governor Deployments for Istio sidecar injection (enterprise)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fg-sidecar
+  namespace: finance-governor
+spec:
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "true"
+        proxy.istio.io/config: '{ "holdApplicationUntilProxyStarts": true }'
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fg-gateway
+  namespace: finance-governor
+spec:
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "true"
+        proxy.istio.io/config: '{ "holdApplicationUntilProxyStarts": true }'
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fg-reconciler
+  namespace: finance-governor
+spec:
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "true"
+        proxy.istio.io/config: '{ "holdApplicationUntilProxyStarts": true }'

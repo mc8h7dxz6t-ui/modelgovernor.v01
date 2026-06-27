@@ -1,0 +1,29 @@
+{{- if .Values.reconciler.pdb.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: reconciler-pdb
+  namespace: {{ include "insurancegovernor.namespace" . }}
+  labels:
+    {{- include "insurancegovernor.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.reconciler.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      app: reconciler
+{{- end }}
+---
+{{- if .Values.pgbouncer.pdb.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pgbouncer-pdb
+  namespace: {{ include "insurancegovernor.namespace" . }}
+  labels:
+    {{- include "insurancegovernor.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.pgbouncer.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      app: pgbouncer
+{{- end }}
