@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cg-governance-canary
+  namespace: cybersecuritygovernor
+spec:
+  schedule: "*/10 * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: canary
+              image: curlimages/curl:8.5.0
+              env:
+                - name: CG_INTERNAL_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: cybersecuritygovernor-secrets
+                      key: cg-internal-tokens
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -e
+                  TOKEN="${CG_INTERNAL_TOKEN%%,*}"
+                  curl -sf -H "x-internal-token: ${TOKEN}" \
+                    -X POST http://cg-gateway:8100/governed/commit \
+                    -H 'content-type: application/json' \
+                    -d '{"platform":"identity_gate","operation_id":"canary-'"$(date +%s)"'","facets":{"session_state":"AUTHORIZED"},"policy_id":"identity-critical-us"}'
+                  echo "cg governance canary ok"

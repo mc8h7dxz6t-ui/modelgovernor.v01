@@ -1,0 +1,24 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cg-synthetic-canary
+  namespace: cybersecuritygovernor
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: canary
+              image: curlimages/curl:8.5.0
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -e
+                  curl -sf http://cg-sidecar:8101/readyz
+                  curl -sf http://cg-gateway:8100/healthz
+                  curl -sf http://cg-reconciler:8102/healthz
+                  echo "cg synthetic canary ok"

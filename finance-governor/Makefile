@@ -5,7 +5,15 @@
 	fg-certification-l4-ci fg-demo-up fg-demo-down fg-demo-gold \
 	fg-test-postgres-up fg-test-postgres-down fg-integration-test fg-chaos-test fg-load-smoke \
 	fg-helm-enterprise fg-kustomize-install fg-kustomize-enterprise fg-platform-conformance \
-	fg-certification-external fg-certification-external-full fg-examiner-evidence fg-docker-build
+	fg-certification-external fg-certification-external-full fg-examiner-evidence fg-docker-build \
+	fg-test-deps fg-test-deps-check
+
+fg-test-deps:
+	chmod +x scripts/install-test-deps.sh
+	./scripts/install-test-deps.sh
+
+fg-test-deps-check:
+	@python3 -c "import pytest" 2>/dev/null || (echo "Run: make fg-test-deps" && exit 1)
 
 fg-spine-up:
 	docker compose up -d --build
@@ -37,7 +45,7 @@ fg-test-postgres-up:
 fg-test-postgres-down:
 	docker compose -f docker-compose.test.yml down
 
-fg-spine-test:
+fg-spine-test: fg-test-deps
 	python3 -m pytest tests/ -q --ignore=tests/integration
 
 fg-integration-test:

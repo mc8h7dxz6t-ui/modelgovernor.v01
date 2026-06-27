@@ -1,0 +1,269 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cg-identity-gate
+  namespace: cybersecuritygovernor
+  labels:
+    app: cg-identity-gate
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cg-identity-gate
+  template:
+    metadata:
+      labels:
+        app: cg-identity-gate
+    spec:
+      containers:
+        - name: cg-identity-gate
+          image: cybersecuritygovernor/identity-gate:latest
+          ports:
+            - containerPort: 8103
+          env:
+            - name: CG_SPINE_ENABLED
+              value: "true"
+            - name: CG_SIDECAR_URL
+              value: "http://cg-sidecar:8101"
+            - name: CG_INTERNAL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cybersecuritygovernor-secrets
+                  key: cg-internal-tokens
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cg-identity-gate
+  namespace: cybersecuritygovernor
+spec:
+  selector:
+    app: cg-identity-gate
+  ports:
+    - port: 8103
+      targetPort: 8103
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cg-egress-lock
+  namespace: cybersecuritygovernor
+  labels:
+    app: cg-egress-lock
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cg-egress-lock
+  template:
+    metadata:
+      labels:
+        app: cg-egress-lock
+    spec:
+      containers:
+        - name: cg-egress-lock
+          image: cybersecuritygovernor/egress-lock:latest
+          ports:
+            - containerPort: 8104
+          env:
+            - name: CG_SPINE_ENABLED
+              value: "true"
+            - name: CG_SIDECAR_URL
+              value: "http://cg-sidecar:8101"
+            - name: CG_INTERNAL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cybersecuritygovernor-secrets
+                  key: cg-internal-tokens
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cg-egress-lock
+  namespace: cybersecuritygovernor
+spec:
+  selector:
+    app: cg-egress-lock
+  ports:
+    - port: 8104
+      targetPort: 8104
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cg-witness-bridge
+  namespace: cybersecuritygovernor
+  labels:
+    app: cg-witness-bridge
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cg-witness-bridge
+  template:
+    metadata:
+      labels:
+        app: cg-witness-bridge
+    spec:
+      containers:
+        - name: cg-witness-bridge
+          image: cybersecuritygovernor/witness-bridge:latest
+          ports:
+            - containerPort: 8105
+          env:
+            - name: CG_SPINE_ENABLED
+              value: "true"
+            - name: CG_SIDECAR_URL
+              value: "http://cg-sidecar:8101"
+            - name: CG_INTERNAL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cybersecuritygovernor-secrets
+                  key: cg-internal-tokens
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cg-witness-bridge
+  namespace: cybersecuritygovernor
+spec:
+  selector:
+    app: cg-witness-bridge
+  ports:
+    - port: 8105
+      targetPort: 8105
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cg-lineage-ingest
+  namespace: cybersecuritygovernor
+  labels:
+    app: cg-lineage-ingest
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cg-lineage-ingest
+  template:
+    metadata:
+      labels:
+        app: cg-lineage-ingest
+    spec:
+      containers:
+        - name: cg-lineage-ingest
+          image: cybersecuritygovernor/lineage-ingest:latest
+          ports:
+            - containerPort: 8106
+          env:
+            - name: CG_SPINE_ENABLED
+              value: "true"
+            - name: CG_SIDECAR_URL
+              value: "http://cg-sidecar:8101"
+            - name: CG_INTERNAL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cybersecuritygovernor-secrets
+                  key: cg-internal-tokens
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cg-lineage-ingest
+  namespace: cybersecuritygovernor
+spec:
+  selector:
+    app: cg-lineage-ingest
+  ports:
+    - port: 8106
+      targetPort: 8106
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cg-posture-reconcile
+  namespace: cybersecuritygovernor
+  labels:
+    app: cg-posture-reconcile
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cg-posture-reconcile
+  template:
+    metadata:
+      labels:
+        app: cg-posture-reconcile
+    spec:
+      containers:
+        - name: cg-posture-reconcile
+          image: cybersecuritygovernor/posture-reconcile:latest
+          ports:
+            - containerPort: 8107
+          env:
+            - name: CG_SPINE_ENABLED
+              value: "true"
+            - name: CG_SIDECAR_URL
+              value: "http://cg-sidecar:8101"
+            - name: CG_INTERNAL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cybersecuritygovernor-secrets
+                  key: cg-internal-tokens
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cg-posture-reconcile
+  namespace: cybersecuritygovernor
+spec:
+  selector:
+    app: cg-posture-reconcile
+  ports:
+    - port: 8107
+      targetPort: 8107
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cg-content-guard
+  namespace: cybersecuritygovernor
+  labels:
+    app: cg-content-guard
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cg-content-guard
+  template:
+    metadata:
+      labels:
+        app: cg-content-guard
+    spec:
+      containers:
+        - name: cg-content-guard
+          image: cybersecuritygovernor/content-guard:latest
+          ports:
+            - containerPort: 8108
+          env:
+            - name: CG_SPINE_ENABLED
+              value: "true"
+            - name: CG_SIDECAR_URL
+              value: "http://cg-sidecar:8101"
+            - name: CG_INTERNAL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cybersecuritygovernor-secrets
+                  key: cg-internal-tokens
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cg-content-guard
+  namespace: cybersecuritygovernor
+spec:
+  selector:
+    app: cg-content-guard
+  ports:
+    - port: 8108
+      targetPort: 8108

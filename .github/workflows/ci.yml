@@ -217,6 +217,172 @@ jobs:
       - name: Verify invariant migration present
         run: PYTHONPATH=. python3 -m pytest tests/integration/test_migration_invariants.py::test_invariant_migration_file_present -q
 
+  cyber-governor-test:
+    name: Cybersecurity Governor — institutional++ gate
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: cg_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5444:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install cyber-governor dependencies
+        run: |
+          pip install -r cyber-governor/spine/sidecar/requirements.txt
+          pip install -r cyber-governor/spine/reconciler/requirements.txt
+          pip install -r cyber-governor/platforms/requirements.txt
+          pip install -r cyber-governor/tests/requirements-test.txt
+
+      - name: Apply cyber migrations
+        env:
+          PGPASSWORD: postgres
+        run: |
+          for f in cyber-governor/migrations/*.sql; do
+            psql -h localhost -p 5444 -U postgres -d cg_test -f "$f"
+          done
+
+      - name: Tier 1 — unit tests
+        run: make -C cyber-governor cg-spine-test
+
+      - name: Property tests (Hypothesis hash chain)
+        run: make -C cyber-governor cg-property-test
+
+      - name: Tier 2 — Postgres integration
+        env:
+          CG_POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5444/cg_test
+        run: |
+          cd cyber-governor
+          python3 -m pytest tests/integration/ -q
+
+      - name: Invariant report
+        run: make -C cyber-governor cg-invariant-report
+
+      - name: Tier 4 — Kustomize build
+        run: |
+          curl -sSLo kustomize.tar.gz \
+            https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.5.0/kustomize_v5.5.0_linux_amd64.tar.gz
+          tar xzf kustomize.tar.gz && chmod +x kustomize
+          for overlay in base staging production enterprise; do
+            echo "==> kustomize build deploy/overlays/$overlay (or deploy/$overlay)"
+            if [ "$overlay" = "base" ]; then
+              ./kustomize build --load-restrictor LoadRestrictionsNone cyber-governor/deploy/base/ > "/tmp/cg-k8s-$overlay.yaml"
+            else
+              ./kustomize build --load-restrictor LoadRestrictionsNone "cyber-governor/deploy/overlays/$overlay/" > "/tmp/cg-k8s-$overlay.yaml"
+            fi
+            wc -l "/tmp/cg-k8s-$overlay.yaml"
+          done
+
+  finance-governor-test:
+    name: Finance Governor — institutional++ gate
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: fg_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5445:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install finance-governor dependencies
+        run: make -C finance-governor fg-test-deps
+
+      - name: Apply finance migrations
+        env:
+          PGPASSWORD: postgres
+        run: |
+          for f in finance-governor/migrations/*.sql; do
+            psql -h localhost -p 5445 -U postgres -d fg_test -f "$f"
+          done
+
+      - name: Tier 1 — unit tests (all platforms)
+        run: make -C finance-governor fg-spine-test
+
+      - name: Tier 2 — Postgres integration
+        env:
+          FG_TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5445/fg_test
+        run: |
+          cd finance-governor
+          python3 -m pytest tests/integration/ -q
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Helm template gate
+        run: make -C finance-governor fg-helm-template
+
+  cyber-governor-chaos:
+    name: Tier 4 — Toxiproxy chaos (Cyber Governor)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -r cyber-governor/spine/sidecar/requirements.txt
+          pip install -r cyber-governor/tests/requirements-test.txt
+
+      - name: Start cyber toxiproxy chaos stack
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ok=0
+          for i in 1 2 3; do
+            if docker compose -f cyber-governor/docker-compose.chaos.yml pull cg-postgres-chaos cg-toxiproxy; then
+              ok=1
+              break
+            fi
+            echo "Docker pull failed, retry $i/3"
+            sleep 10
+          done
+
+          test "$ok" -eq 1
+
+          docker compose -f cyber-governor/docker-compose.chaos.yml up -d --wait cg-postgres-chaos cg-toxiproxy
+          docker compose -f cyber-governor/docker-compose.chaos.yml run --rm cg-toxiproxy-config
+
+      - name: Tier 4 toxiproxy cyber ops tests
+        env:
+          CG_CHAOS_POSTGRES_URL: postgresql+psycopg://postgres:postgres@localhost:5446/cg_chaos
+          TOXIPROXY_API: http://localhost:8475
+        run: make -C cyber-governor cg-chaos-test
+
+      - name: Tear down chaos stack
+        if: always()
+        run: docker compose -f cyber-governor/docker-compose.chaos.yml down -v
+
   test-tier4-chaos:
     name: Tier 4 — Toxiproxy chaos (Finance Ops)
     runs-on: ubuntu-latest
@@ -236,7 +402,22 @@ jobs:
           pip install pytest requests
 
       - name: Start toxiproxy chaos stack
+        shell: bash
         run: |
+          set -euo pipefail
+
+          ok=0
+          for i in 1 2 3; do
+            if docker compose -f docker-compose.chaos.yml pull postgres-chaos toxiproxy; then
+              ok=1
+              break
+            fi
+            echo "Docker pull failed, retry $i/3"
+            sleep 10
+          done
+
+          test "$ok" -eq 1
+
           docker compose -f docker-compose.chaos.yml up -d --wait postgres-chaos toxiproxy
           docker compose -f docker-compose.chaos.yml run --rm toxiproxy-config
 

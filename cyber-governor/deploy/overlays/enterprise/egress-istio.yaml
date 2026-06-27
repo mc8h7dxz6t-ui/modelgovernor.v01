@@ -1,0 +1,38 @@
+# Istio egress allowlist — witness webhooks, IdP, S3 anchor endpoints.
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: cg-external-egress
+  namespace: cybersecuritygovernor
+spec:
+  hosts:
+    - hooks.slack.com
+    - "*.amazonaws.com"
+    - login.microsoftonline.com
+    - "*.okta.com"
+  location: MESH_EXTERNAL
+  ports:
+    - number: 443
+      name: https
+      protocol: HTTPS
+  resolution: DNS
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: cg-gateway-egress-allowlist
+  namespace: cybersecuritygovernor
+spec:
+  selector:
+    matchLabels:
+      app: cg-gateway
+  action: ALLOW
+  rules:
+    - to:
+        - operation:
+            hosts:
+              - hooks.slack.com
+              - "*.amazonaws.com"
+              - login.microsoftonline.com
+              - "*.okta.com"
+              - cg-sidecar.cybersecuritygovernor.svc.cluster.local
