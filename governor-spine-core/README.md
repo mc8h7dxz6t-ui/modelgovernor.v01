@@ -4,11 +4,15 @@ Authoritative **port map**, **ledger table registry**, and **repository integrit
 
 This package is the consolidation **contract** — not a replacement for per-governor SQLAlchemy sidecars.
 
-## Maturity label
+## Maturity labels
 
-**Institutional Self-Check Certified** — use for `make plug` (pytest + port alignment + Helm render).
+| Label | Proof | Use when |
+|-------|-------|----------|
+| **L4 Gold Enterprise** | Per-governor 4-tier CI + Helm | Sale-ready engineering baseline |
+| **L5 Institutional Self-Check** | `make plug` | Portfolio offline harness |
+| **Industry Leading Gold Standard** | L4+L5 + live attestation + external evidence | Acquirer / design-partner diligence only |
 
-Do not claim third-party L5 or "Industry Leading" without external audit.
+**Industry Leading** describes **kernel architecture class** (crystallize → seal → commit → prove), not broad-market SaaS readiness. See [docs/maturity-ladder.md](docs/maturity-ladder.md) and [docs/transactional-kernel-strategy.md](docs/transactional-kernel-strategy.md).
 
 ## Modules
 
@@ -18,6 +22,8 @@ Do not claim third-party L5 or "Industry Leading" without external audit.
 | `port_checks.py` | Spine Dockerfile/compose alignment + platform port drift |
 | `mode_contract.py` | Maps Active/Mock to existing env vars (no new singleton) |
 | `verify_http.py` | HTTP client for sidecar `verify-chain` endpoints |
+| `docs/transactional-kernel-strategy.md` | Tech edge, commercial headwinds, buyer fit |
+| `docs/maturity-ladder.md` | L4 / L5 / Industry Leading definitions |
 | `docs/disaster-recovery-runbook.md` | Honest DR — circuit breaker, diagnostic, fallback |
 
 ## Verify
