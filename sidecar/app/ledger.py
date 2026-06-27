@@ -811,6 +811,33 @@ def _load_operation_for_update(
     return None
 
 
+def _ledger_events_support_tenant_id(session: Session) -> bool:
+    if session.bind.dialect.name == "sqlite":
+        rows = session.execute(text("PRAGMA table_info(ledger_events)")).fetchall()
+        return any(row[1] == "tenant_id" for row in rows)
+    found = session.execute(
+        text(
+            """
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_name = 'ledger_events' AND column_name = 'tenant_id'
+            """
+        )
+    ).first()
+    return found is not None
+
+
+def _resolve_event_tenant_id(session: Session, idempotency_key: str) -> str:
+    if attribution and attribution.schema_supports_attribution(session):
+        row = session.execute(
+            text("SELECT tenant_id FROM escrow_ledger WHERE idempotency_key = :idempotency_key"),
+            {"idempotency_key": idempotency_key},
+        ).mappings().first()
+        if row and row.get("tenant_id"):
+            return str(row["tenant_id"])
+    return "default-tenant"
+
+
 def _append_event(
     session: Session,
     *,
@@ -825,20 +852,28 @@ def _append_event(
     if session.bind.dialect.name == "postgresql":
         metadata_value = "CAST(:metadata AS JSONB)"
 
+    tenant_column = ""
+    tenant_value = ""
+    params: dict = {
+        "idempotency_key": idempotency_key,
+        "user_id": user_id,
+        "event_type": event_type,
+        "amount_delta": _money(amount_delta),
+        "metadata": metadata_json,
+    }
+    if _ledger_events_support_tenant_id(session):
+        tenant_column = ", tenant_id"
+        tenant_value = ", :tenant_id"
+        params["tenant_id"] = _resolve_event_tenant_id(session, idempotency_key)
+
     session.execute(
         text(
             f"""
-            INSERT INTO ledger_events (idempotency_key, user_id, event_type, amount_delta, metadata)
-            VALUES (:idempotency_key, :user_id, :event_type, :amount_delta, {metadata_value})
+            INSERT INTO ledger_events (idempotency_key, user_id, event_type, amount_delta, metadata{tenant_column})
+            VALUES (:idempotency_key, :user_id, :event_type, :amount_delta, {metadata_value}{tenant_value})
             """
         ),
-        {
-            "idempotency_key": idempotency_key,
-            "user_id": user_id,
-            "event_type": event_type,
-            "amount_delta": _money(amount_delta),
-            "metadata": metadata_json,
-        },
+        params,
     )
     _maybe_seal_event(
         session,

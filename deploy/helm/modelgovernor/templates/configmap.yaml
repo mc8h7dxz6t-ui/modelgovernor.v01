@@ -36,3 +36,9 @@ data:
   OPENAI_COMPAT_ENABLED: {{ .Values.config.openaiCompatEnabled | quote }}
   OPENAI_COMPAT_DEFAULT_USER_ID: {{ .Values.config.openaiCompatDefaultUserId | quote }}
   LEDGER_ANCHOR_S3_OBJECT_LOCK_ENABLED: {{ .Values.config.ledgerAnchorS3ObjectLockEnabled | quote }}
+  RLS_ENABLED: {{ .Values.config.rlsEnabled | quote }}
+  ENFORCEMENT_MODE: {{ .Values.config.enforcementMode | quote }}
+  ENFORCEMENT_LATENCY_SLO_MS: {{ .Values.config.enforcementLatencySloMs | quote }}
+  ENFORCEMENT_EVALUATOR_TIMEOUT_MS: {{ .Values.config.enforcementEvaluatorTimeoutMs | quote }}
+  OIDC_TENANT_CLAIM: {{ .Values.config.oidcTenantClaim | quote }}
+  INTERNAL_TOKEN_DEFAULT_TENANT: {{ .Values.config.internalTokenDefaultTenant | quote }}

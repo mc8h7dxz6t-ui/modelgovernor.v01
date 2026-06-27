@@ -50,6 +50,12 @@ class Settings(BaseSettings):
     oidc_internal_token_is_admin: bool = True
     oidc_viewer_roles: str = "viewer,modelgovernor-viewer"
     oidc_financial_admin_roles: str = "financial-admin,modelgovernor-financial-admin"
+    oidc_tenant_claim: str = "tenant_id"
+    internal_token_default_tenant: str = "default-tenant"
+    rls_enabled: bool = False
+    enforcement_mode: str = "SHADOW"
+    enforcement_latency_slo_ms: float = 50.0
+    enforcement_evaluator_timeout_ms: float = 45.0
     ledger_anchor_webhook_url: str | None = None
     ledger_anchor_s3_bucket: str | None = None
     ledger_anchor_s3_prefix: str = "ledger-anchors"

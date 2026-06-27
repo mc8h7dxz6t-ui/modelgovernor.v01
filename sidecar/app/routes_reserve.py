@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from .auth import require_internal_auth
+from .auth import AuthContext, require_internal_auth
 from .config import get_settings
-from .db import get_db_session
+from .db import get_tenant_db_session
 from .diagnostic_mode import diagnostic_snapshot, is_diagnostic_mode
+from .enforcement_mode import execute_intercept_gate, policy_from_settings
+from .governance_eval import evaluate_reserve_governance
 from .guardrails import (
     GuardrailError,
     InflightLimitExceeded,
@@ -25,8 +27,11 @@ from .tracing import span
 router = APIRouter(tags=["reserve"])
 
 
-@router.post("/reserve", response_model=ReserveResponse, dependencies=[Depends(require_internal_auth)])
-def reserve(request: ReserveRequest) -> ReserveResponse:
+@router.post("/reserve", response_model=ReserveResponse)
+def reserve(
+    request: ReserveRequest,
+    auth: AuthContext = Depends(require_internal_auth),
+) -> ReserveResponse:
     if get_settings().diagnostic_mode_blocks_writes and is_diagnostic_mode():
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -48,7 +53,31 @@ def reserve(request: ReserveRequest) -> ReserveResponse:
                 trace_id=request.trace_id,
                 idempotency_key=request.idempotency_key,
             )
-            with get_db_session() as session:
+
+            policy = policy_from_settings()
+
+            def _governance_eval() -> bool:
+                with get_tenant_db_session(auth.tenant_id, commit=False) as session:
+                    return evaluate_reserve_governance(
+                        session,
+                        request,
+                        auth_tenant_id=auth.tenant_id,
+                    )
+
+            gate = execute_intercept_gate(
+                crystal_id=request.idempotency_key,
+                tenant_id=auth.tenant_id,
+                domain="MODEL_GOV",
+                policy=policy,
+                core_validation=_governance_eval,
+            )
+            if gate.action == "DENY":
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=gate.reason or "governor intercept deny",
+                )
+
+            with get_tenant_db_session(auth.tenant_id) as session:
                 result = reserve_operation(session, get_settings(), request)
     except PolicyDecisionError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc

@@ -21,6 +21,7 @@ class AuthContext:
     method: AuthMethod
     subject: str
     roles: frozenset[str]
+    tenant_id: str = "default-tenant"
 
     def has_role(self, *role_names: str) -> bool:
         normalized = {role.strip().lower() for role in role_names if role.strip()}
@@ -125,10 +126,27 @@ def _validate_oidc_jwt(token: str) -> AuthContext:
         )
 
     subject = str(claims.get("sub") or claims.get("email") or "unknown")
+    from .tenant_rls import extract_tenant_from_claims, validate_tenant_id
+
+    raw_tenant = extract_tenant_from_claims(claims, claim_name=settings.oidc_tenant_claim)
+    if not raw_tenant:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="missing tenant_id in OIDC claims",
+        )
+    try:
+        tenant_id = validate_tenant_id(raw_tenant)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="invalid tenant_id claim",
+        ) from exc
+
     return AuthContext(
         method="oidc",
         subject=subject,
         roles=frozenset(_extract_roles(claims)),
+        tenant_id=tenant_id,
     )
 
 
@@ -138,10 +156,12 @@ def _validate_internal_token(x_internal_token: str | None) -> AuthContext | None
         token.strip() for token in settings.sidecar_internal_tokens.split(",") if token.strip()
     }
     if x_internal_token and x_internal_token in allowed_tokens:
+        tenant = (settings.internal_token_default_tenant or "default-tenant").strip()
         return AuthContext(
             method="internal_token",
             subject="internal-token",
             roles=frozenset({"financial-admin", "viewer"}),
+            tenant_id=tenant,
         )
     return None
 

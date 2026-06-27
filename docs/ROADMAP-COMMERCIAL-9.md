@@ -210,10 +210,13 @@ WireMatch + AlgoFreeze + spine. Subledger/Credit/Asset stay **L1** until Phase 5
 
 | | Today | 9/10 target |
 |---|------|-------------|
-| **Score** | 2/10 | 9/10 |
+| **Score** | 4/10 (RLS + shadow shipped) | 9/10 |
 
 ### Build
 
+- [x] **Postgres RLS tenant isolation** — `migrations/0013_tenant_rls.sql`, `sidecar/app/tenant_rls.py`, `docs/security/TENANT-RLS.md`
+- [x] **Shadow/enforce intercept gate** — `sidecar/app/enforcement_mode.py`, wired on `/reserve` + `/settle`, `docs/security/SHADOW-ENFORCE.md`
+- [x] **OIDC tenant claim** — JWKS-verified `tenant_id`; pool `RESET ALL` on checkout (ghost-tenant leak prevention)
 - [ ] **Threat model:** `docs/security/THREAT-MODEL.md` — external/app/DBA/insider
 - [ ] **SOC 2 Type I** readiness assessment → Type I report (month 4–6) → Type II (month 10–12)
 - [ ] **Pen test** by qualified firm; remediate Critical/High; letter in data room

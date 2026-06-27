@@ -35,7 +35,12 @@ def build_engine(database_url: str) -> Engine:
             }
         )
 
-    return create_engine(database_url, **engine_kwargs)
+    engine = create_engine(database_url, **engine_kwargs)
+    if not database_url.startswith("sqlite"):
+        from .tenant_rls import install_pool_tenant_reset
+
+        install_pool_tenant_reset(engine)
+    return engine
 
 
 def get_engine() -> Engine:
@@ -60,3 +65,31 @@ def get_db_session() -> Iterator[Session]:
         raise
     finally:
         session.close()
+
+
+@contextmanager
+def get_tenant_db_session(
+    tenant_id: str | None = None,
+    *,
+    commit: bool = True,
+) -> Iterator[Session]:
+    """Yield a session with optional Postgres RLS tenant binding."""
+    settings = get_settings()
+    use_rls = bool(settings.rls_enabled and tenant_id)
+
+    with get_db_session() as session:
+        reset_session_context = None
+        if use_rls:
+            from .tenant_rls import bind_tenant_session, reset_session_context
+
+            bind_tenant_session(session, tenant_id)  # type: ignore[arg-type]
+        try:
+            yield session
+            if commit:
+                session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            if reset_session_context is not None:
+                reset_session_context(session)

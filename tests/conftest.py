@@ -25,6 +25,7 @@ _MIGRATION_FILES = [
     "0009_ledger_hash_chain.sql",
     "0010_admin_audit_log.sql",
     "0011_ledger_chain_anchors.sql",
+    "0013_tenant_rls.sql",
 ]
 
 _TRUNCATE_TABLES = [
