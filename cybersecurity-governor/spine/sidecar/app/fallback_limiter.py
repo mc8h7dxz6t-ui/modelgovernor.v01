@@ -18,7 +18,7 @@ class LocalFallbackLimiter:
         self._lock = threading.Lock()
         self._rate_windows: dict[str, tuple[int, int]] = {}
         self._inflight: dict[str, int] = defaultdict(int)
-        self._claim_depth: dict[str, set[str]] = defaultdict(set)
+        self._trace_depth: dict[str, set[str]] = defaultdict(set)
         self._tokens: float = 0.0
         self._last_refill: float = time.monotonic()
         self._initialized = False
@@ -28,7 +28,7 @@ class LocalFallbackLimiter:
         *,
         settings: Settings,
         account_id: str,
-        claim_id: str,
+        trace_scope_id: str,
         operation_id: str,
     ) -> None:
         with self._lock:
@@ -48,11 +48,11 @@ class LocalFallbackLimiter:
                 get_counters().increment("local_fallback_rate_limit_total")
                 raise RateLimitExceeded(f"local fallback rate limit for account {account_id}")
 
-            security_ops = self._claim_depth[claim_id]
+            security_ops = self._trace_depth[trace_scope_id]
             security_ops.add(operation_id)
             if len(security_ops) > settings.fallback_max_action_depth:
                 get_counters().increment("local_fallback_claim_depth_total")
-                raise TraceDepthExceeded(f"local fallback claim depth for {claim_id}")
+                raise TraceDepthExceeded(f"local fallback trace depth for {trace_scope_id}")
 
             inflight = self._inflight[account_id] + 1
             if inflight > settings.fallback_max_account_inflight:

@@ -1,4 +1,4 @@
-.PHONY: cg-spine-up cg-spine-down cg-stack-up cg-stack-down cg-spine-test cg-spine-smoke cg-property-test claim-gate-demo cg-demo cg-certification cg-certification-strict cg-certification-l4 cg-certification-l4-ci cg-helm-enterprise cg-platform-conformance cg-load-test cg-chaos-test cg-ha-up cg-ha-down cg-pilot-attestation cg-cluster-attestation cg-rail-smoke cg-design-partner-package cg-full-rehearsal cg-embedded-rehearsal cg-examiner-evidence cg-test-deps
+.PHONY: cg-spine-up cg-spine-down cg-stack-up cg-stack-down cg-spine-test cg-spine-smoke cg-property-test claim-gate-demo cg-demo cg-security-demo cg-certification cg-certification-strict cg-certification-l4 cg-certification-l4-ci cg-helm-enterprise cg-platform-conformance cg-load-test cg-chaos-test cg-ha-up cg-ha-down cg-pilot-attestation cg-cluster-attestation cg-rail-smoke cg-design-partner-package cg-full-rehearsal cg-embedded-rehearsal cg-examiner-evidence cg-test-deps
 
 cg-test-deps:
 	python3 -m pip install --upgrade pip
@@ -58,6 +58,10 @@ egress-govern-demo:
 
 cg-demo: cg-spine-smoke egress-govern-demo
 
+cg-security-demo:
+	chmod +x scripts/cg-security-demo.sh
+	cd .. && cybersecurity-governor/scripts/cg-security-demo.sh
+
 cg-load-test:
 	cd .. && PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor python3 -m pytest cybersecurity-governor/tests/load/test_cg_load_harness.py -q
 
@@ -80,7 +84,7 @@ cg-examiner-evidence:
 	cd .. && python3 cybersecurity-governor/scripts/cg_examiner_evidence_pack.py
 
 cg-helm-enterprise:
-	helm template ig ../deploy/helm/cybersecuritygovernor \
+	helm template cg ../deploy/helm/cybersecuritygovernor \
 	  -f ../deploy/helm/cybersecuritygovernor/values-production.yaml \
 	  -f ../deploy/helm/cybersecuritygovernor/values-enterprise.yaml \
 	  --set secrets.create=true \
@@ -132,8 +136,8 @@ cg-ha-down:
 	docker compose -f docker-compose.ha.yml down
 
 cg-pilot-attestation:
-	chmod +x scripts/ig-pilot-attestation.sh scripts/attestation_runner.py
-	cd .. && cybersecurity-governor/scripts/ig-pilot-attestation.sh
+	chmod +x scripts/cg-pilot-attestation.sh scripts/attestation_runner.py
+	cd .. && cybersecurity-governor/scripts/cg-pilot-attestation.sh
 
 cg-cluster-attestation:
 	chmod +x scripts/ig-cluster-attestation.sh

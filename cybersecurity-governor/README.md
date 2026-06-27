@@ -1,73 +1,63 @@
 # Cybersecurity Governor
 
-Institutional++ insurance control plane — **own spine** (gateway / sidecar / reconciler) with **Crystal Commit Protocol**, plus **extractable standalone platforms**.
+Fourth governor in the ModelGovernor institutional++ lineage — **runtime security enforcement** with L4 Gold certification parity.
 
 ## What this is
 
 | Layer | Purpose |
 |-------|---------|
-| **Spine** | Optional shared governance: CCP, claim escrow, hash chain, `security_ops` invariants, horizon reconciler |
-| **Platforms** | Standalone products (ClaimGate, …) that work alone or plug into spine via `SpineAdapter` |
+| **Spine** | Gateway / sidecar / reconciler — CCP, security escrow, hash chain, `security_ops` invariants |
+| **Platforms** | Nine enforcement wedges (six sales SKUs + ThreatProxy, IR gate, ComplianceLogger) |
 
-ModelGovernor, Finance Governor, and Cybersecurity Governor are **sibling spines** — same reliability patterns, different domains.
+Sibling spines: ModelGovernor, Finance Governor, Insurance Governor — same reliability patterns, different domains.
 
 ## Architecture
 
 ```
 cybersecurity-governor/
-├── spine/                 # Optional control plane (ports 8100–8102)
-│   ├── gateway/
-│   ├── sidecar/
-│   └── reconciler/
-├── platforms/             # Extractable wedges
-│   ├── common/            # crystal.py, spine_adapter.py
-│   └── claim_gate/        # Phase 1 payout gate
+├── spine/                 # Control plane (ports 8120–8122)
+├── platforms/             # Enforcement wedges (8123–8131)
 ├── migrations/
-├── docker-compose.yml     # Full stack
-├── docker-compose.spine.yml
+├── docker-compose.yml
 └── docs → ../docs/cybersecurity-governor/
 ```
-
-## Deployment modes
-
-| Mode | Compose | `CG_SPINE_ENABLED` |
-|------|---------|-------------------|
-| **Platform-only** | `platforms/claim_gate/docker-compose.standalone.yml` | `false` |
-| **Spine-only** | `docker-compose.spine.yml` | n/a |
-| **Full stack** | `docker-compose.yml` | `true` on platforms |
-
-Platforms never require the spine. Set `CG_SPINE_ENABLED=false` for full standalone value.
 
 ## Ports
 
 | Service | Port |
 |---------|------|
-| ig-gateway | 8100 |
-| ig-sidecar | 8101 |
-| ig-reconciler | 8102 |
-| claim-gate | 8103 |
+| cg-gateway | 8120 |
+| cg-sidecar | 8121 |
+| cg-reconciler | 8122 |
+| egress_govern (CG-EGRESSLOCK) | 8123 |
+| identity_govern (CG-IDENTITYGATE) | 8124 |
+| threat_proxy | 8125 |
+| incident_response_gate | 8126 |
+| posture_reconcile (CG-POSTURERECONCILE) | 8127 |
+| compliance_logger | 8128 |
+| witness_bridge (CG-WITNESSBRIDGE) | 8129 |
+| lineage_ingest (CG-LINEAGEINGEST) | 8130 |
+| content_guard (CG-CONTENTGUARD) | 8131 |
 
 ## Quick start
 
 ```bash
-# Tests (Tier 1 — SQLite)
-make cg-spine-test
-
-# Spine + ClaimGate
-make cg-stack-up
-make cg-spine-smoke
-make claim-gate-demo
-
-# Standalone ClaimGate only
-cd platforms/claim_gate && docker compose -f docker-compose.standalone.yml up --build
+make cg-spine-up          # spine only
+make cg-stack-up          # spine + all platforms
+make cg-spine-test        # unit + property tests
+make cg-certification-l4-ci
+make cg-security-demo     # multi-vector sales demo
 ```
 
-## Institutional++ highlights (vs Finance Governor scaffold)
+## Sales SKU API map
 
-- Hash chain on **all** claim events including horizon sweeps (`security_seal.py`)
-- `GET /internal/security/verify-chain` — 422 on tamper
-- `security_ops.assert_security_ops_invariants()` — 7 probes, zero error budget
-- Reconciler **halts sweeps** in diagnostic mode (ModelGovernor parity)
-- `SpineAdapter` + `LocalPlatformEventLog` for standalone audit trail
+| SKU | Platform | Key API |
+|-----|----------|---------|
+| CG-IDENTITYGATE | `identity_govern` | `POST /session/arm` |
+| CG-EGRESSLOCK | `egress_govern` | `POST /egress/evaluate` |
+| CG-WITNESSBRIDGE | `witness_bridge` | `POST /ingest/{okta\|cloudtrail\|generic}` |
+| CG-LINEAGEINGEST | `lineage_ingest` | `POST /ingest/{falco\|tetragon\|generic}` |
+| CG-POSTURERECONCILE | `posture_reconcile` | `POST /posture/ingest` |
+| CG-CONTENTGUARD | `content_guard` | `POST /content/evaluate` |
 
 Full spec: [docs/cybersecurity-governor/institutional-gold-standard.md](../docs/cybersecurity-governor/institutional-gold-standard.md)

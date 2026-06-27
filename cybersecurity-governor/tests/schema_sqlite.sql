@@ -108,7 +108,10 @@ INSERT INTO security_policy_registry (
     ('threat-critical-us', 'detection', 'threat_proxy', 'US', 'critical', 2000000, 10000, 0),
     ('ir-critical-us', 'response', 'incident_response_gate', 'US', 'critical', 5000000, 30000, 0),
     ('posture-high-us', 'vuln', 'posture_reconcile', 'US', 'high', 10000000, 300000, 0),
-    ('compliance-standard-us', 'audit', 'compliance_logger', 'US', 'high', 100000, 600000, 0);
+    ('compliance-standard-us', 'audit', 'compliance_logger', 'US', 'high', 100000, 600000, 0),
+    ('witness-standard-us', 'telemetry', 'witness_bridge', 'US', 'standard', 100000, 3600000, 1),
+    ('lineage-critical-us', 'lineage', 'lineage_ingest', 'US', 'critical', 500000, 60000, 0),
+    ('content-high-us', 'dlp', 'content_guard', 'US', 'high', 250000, 120000, 0);
 
 INSERT INTO security_budget_ledgers (account_id, ledger_type, currency, balance, active)
 VALUES ('tenant-default', 'case', 'USD', 100000000, 1);
@@ -120,7 +123,10 @@ VALUES
   ('threat_proxy', 'ThreatProxy', 'dev-threat-proxy-hash', 1, '{"required_facet_keys":["request_id","threat_score","threat_decision"],"commit_decisions":["CLEARED"]}'),
   ('incident_response_gate', 'IncidentResponseGate', 'dev-ir-gate-hash', 1, '{"required_facet_keys":["incident_id","action_type","ir_decision"],"commit_decisions":["AUTHORIZED"]}'),
   ('posture_reconcile', 'PostureReconcile', 'dev-posture-reconcile-hash', 1, '{"required_facet_keys":["asset_id","match_state"],"commit_decisions":["MATCHED"]}'),
-  ('compliance_logger', 'ComplianceLogger', 'dev-compliance-logger-hash', 1, '{"required_facet_keys":["framework","control_id","evidence_hash"],"commit_decisions":["LOGGED"]}');
+  ('compliance_logger', 'ComplianceLogger', 'dev-compliance-logger-hash', 1, '{"required_facet_keys":["framework","control_id","evidence_hash"],"commit_decisions":["LOGGED"]}'),
+  ('witness_bridge', 'WitnessBridge', 'dev-witness-bridge-hash', 1, '{"required_facet_keys":["source","event_type","witness_decision"],"commit_decisions":["WITNESSED"]}'),
+  ('lineage_ingest', 'LineageIngest', 'dev-lineage-ingest-hash', 1, '{"required_facet_keys":["source_system","edge_type","lineage_decision"],"commit_decisions":["CRITICAL"]}'),
+  ('content_guard', 'ContentGuard', 'dev-content-guard-hash', 1, '{"required_facet_keys":["content_decision","principal_id"],"commit_decisions":["ALLOWED","REDACTED"]}');
 
 INSERT INTO crystal_mesh_rules (parent_platform, parent_facet_key, parent_facet_value, child_platform, block_commit, enabled)
 VALUES
@@ -130,7 +136,25 @@ VALUES
   ('threat_proxy', 'threat_decision', 'BLOCKED', 'incident_response_gate', 1, 1),
   ('identity_govern', 'identity_decision', 'VIOLATION', 'incident_response_gate', 1, 1),
   ('identity_govern', 'identity_decision', 'VIOLATION', 'egress_govern', 1, 1),
-  ('egress_govern', 'egress_decision', 'DENIED', 'incident_response_gate', 1, 1);
+  ('egress_govern', 'egress_decision', 'DENIED', 'incident_response_gate', 1, 1),
+  ('content_guard', 'content_decision', 'BLOCKED', 'egress_govern', 1, 1),
+  ('content_guard', 'content_decision', 'BLOCKED', 'incident_response_gate', 1, 1),
+  ('lineage_ingest', 'lineage_decision', 'CRITICAL', 'egress_govern', 1, 1);
+
+CREATE TABLE lineage_edges (
+    edge_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_system TEXT NOT NULL,
+    edge_type TEXT NOT NULL,
+    parent_ref TEXT,
+    child_ref TEXT NOT NULL,
+    principal_id TEXT,
+    physical_time TEXT NOT NULL,
+    logical_counter INTEGER NOT NULL DEFAULT 0,
+    causal_parent_ids TEXT NOT NULL DEFAULT '[]',
+    severity TEXT NOT NULL DEFAULT 'standard',
+    metadata TEXT NOT NULL DEFAULT '{}',
+    recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 
 CREATE TABLE security_chain_anchors (
     anchor_id INTEGER PRIMARY KEY AUTOINCREMENT,

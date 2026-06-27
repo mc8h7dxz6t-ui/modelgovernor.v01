@@ -100,3 +100,51 @@ platforms:
     invariant_counters:
       - compliance_event_logged_total
       - compliance_export_ready_total
+
+  witness_bridge:
+    display_name: WitnessBridge
+    default_policy_id: witness-standard-us
+    default_risk_tier: standard
+    port: 8129
+    docker_image: cybersecuritygovernor/witness-bridge
+    required_facet_keys:
+      - source
+      - event_type
+      - witness_decision
+    commit_decisions:
+      - WITNESSED
+    invariant_counters:
+      - witness_critical_total
+      - witness_erasure_detected_total
+
+  lineage_ingest:
+    display_name: LineageIngest
+    default_policy_id: lineage-critical-us
+    default_risk_tier: critical
+    port: 8130
+    docker_image: cybersecuritygovernor/lineage-ingest
+    required_facet_keys:
+      - source_system
+      - edge_type
+      - lineage_decision
+    commit_decisions:
+      - CRITICAL
+    invariant_counters:
+      - lineage_critical_edge_total
+      - lineage_ingest_total
+
+  content_guard:
+    display_name: ContentGuard
+    default_policy_id: content-high-us
+    default_risk_tier: high
+    port: 8131
+    docker_image: cybersecuritygovernor/content-guard
+    required_facet_keys:
+      - content_decision
+      - principal_id
+    commit_decisions:
+      - ALLOWED
+      - REDACTED
+    invariant_counters:
+      - content_blocked_total
+      - content_redacted_total
