@@ -46,33 +46,31 @@ def generate_markdown(attestation: dict, cert_path: Path | None) -> str:
 
 ## Executive summary
 
-{partner} completed a **30-day design-partner rehearsal** of Cybersecurity Governor on a **{env}** cluster. The attestation exercise validated governed claim commits, hash-chain integrity, ClaimGate FNOL ingest (US + UK PAS), and Postgres-backed payment idempotency under load.
+{partner} completed a **design-partner rehearsal** of Cybersecurity Governor on a **{env}** cluster. The attestation exercise validated governed security commits, hash-chain integrity, EgressGovern allowlist + Envoy ext_authz adapter, and IdentityGovern session arm.
 
 | Metric | Result |
 |--------|--------|
 | Attestation probes passed | **{passed} / {total}** |
 | Pilot attestation SHA-256 | `{artifact_hash}` |
 | Certification artifact SHA-256 | `{cert_hash}` |
-| Payment rail mode | Staging sandbox (no production funds) |
 
 ---
 
 ## Exercises completed (redacted)
 
-1. **Spine L4** — governed commit, `verify-chain`, S3 anchor head  
-2. **ClaimGate depth** — policy rules, SIU path, FNOL Guidewire + **Acturis UK** webhook  
-3. **Postgres idempotency** — `payment_idempotency` table; duplicate keys return same `payment_id`  
-4. **Warranty mesh** — cross-platform blocks at commit (model freeze → payout block)  
-5. **Staging rail smoke** — FedNow sandbox token exercised (`PAYMENT_RAIL_MODE=fednow_sandbox`)  
+1. **Spine L4** — governed commit, `verify-chain`, anchor head  
+2. **EgressGovern** — allowlisted host ALLOWED; off-allowlist DENIED; ext_authz adapter  
+3. **IdentityGovern** — session arm with device fingerprint binding  
+4. **Threat Mesh** — parent VIOLATION/DRIFT blocks child egress commit (pytest-proven)  
+5. **Optional SKUs** — WitnessBridge, LineageIngest, ContentGuard when stack is up  
 
 ---
 
 ## Safe external claims
 
 - Hash-chained `security_events` verified tamper-free after governed operations  
-- FNOL normalized from Guidewire, Snapsheet, Majesco, **Acturis**, **SSP (UK)**  
 - Fail-closed platform guard on unregistered facets (HTTP 422)  
-- No production claim payments; staging rail sandbox only  
+- L4 Gold = institutional test + deploy kit gate — not Fortune 500 cyber suite replacement  
 
 ---
 
@@ -101,7 +99,7 @@ def main() -> int:
         print("No attestation artifact found — run attestation_runner against live stack first", file=sys.stderr)
         return 1
     if attestation.get("probes_note") or int(attestation.get("probes_total") or 0) <= 0:
-        print("Attestation has no live probes — run make cg-full-rehearsal first", file=sys.stderr)
+        print("Attestation has no live probes — run make cg-pilot-attestation first", file=sys.stderr)
         return 1
     cert = ARTIFACTS / "latest_attestation.json"
 

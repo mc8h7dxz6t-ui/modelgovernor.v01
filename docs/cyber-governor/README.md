@@ -1,12 +1,9 @@
-# Cybersecurity Governor — Platform Vision (archived path)
+# Archived — do not use
 
-> **Canonical location:** [`docs/cybersecurity-governor/README.md`](../cybersecurity-governor/README.md) and code at [`cybersecurity-governor/`](../../cybersecurity-governor/).
->
-> The legacy `cyber-governor/` tree (810x ports, Kustomize) was retired in favor of a single canonical `cybersecurity-governor/` tree (812x ports, Helm). This folder is kept for historical reference only.
+This directory contained **legacy documentation** for the retired `cyber-governor/` tree (810x ports, wrong platform numbering).
 
-See the current docs:
+**Canonical documentation:** [../cybersecurity-governor/](../cybersecurity-governor/)
 
-- [Capability matrix](../cybersecurity-governor/capability-matrix.md)
-- [Security Enforcement Mesh](../cybersecurity-governor/security-enforcement-mesh.md)
-- [L4 certification](../cybersecurity-governor/l4-certification.md)
-- [Operations runbook](../cybersecurity-governor/operations-runbook.md)
+**Canonical code:** `cybersecurity-governor/` (ports 8120–8131)
+
+If you arrived here from an old link, update bookmarks to `docs/cybersecurity-governor/`.

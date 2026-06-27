@@ -1,7 +1,7 @@
 .PHONY: demo-up demo-down demo-reset demo-smoke demo-drift-lock demo-status demo-ledger demo-events \
 	demo-gold-up demo-gold demo-gold-reliability demo-gold-down demo-gold-reset demo-gold-diagnose \
 	demo-all demo-all-platforms demo-all-platforms-live demo-all-platforms-manifests demo-all-platforms-proof \
-	demo-prereqs demo-prereqs-install proof-test load-test \
+	demo-prereqs demo-prereqs-install proof-test load-test plug salvage-verify compose-smoke-cg \
 	fg-spine-up fg-stack-up fg-spine-down fg-stack-down fg-spine-test fg-spine-smoke \
 	crystal-demo algofreeze-demo wirematch-demo fg-certification \
 	fg-demo-up fg-demo-down fg-demo-gold fg-integration-test fg-load-smoke \
@@ -13,8 +13,9 @@
 	ig-cluster-attestation ig-rail-smoke ig-design-partner-package ig-claim-gate-load \
 	ig-full-rehearsal ig-embedded-rehearsal ig-examiner-evidence \
 	cg-spine-up cg-stack-up cg-spine-down cg-stack-down cg-spine-test cg-spine-smoke \
-	egress-govern-demo cg-demo cg-certification cg-certification-strict cg-certification-l4 cg-certification-l4-ci \
-	cg-helm-enterprise cg-platform-conformance cg-load-test cg-examiner-evidence
+	egress-govern-demo cg-demo cg-security-demo cg-egress-wedge-demo posture-reconcile-demo content-guard-demo \
+	cg-certification cg-certification-strict cg-certification-l4 cg-certification-l4-ci \
+	cg-helm-enterprise cg-platform-conformance cg-load-test cg-examiner-evidence cg-pilot-attestation
 
 demo-prereqs:
 	./scripts/install-demo-prereqs.sh --check-only
@@ -231,6 +232,21 @@ egress-govern-demo:
 cg-demo:
 	$(MAKE) -C cybersecurity-governor cg-demo
 
+cg-security-demo:
+	$(MAKE) -C cybersecurity-governor cg-security-demo
+
+cg-egress-wedge-demo:
+	$(MAKE) -C cybersecurity-governor cg-egress-wedge-demo
+
+posture-reconcile-demo:
+	$(MAKE) -C cybersecurity-governor posture-reconcile-demo
+
+content-guard-demo:
+	$(MAKE) -C cybersecurity-governor content-guard-demo
+
+cg-pilot-attestation:
+	$(MAKE) -C cybersecurity-governor cg-pilot-attestation
+
 cg-certification:
 	$(MAKE) -C cybersecurity-governor cg-certification
 
@@ -272,3 +288,11 @@ demo-all-platforms-manifests:
 
 demo-all-platforms-proof:
 	./scripts/demo-all-platforms.sh --with-proof
+
+plug salvage-verify:
+	chmod +x scripts/run-salvage-verification.sh
+	./scripts/run-salvage-verification.sh
+
+compose-smoke-cg:
+	chmod +x scripts/compose-smoke-cg.sh
+	./scripts/compose-smoke-cg.sh

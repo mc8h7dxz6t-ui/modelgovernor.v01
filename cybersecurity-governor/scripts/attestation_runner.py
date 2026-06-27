@@ -6,7 +6,6 @@ import hashlib
 import json
 import os
 import sys
-import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -43,16 +42,29 @@ def _probe(name: str, fn) -> dict[str, Any]:
         return {"name": name, "status": "fail", "error": str(exc)}
 
 
+def _optional_url_probe(probes: list[dict[str, Any]], name: str, url: str, action) -> None:
+    try:
+        _get(url)
+    except Exception:
+        probes.append({"name": name, "status": "skip", "reason": "platform_not_running"})
+        return
+    probes.append(_probe(name, action))
+
+
 def run_attestation() -> dict[str, Any]:
     token = os.environ.get("CG_INTERNAL_TOKENS", "dev-cg-spine-token-change-me")
     sidecar = _env("CG_SIDECAR_URL", "http://localhost:8121")
     gateway = _env("CG_GATEWAY_URL", "http://localhost:8120")
-    claim_gate = _env("CG_EGRESS_GOVERN_URL", "http://localhost:8103")
+    egress = _env("CG_EGRESS_GOVERN_URL", "http://localhost:8123")
+    identity = _env("CG_IDENTITY_GOVERN_URL", "http://localhost:8124")
+    witness = _env("CG_WITNESS_BRIDGE_URL", "http://localhost:8129")
+    lineage = _env("CG_LINEAGE_INGEST_URL", "http://localhost:8130")
+    content = _env("CG_CONTENT_GUARD_URL", "http://localhost:8131")
     cluster = os.environ.get("CG_CLUSTER_ATTESTATION", "false").lower() == "true"
     environment = os.environ.get("CG_ATTESTATION_ENV", "compose-local" if not cluster else "customer-vpc-staging")
 
     headers = {"x-internal-token": token}
-    probes: list[dict[str, Any]] = []
+    probes = []
 
     probes.append(_probe("spine_ready", lambda: _get(f"{sidecar}/readyz")))
     probes.append(_probe("gateway_ready", lambda: _get(f"{gateway}/readyz")))
@@ -61,13 +73,17 @@ def run_attestation() -> dict[str, Any]:
         _post(
             f"{gateway}/governed/commit",
             {
-                "platform": "claim_gate",
+                "platform": "egress_govern",
                 "operation_id": f"pilot-{int(datetime.now(timezone.utc).timestamp())}",
-                "facets": {"claim_id": "pilot-attest", "payout_amount": "100.00"},
-                "policy_id": "claim-high-us",
-                "reserved_budget": "100",
-                "committed_budget": "100",
-                "outcome": "paid",
+                "facets": {
+                    "flow_id": "pilot-attest",
+                    "destination_host": "api.openai.com",
+                    "egress_decision": "ALLOWED",
+                },
+                "policy_id": "egress-critical-us",
+                "reserved_budget": "0",
+                "committed_budget": "0",
+                "outcome": "allowed",
             },
         )
 
@@ -81,94 +97,93 @@ def run_attestation() -> dict[str, Any]:
     probes.append(_probe("verify_chain", verify_chain))
     probes.append(_probe("anchor_head", lambda: _post(f"{sidecar}/internal/security/anchor-head", {}, headers)))
 
-    def claim_gate_evaluate() -> None:
-        _post(
-            f"{claim_gate}/claim/evaluate",
-            {
-                "claim_id": "pilot-gate-depth",
-                "payout_amount": "5000.00",
-                "policy_number": "POL-AUTO-001",
-                "idempotency_key": "pilot-pay-depth",
-            },
+    probes.append(
+        _probe(
+            "egress_govern_evaluate",
+            lambda: _post(f"{egress}/egress/evaluate", {"flow_id": "attest-1", "destination_host": "api.openai.com"}),
         )
-
-    probes.append(_probe("claim_gate_evaluate", claim_gate_evaluate))
-
-    def claim_gate_fnol_guidewire() -> None:
-        _post(
-            f"{claim_gate}/claim/fnol/webhook",
-            {
-                "vendor": "guidewire",
-                "payload": {
-                    "claim": {
-                        "claimNumber": "pilot-fnol-gw",
-                        "reportedAmount": "8000.00",
-                        "policyNumber": "POL-AUTO-001",
-                        "lossDate": "2025-06-01",
-                        "id": "gw-evt-1",
-                    }
+    )
+    probes.append(
+        _probe(
+            "identity_session_arm",
+            lambda: _post(
+                f"{identity}/session/arm",
+                {
+                    "session_id": "attest-session",
+                    "user_id": "alice@corp.example",
+                    "device_fingerprint": "dev_fp_trusted_workstation",
+                    "client_ip": "10.0.1.42",
                 },
-            },
+            ),
         )
+    )
 
-    probes.append(_probe("claim_gate_fnol_guidewire", claim_gate_fnol_guidewire))
-
-    def claim_gate_fnol_acturis() -> None:
-        _post(
-            f"{claim_gate}/claim/fnol/webhook",
+    _optional_url_probe(
+        probes,
+        "witness_cloudtrail",
+        f"{witness}/healthz",
+        lambda: _post(
+            f"{witness}/ingest/cloudtrail",
             {
-                "vendor": "acturis",
-                "payload": {
-                    "notification": {
-                        "claimReference": "ACT-UK-9001",
-                        "policyReference": "POL-MOTOR-UK-001",
-                        "dateOfLoss": "2025-05-20",
-                        "estimatedAmount": "4500.00",
-                        "currencyCode": "GBP",
-                        "notificationId": "act-evt-1",
-                    }
-                },
+                "detail": {
+                    "eventName": "DeleteTrail",
+                    "eventID": "attest-evt-1",
+                    "userIdentity": {"arn": "arn:aws:iam::123:user/bob"},
+                }
             },
-        )
-
-    probes.append(_probe("claim_gate_fnol_acturis_uk", claim_gate_fnol_acturis))
-
-    host_base = os.environ.get("CG_PLATFORM_HOST", "http://localhost")
-
-    def _optional_probe(name: str, health_path: str, action: str, body: dict[str, Any] | None) -> None:
-        def _run() -> None:
-            _get(f"{host_base}{health_path}")
-            if action == "GET":
-                _get(f"{host_base}{health_path.replace('/healthz', '/status')}")
-            elif body is not None:
-                endpoint = health_path.replace("/healthz", "/indemnity/evaluate" if "8110" in health_path else "/bind/evaluate")
-                _post(f"{host_base}{endpoint}", body)
-
-        try:
-            _get(f"{host_base}{health_path}")
-        except Exception:
-            probes.append({"name": name, "status": "skip", "reason": "platform_not_running"})
-            return
-        probes.append(_probe(name, _run))
-
-    _optional_probe("bind_authority", ":8104/healthz", "POST", {"application_id": "pilot-bind", "premium": "10000", "limit": "500000"})
-    _optional_probe("indemnity_pay_gate", ":8110/healthz", "POST", {
-        "payment_id": "pilot-crime", "payee_name": "Acme Indemnity Trust",
-        "payee_account": "US44ACME001", "amount": "50000", "jurisdiction": "US",
-    })
+        ),
+    )
+    _optional_url_probe(
+        probes,
+        "lineage_falco",
+        f"{lineage}/healthz",
+        lambda: _post(
+            f"{lineage}/ingest/falco",
+            {
+                "rule": "Terminal shell in container",
+                "priority": "Critical",
+                "output_fields": {"proc.name": "bash", "user.name": "root"},
+            },
+        ),
+    )
+    _optional_url_probe(
+        probes,
+        "content_guard_evaluate",
+        f"{content}/healthz",
+        lambda: _post(
+            f"{content}/content/evaluate",
+            {
+                "content_id": "attest-cg-1",
+                "principal_id": "alice@corp.example",
+                "text_body": "hello world",
+            },
+        ),
+    )
 
     passed = sum(1 for p in probes if p["status"] == "pass")
+    skipped = sum(1 for p in probes if p["status"] == "skip")
+    required = [p for p in probes if p["status"] != "skip"]
+    required_passed = sum(1 for p in required if p["status"] == "pass")
     report = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "attestation_type": "cluster" if cluster else "pilot",
         "environment": environment,
         "design_partner": os.environ.get("CG_DESIGN_PARTNER_NAME", "[REDACTED_CARRIER]"),
         "cluster_id": os.environ.get("CG_CLUSTER_ID", "cg-staging-001"),
-        "endpoints": {"sidecar": sidecar, "gateway": gateway, "claim_gate": claim_gate},
+        "endpoints": {
+            "sidecar": sidecar,
+            "gateway": gateway,
+            "egress_govern": egress,
+            "identity_govern": identity,
+            "witness_bridge": witness,
+            "lineage_ingest": lineage,
+            "content_guard": content,
+        },
         "probes_total": len(probes),
         "probes_passed": passed,
-        "probes_failed": len(probes) - passed,
-        "certification": passed >= len(probes) - 2,  # allow optional platform skips
+        "probes_skipped": skipped,
+        "probes_failed": len(required) - required_passed,
+        "certification": required_passed == len(required),
         "probes": probes,
     }
     return report
@@ -176,15 +191,13 @@ def run_attestation() -> dict[str, Any]:
 
 def write_artifacts(report: dict[str, Any]) -> Path:
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
-    payload = json.dumps(report, indent=2, sort_keys=True)
-    digest = hashlib.sha256(payload.encode()).hexdigest()
-    report["artifact_sha256"] = digest
-
     ts = int(datetime.now(timezone.utc).timestamp())
     out = ARTIFACTS / f"{'cluster' if report.get('attestation_type') == 'cluster' else 'pilot'}_attestation_{ts}.json"
     latest_name = "cluster_attestation.json" if report.get("attestation_type") == "cluster" else "latest_pilot_attestation.json"
     latest = ARTIFACTS / latest_name
-
+    payload = json.dumps(report, indent=2, sort_keys=True)
+    digest = hashlib.sha256(payload.encode()).hexdigest()
+    report["artifact_sha256"] = digest
     payload = json.dumps(report, indent=2, sort_keys=True)
     out.write_text(payload)
     latest.write_text(payload)

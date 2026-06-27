@@ -14,6 +14,7 @@ REQUIRED = [
     "0004_cg_platforms_mesh.sql",
     "0005_cg_production_state.sql",
     "0006_cg_scalability.sql",
+    "0007_sales_sku_platforms.sql",
 ]
 
 
@@ -44,3 +45,11 @@ def test_security_mesh_migration_present() -> None:
     body = (MIGRATIONS / "0004_cg_platforms_mesh.sql").read_text()
     assert "crystal_mesh_rules" in body
     assert "egress_govern" in body
+
+
+def test_sales_sku_platforms_migration_present() -> None:
+    body = (MIGRATIONS / "0007_sales_sku_platforms.sql").read_text()
+    assert "witness_bridge" in body
+    assert "lineage_ingest" in body
+    assert "content_guard" in body
+    assert "lineage_edges" in body

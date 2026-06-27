@@ -1,4 +1,4 @@
-# Cybersecurity Governor — spine + six enforcement platforms
+# Cybersecurity Governor — spine + nine enforcement platforms (8123–8131)
 # Build context: repository root (parent of cybersecurity-governor/)
 
 services:
@@ -17,6 +17,7 @@ services:
       - ./migrations/0003_admin_audit_log.sql:/docker-entrypoint-initdb.d/0003_audit.sql:ro
       - ./migrations/0004_cg_platforms_mesh.sql:/docker-entrypoint-initdb.d/0004_mesh.sql:ro
       - ./migrations/0005_cg_production_state.sql:/docker-entrypoint-initdb.d/0005_state.sql:ro
+      - ./migrations/0007_sales_sku_platforms.sql:/docker-entrypoint-initdb.d/0007_sales_skus.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d cybersecuritygovernor"]
       interval: 5s
@@ -152,6 +153,48 @@ services:
       CG_INTERNAL_TOKEN: ${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}
     ports:
       - "8128:8128"
+    depends_on:
+      cg-sidecar:
+        condition: service_started
+
+  cg-witness-bridge:
+    build:
+      context: ..
+      dockerfile: cybersecurity-governor/platforms/witness_bridge/Dockerfile
+    environment:
+      CG_SPINE_ENABLED: ${CG_SPINE_ENABLED:-true}
+      CG_SIDECAR_URL: http://cg-sidecar:8121
+      CG_INTERNAL_TOKEN: ${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}
+    ports:
+      - "8129:8129"
+    depends_on:
+      cg-sidecar:
+        condition: service_started
+
+  cg-lineage-ingest:
+    build:
+      context: ..
+      dockerfile: cybersecurity-governor/platforms/lineage_ingest/Dockerfile
+    environment:
+      CG_SPINE_ENABLED: ${CG_SPINE_ENABLED:-true}
+      CG_SIDECAR_URL: http://cg-sidecar:8121
+      CG_INTERNAL_TOKEN: ${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}
+    ports:
+      - "8130:8130"
+    depends_on:
+      cg-sidecar:
+        condition: service_started
+
+  cg-content-guard:
+    build:
+      context: ..
+      dockerfile: cybersecurity-governor/platforms/content_guard/Dockerfile
+    environment:
+      CG_SPINE_ENABLED: ${CG_SPINE_ENABLED:-true}
+      CG_SIDECAR_URL: http://cg-sidecar:8121
+      CG_INTERNAL_TOKEN: ${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}
+    ports:
+      - "8131:8131"
     depends_on:
       cg-sidecar:
         condition: service_started

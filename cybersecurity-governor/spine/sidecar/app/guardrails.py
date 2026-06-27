@@ -61,7 +61,7 @@ class GuardrailService:
             self._degraded = True
             get_counters().increment("guardrail_degraded_total")
 
-    def check_crystallize(self, *, account_id: str, claim_id: str, operation_id: str) -> None:
+    def check_crystallize(self, *, account_id: str, trace_scope_id: str, operation_id: str) -> None:
         if self._settings.guardrails_enabled:
             try:
                 get_circuit_breaker().assert_closed("redis")
@@ -71,7 +71,7 @@ class GuardrailService:
 
         if not self._degraded and self._redis is not None:
             try:
-                self._check_redis(account_id=account_id, claim_id=claim_id, operation_id=operation_id)
+                self._check_redis(account_id=account_id, trace_scope_id=trace_scope_id, operation_id=operation_id)
                 get_circuit_breaker().record_success("redis")
                 return
             except GuardrailError:
@@ -85,13 +85,13 @@ class GuardrailService:
         get_fallback_limiter().check_crystallize(
             settings=self._settings,
             account_id=account_id,
-            claim_id=claim_id,
+            trace_scope_id=trace_scope_id,
             operation_id=operation_id,
         )
 
-    def _check_redis(self, *, account_id: str, claim_id: str, operation_id: str) -> None:
+    def _check_redis(self, *, account_id: str, trace_scope_id: str, operation_id: str) -> None:
         window = int(time.time()) // 60
-        rate_key = f"ig:rate:{account_id}:{window}"
+        rate_key = f"cg:rate:{account_id}:{window}"
         count = int(self._redis.incr(rate_key))
         if count == 1:
             self._redis.expire(rate_key, 120)
@@ -99,14 +99,14 @@ class GuardrailService:
             get_counters().increment("rate_limit_exceeded_total")
             raise RateLimitExceeded(f"rate limit exceeded for account {account_id}")
 
-        claim_key = f"ig:claim:{claim_id}:ops"
-        self._redis.sadd(claim_key, operation_id)
-        self._redis.expire(claim_key, 3600)
-        if int(self._redis.scard(claim_key)) > self._settings.max_action_depth:
+        scope_key = f"cg:op:{trace_scope_id}:ops"
+        self._redis.sadd(scope_key, operation_id)
+        self._redis.expire(scope_key, 3600)
+        if int(self._redis.scard(scope_key)) > self._settings.max_action_depth:
             get_counters().increment("claim_depth_exceeded_total")
-            raise TraceDepthExceeded(f"claim depth exceeded for {claim_id}")
+            raise TraceDepthExceeded(f"trace depth exceeded for {trace_scope_id}")
 
-        inflight_key = f"ig:inflight:{account_id}"
+        inflight_key = f"cg:inflight:{account_id}"
         inflight = int(self._redis.incr(inflight_key))
         if inflight == 1:
             self._redis.expire(inflight_key, self._settings.commit_ttl_seconds + 120)
@@ -118,7 +118,7 @@ class GuardrailService:
     def release_crystallize(self, *, account_id: str) -> None:
         if not self._degraded and self._redis is not None:
             try:
-                inflight_key = f"ig:inflight:{account_id}"
+                inflight_key = f"cg:inflight:{account_id}"
                 remaining = int(self._redis.decr(inflight_key))
                 if remaining < 0:
                     self._redis.set(inflight_key, 0, ex=self._settings.commit_ttl_seconds + 120)

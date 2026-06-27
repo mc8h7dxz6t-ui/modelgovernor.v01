@@ -768,6 +768,9 @@ jobs:
           docker build -f cybersecurity-governor/platforms/incident_response_gate/Dockerfile -t cybersecuritygovernor/incident-response-gate:ci .
           docker build -f cybersecurity-governor/platforms/posture_reconcile/Dockerfile -t cybersecuritygovernor/posture-reconcile:ci .
           docker build -f cybersecurity-governor/platforms/compliance_logger/Dockerfile -t cybersecuritygovernor/compliance-logger:ci .
+          docker build -f cybersecurity-governor/platforms/witness_bridge/Dockerfile -t cybersecuritygovernor/witness-bridge:ci .
+          docker build -f cybersecurity-governor/platforms/lineage_ingest/Dockerfile -t cybersecuritygovernor/lineage-ingest:ci .
+          docker build -f cybersecurity-governor/platforms/content_guard/Dockerfile -t cybersecuritygovernor/content-guard:ci .
 
   cg-test-tier4-chaos:
     name: CG Tier 4 — Toxiproxy chaos (security ops)

@@ -48,6 +48,7 @@ def readyz() -> dict:
     return healthz()
 
 
+@app.post("/posture/evaluate")
 @app.post("/posture/ingest")
 def ingest(request: PostureRecord) -> dict:
     match_state, reference = evaluate_posture(request)

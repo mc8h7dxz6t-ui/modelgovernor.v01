@@ -2,59 +2,17 @@
 from __future__ import annotations
 
 import hashlib
-import os
-from urllib.parse import urlparse
 
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
+from typing import Any
 
-from platforms.common.platform_sdk import GovernedPlatform, increment_invariant, spine_health_payload
+from platforms.common.platform_sdk import GovernedPlatform, spine_health_payload
+
+from .egress_policy import EgressRequest, allowlist, evaluate_egress, normalize_host
+from .ext_authz import evaluate_ext_authz
 
 app = FastAPI(title="egressgovern", version="0.1.0")
 _GOVERNED = GovernedPlatform("egress_govern")
-
-DEFAULT_ALLOWLIST = frozenset(
-    {
-        "api.openai.com",
-        "api.anthropic.com",
-        "sidecar.cybersecuritygovernor.svc.cluster.local",
-    }
-)
-
-
-class EgressRequest(BaseModel):
-    flow_id: str
-    destination_host: str
-    destination_port: int = 443
-    protocol: str = "https"
-    account_id: str = "tenant-default"
-
-
-def _allowlist() -> frozenset[str]:
-    raw = os.environ.get("EGRESS_ALLOWLIST", "")
-    if not raw.strip():
-        return DEFAULT_ALLOWLIST
-    return frozenset(h.strip().lower() for h in raw.split(",") if h.strip())
-
-
-def _normalize_host(host: str) -> str:
-    host = host.strip().lower()
-    if "://" in host:
-        parsed = urlparse(host)
-        return (parsed.hostname or host).lower()
-    return host.split(":")[0]
-
-
-def evaluate_egress(req: EgressRequest) -> tuple[str, str]:
-    host = _normalize_host(req.destination_host)
-    allowed = host in _allowlist()
-    if not allowed:
-        increment_invariant("egress_govern", "egress_denied_total")
-        if host.endswith(".onion") or host.startswith("169.254."):
-            increment_invariant("egress_govern", "egress_shadow_it_blocked_total")
-        return "DENIED", f"host not in allowlist: {host}"
-    increment_invariant("egress_govern", "egress_allowlisted_total")
-    return "ALLOWED", f"allowlisted:{host}"
 
 
 @app.get("/healthz")
@@ -72,7 +30,7 @@ def evaluate(request: EgressRequest) -> dict:
     decision, reference = evaluate_egress(request)
     facets = {
         "flow_id": request.flow_id,
-        "destination_host": _normalize_host(request.destination_host),
+        "destination_host": normalize_host(request.destination_host),
         "destination_port": request.destination_port,
         "protocol": request.protocol,
         "egress_decision": decision,
@@ -93,6 +51,21 @@ def evaluate(request: EgressRequest) -> dict:
 
 @app.get("/egress/allowlist")
 def list_allowlist() -> dict:
-    hosts = sorted(_allowlist())
+    hosts = sorted(allowlist())
     digest = hashlib.sha256(",".join(hosts).encode()).hexdigest()
     return {"hosts": hosts, "digest_sha256": digest}
+
+
+@app.post("/envoy/authz/check")
+def envoy_ext_authz(payload: dict[str, Any]) -> dict:
+    """Envoy HTTP external authorization adapter — real dataplane integration point."""
+    try:
+        allowed, decision, reference = evaluate_ext_authz(payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not allowed:
+        raise HTTPException(
+            status_code=403,
+            detail={"decision": decision, "reference": reference, "source": "egress_govern"},
+        )
+    return {"status": "ok", "decision": decision, "reference": reference}

@@ -1,0 +1,50 @@
+{
+  "generated_at": "2026-06-27T13:34:52.662224+00:00",
+  "certification_level": "L4_GOLD",
+  "framing": "institutional test + deploy kit gate \u2014 not a Fortune 500 cyber product claim",
+  "platforms": [
+    "egress_govern",
+    "identity_govern",
+    "threat_proxy",
+    "incident_response_gate",
+    "posture_reconcile",
+    "compliance_logger",
+    "witness_bridge",
+    "lineage_ingest",
+    "content_guard"
+  ],
+  "tier1_exit_code": 0,
+  "tier1_summary": "95 passed, 8 skipped in 2.75s",
+  "load_exit_code": 0,
+  "platform_tests_exit_code": 0,
+  "l4_artifacts_exit_code": 0,
+  "l4_runtime_exit_code": 0,
+  "helm_template_exit_code": 0,
+  "certification": true,
+  "attestation": {
+    "tier1_pytest_passed": true,
+    "load_harness_passed": true,
+    "platform_conformance_passed": true,
+    "l4_artifacts_present": true,
+    "l4_runtime_enforcement": true,
+    "helm_deploy_kit_renders": true,
+    "s3_object_lock_anchor_scaffold": true
+  },
+  "commercial": {
+    "honest_pitch": "Tamper-evident authorization ledger for security commits",
+    "defensible_wedge": "EgressGovern + mesh + chain verify + Envoy ext_authz adapter",
+    "enforcement_wedges": [
+      "egress_govern",
+      "identity_govern",
+      "witness_bridge",
+      "lineage_ingest",
+      "posture_reconcile",
+      "content_guard",
+      "threat_proxy",
+      "incident_response_gate",
+      "compliance_logger"
+    ],
+    "capability_matrix": "docs/cybersecurity-governor/capability-matrix.md",
+    "security_mesh_doc": "docs/cybersecurity-governor/security-enforcement-mesh.md"
+  }
+}

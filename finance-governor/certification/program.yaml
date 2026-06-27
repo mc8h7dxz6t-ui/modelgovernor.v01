@@ -38,7 +38,7 @@ levels:
       - chaos_toxiproxy
       - gitops_manifests
   L5:
-    title: Industry Leading
+    title: Institutional Self-Check Certified
     extends: L4
     requirements:
       - live_inference_rail_or_equivalent

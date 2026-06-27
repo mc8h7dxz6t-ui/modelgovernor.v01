@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
-RECONCILER_LEADER_LOCK_KEY = 0x49475F524543  # IG_REC
+RECONCILER_LEADER_LOCK_KEY = 0x43475F524543  # CG_REC
 
 
 @contextmanager
@@ -19,7 +19,7 @@ def reconciler_leader_session(session: Session, *, lock_key: int = RECONCILER_LE
         return
     acquired = session.execute(text("SELECT pg_try_advisory_lock(:k)"), {"k": lock_key}).scalar_one()
     if not acquired:
-        logger.info("ig reconciler standby")
+        logger.info("cg reconciler standby")
         yield False
         return
     try:

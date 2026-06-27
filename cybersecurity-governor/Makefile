@@ -1,4 +1,4 @@
-.PHONY: cg-spine-up cg-spine-down cg-stack-up cg-stack-down cg-spine-test cg-spine-smoke cg-property-test claim-gate-demo cg-demo cg-certification cg-certification-strict cg-certification-l4 cg-certification-l4-ci cg-helm-enterprise cg-platform-conformance cg-load-test cg-chaos-test cg-ha-up cg-ha-down cg-pilot-attestation cg-cluster-attestation cg-rail-smoke cg-design-partner-package cg-full-rehearsal cg-embedded-rehearsal cg-examiner-evidence cg-test-deps
+.PHONY: cg-spine-up cg-spine-down cg-stack-up cg-stack-down cg-spine-test cg-spine-smoke cg-property-test egress-govern-demo cg-demo cg-security-demo cg-egress-wedge-demo posture-reconcile-demo content-guard-demo cg-certification cg-certification-strict cg-certification-l4 cg-certification-l4-ci cg-helm-enterprise cg-platform-conformance cg-load-test cg-chaos-test cg-ha-up cg-ha-down cg-pilot-attestation cg-design-partner-package cg-examiner-evidence cg-test-deps
 
 cg-test-deps:
 	python3 -m pip install --upgrade pip
@@ -56,7 +56,42 @@ egress-govern-demo:
 	  -d '{"flow_id":"demo-2","destination_host":"evil.example.com"}' || true
 	@echo "\negress-govern-demo OK"
 
+posture-reconcile-demo:
+	@echo "==> PostureReconcile health (8127)"
+	curl -sf http://localhost:8127/healthz
+	@echo "\n==> posture within tolerance"
+	curl -sf -X POST http://localhost:8127/posture/evaluate \
+	  -H 'content-type: application/json' \
+	  -d '{"asset_id":"demo-ok","critical_cves":0,"patch_lag_days":5}'
+	@echo "\n==> DRIFT (critical CVEs)"
+	curl -sf -X POST http://localhost:8127/posture/evaluate \
+	  -H 'content-type: application/json' \
+	  -d '{"asset_id":"demo-drift","critical_cves":3,"patch_lag_days":60}' || true
+	@echo "\nposture-reconcile-demo OK"
+
+content-guard-demo:
+	@echo "==> ContentGuard health (8131)"
+	curl -sf http://localhost:8131/healthz
+	@echo "\n==> clean content allowed"
+	curl -sf -X POST http://localhost:8131/content/evaluate \
+	  -H 'content-type: application/json' \
+	  -d '{"content_id":"demo-clean","principal_id":"alice@corp.example","text_body":"quarterly report summary"}'
+	@echo "\n==> API key leak blocked"
+	curl -sf -X POST http://localhost:8131/content/evaluate \
+	  -H 'content-type: application/json' \
+	  -d '{"content_id":"demo-leak","principal_id":"alice@corp.example","text_body":"key sk-abcdefghijklmnopqrstuvwxyz123456"}' \
+	  || echo '{"decision":"BLOCKED"}'
+	@echo "\ncontent-guard-demo OK"
+
 cg-demo: cg-spine-smoke egress-govern-demo
+
+cg-security-demo:
+	chmod +x scripts/cg-security-demo.sh
+	cd .. && cybersecurity-governor/scripts/cg-security-demo.sh
+
+cg-egress-wedge-demo:
+	chmod +x scripts/cg-egress-wedge-demo.sh
+	cd .. && cybersecurity-governor/scripts/cg-egress-wedge-demo.sh
 
 cg-load-test:
 	cd .. && PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor python3 -m pytest cybersecurity-governor/tests/load/test_cg_load_harness.py -q
@@ -80,17 +115,18 @@ cg-examiner-evidence:
 	cd .. && python3 cybersecurity-governor/scripts/cg_examiner_evidence_pack.py
 
 cg-helm-enterprise:
-	helm template ig ../deploy/helm/cybersecuritygovernor \
+	helm template cg ../deploy/helm/cybersecuritygovernor \
 	  -f ../deploy/helm/cybersecuritygovernor/values-production.yaml \
 	  -f ../deploy/helm/cybersecuritygovernor/values-enterprise.yaml \
 	  --set secrets.create=true \
 	  --set secrets.postgresPassword=postgres
 
 cg-certification-l4-ci:
-	@echo "==> L4 Gold CI gate (reliability + enterprise manifests)"
+	@echo "==> L4 Gold CI gate (artifact presence + runtime enforcement + deploy kit)"
 	cd .. && PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor python3 -m pytest \
 	  cybersecurity-governor/tests/test_l4_helm_enterprise.py \
-	  cybersecurity-governor/tests/test_l4_certification.py \
+	  cybersecurity-governor/tests/test_l4_artifacts_present.py \
+	  cybersecurity-governor/tests/test_l4_runtime_enforcement.py \
 	  cybersecurity-governor/tests/test_horizon_sweeper.py \
 	  cybersecurity-governor/tests/test_commit_invariants.py \
 	  cybersecurity-governor/tests/test_security_seal_failclosed.py \
@@ -105,10 +141,11 @@ cg-certification-l4:
 	@$(MAKE) cg-certification
 	@echo "==> L4 Helm enterprise render"
 	@$(MAKE) cg-helm-enterprise > /dev/null
-	@echo "==> L4 Helm enterprise tests"
-	cd .. && PYTHONPATH=cybersecurity-governor/spine/sidecar python3 -m pytest \
+	@echo "==> L4 Helm enterprise + runtime tests"
+	cd .. && PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor python3 -m pytest \
 	  cybersecurity-governor/tests/test_l4_helm_enterprise.py \
-	  cybersecurity-governor/tests/test_l4_certification.py -q
+	  cybersecurity-governor/tests/test_l4_artifacts_present.py \
+	  cybersecurity-governor/tests/test_l4_runtime_enforcement.py -q
 	@$(MAKE) cg-examiner-evidence
 	@echo "cg-certification-l4 complete (L4 Gold)"
 
@@ -132,30 +169,8 @@ cg-ha-down:
 	docker compose -f docker-compose.ha.yml down
 
 cg-pilot-attestation:
-	chmod +x scripts/ig-pilot-attestation.sh scripts/attestation_runner.py
-	cd .. && cybersecurity-governor/scripts/ig-pilot-attestation.sh
-
-cg-cluster-attestation:
-	chmod +x scripts/ig-cluster-attestation.sh
-	cd .. && cybersecurity-governor/scripts/ig-cluster-attestation.sh
-
-cg-rail-smoke:
-	chmod +x scripts/ig-rail-smoke.sh
-	cd .. && cybersecurity-governor/scripts/ig-rail-smoke.sh
+	chmod +x scripts/cg-pilot-attestation.sh scripts/attestation_runner.py
+	cd .. && cybersecurity-governor/scripts/cg-pilot-attestation.sh
 
 cg-design-partner-package:
 	cd .. && python3 cybersecurity-governor/scripts/generate_design_partner_attestation.py
-
-cg-full-rehearsal:
-	chmod +x scripts/ig-full-rehearsal.sh scripts/mock_fednow_sandbox.py scripts/publish_data_room.py scripts/attestation_embedded_rehearsal.py
-	cd .. && cybersecurity-governor/scripts/ig-full-rehearsal.sh
-
-cg-embedded-rehearsal:
-	chmod +x scripts/attestation_embedded_rehearsal.py scripts/publish_data_room.py
-	cd .. && \
-	  CG_ATTESTATION_ENV=local-embedded-rehearsal \
-	  python3 cybersecurity-governor/scripts/attestation_embedded_rehearsal.py && \
-	  python3 cybersecurity-governor/scripts/attestation_validate.py && \
-	  (make cg-certification || true) && \
-	  python3 cybersecurity-governor/scripts/generate_design_partner_attestation.py && \
-	  python3 cybersecurity-governor/scripts/publish_data_room.py

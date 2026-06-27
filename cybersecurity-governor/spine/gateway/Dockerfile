@@ -6,5 +6,5 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt
 COPY cybersecurity-governor/spine/gateway ./spine/gateway
 ENV PYTHONPATH=/app/cybersecurity-governor/spine/gateway
 WORKDIR /app/cybersecurity-governor/spine/gateway
-EXPOSE 8100
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8100"]
+EXPOSE 8120
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8120"]
