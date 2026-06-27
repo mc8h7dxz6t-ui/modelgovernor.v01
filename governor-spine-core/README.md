@@ -4,35 +4,46 @@ Authoritative **port map**, **ledger table registry**, and **repository integrit
 
 This package is the consolidation **contract** — not a replacement for per-governor SQLAlchemy sidecars.
 
-## Maturity label
+## Portfolio readiness (implementation-based)
 
-**Institutional Self-Check Certified** — use for `make plug` (pytest + port alignment + Helm render).
+| Layer | Score |
+|-------|-------|
+| Core transactional kernel | **8.5/10** |
+| ModelGovernor | **7.0/10** |
+| FG / CG / IG wedges | **6.0/10** |
+| **Combined portfolio** | **6.5/10** |
 
-Do not claim third-party L5 or "Industry Leading" without external audit.
+Full scorecard: [docs/operational-architecture-scorecard.md](docs/operational-architecture-scorecard.md)
 
-## Modules
+## Maturity labels
 
-| Module | Purpose |
-|--------|---------|
-| `config.py` | `GovernorDomain`, ports 808x–812x, ledger table names |
-| `port_checks.py` | Spine Dockerfile/compose alignment + platform port drift |
-| `mode_contract.py` | Maps Active/Mock to existing env vars (no new singleton) |
-| `verify_http.py` | HTTP client for sidecar `verify-chain` endpoints |
-| `docs/disaster-recovery-runbook.md` | Honest DR — circuit breaker, diagnostic, fallback |
+| Label | Proof |
+|-------|-------|
+| **L4 Gold Enterprise** | Per-governor 4-tier CI + Helm |
+| **L5 Institutional Self-Check** | `make plug` (not SOC2 / ISO) |
+| **Industry Leading (kernel)** | L4+L5 + live attestation + external evidence — see [maturity-ladder.md](docs/maturity-ladder.md) |
+
+## Docs
+
+| Doc | Purpose |
+|-----|---------|
+| [operational-architecture-scorecard.md](docs/operational-architecture-scorecard.md) | **6.5/10** portfolio score + exit paths |
+| [transactional-kernel-strategy.md](docs/transactional-kernel-strategy.md) | Tech edge + buyer fit |
+| [maturity-ladder.md](docs/maturity-ladder.md) | L4 / L5 / IL definitions |
+| [disaster-recovery-runbook.md](docs/disaster-recovery-runbook.md) | Honest DR patterns |
 
 ## Verify
 
 ```bash
-make plug                              # full portfolio harness
-python -m spine_core.port_checks       # ports only
-PYTHONPATH=governor-spine-core pytest governor-spine-core/tests/ -q
-make compose-smoke-cg                  # optional live CG (Docker)
+make plug
+python -m spine_core.port_checks
+make compose-smoke-cg    # optional live CG
 ```
 
 ## What we deliberately did NOT add
 
-- Parallel `psycopg2` ledger writer (duplicates existing `commit_ledger.py` in each governor)
-- Kubernetes CronJob that `kubectl patch`es deployments on `curl openai.com` failure
-- Global singleton "mode controller" — use existing guardrails + diagnostic mode
+- Parallel `psycopg2` ledger writer
+- Kubernetes CronJob that `kubectl patch`es on `curl openai.com`
+- Global singleton mode controller
 
 Chain cryptography stays in each governor's `*_seal.py`; verify via HTTP `verify-chain`.

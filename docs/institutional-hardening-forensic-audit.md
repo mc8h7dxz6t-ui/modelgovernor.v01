@@ -1,5 +1,7 @@
 # Institutional++ Forensic Hardening Audit — Four-Governor Portfolio
 
+> **Portfolio readiness score superseded** by [operational-architecture-scorecard.md](../governor-spine-core/docs/operational-architecture-scorecard.md) (**6.5/10** combined). The **91/100** composite below is an internal engineering audit — not an independent gold-standard certification.
+
 **Assessment date:** 2026-06-25  
 **Scope:** ModelGovernor (MG), Finance Governor (FG), Insurance Governor (IG), Cybersecurity Governor (CG)  
 **Bar:** Industry-leading gold standard — institutional++ reliability, robustness, scalability

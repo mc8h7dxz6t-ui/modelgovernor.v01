@@ -25,13 +25,15 @@ Use this checklist when certifying a **third-party platform** for spine integrat
 - [ ] NetworkPolicy egress compatible (if enterprise overlay)
 - [ ] `make fg-certification-l4` passes in CI
 
-## L5 Industry Leading
+## L5 Institutional Self-Check (self-generated attestation — not SOC2)
 
 - [ ] Live provider integration (not mock-only) with circuit breaker
 - [ ] RDS / managed Postgres overlay (`values-rds.yaml`) if production
 - [ ] Istio sidecar injection on all platform pods (`istio.enabled: true`)
-- [ ] External attestation report generated and archived
+- [ ] Attestation report generated via `make fg-certification-external` and archived
 - [ ] Examiner evidence pack: regulatory export sample + chain verify output
+
+**Not included:** accredited third-party audit (SOC 2 Type II, ISO 27001).
 
 ## Generate attestation
 

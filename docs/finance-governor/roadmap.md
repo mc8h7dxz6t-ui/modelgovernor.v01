@@ -4,7 +4,7 @@ Phased build: **standalone platforms first**, optional spine for unified audit.
 
 ## Phase 0 — Design and alignment ✅ complete
 
-**Status:** Superseded by L5 Industry Leading delivery (see `finance-governor/docs/l4-certification.md`, `external-certification.md`).
+**Status:** Superseded by L5 Institutional Self-Check delivery (see `finance-governor/docs/l4-certification.md`, `external-certification.md`, [operational-architecture-scorecard.md](../governor-spine-core/docs/operational-architecture-scorecard.md)).
 
 **Deliverables:**
 - [x] Market gap analysis (`market-gaps.md`)

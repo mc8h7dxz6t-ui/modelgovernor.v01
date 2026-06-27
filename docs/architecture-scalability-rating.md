@@ -1,6 +1,11 @@
 # Architecture Scalability Rating — Four-Governor Portfolio
 
-**Rating target:** 92/100 (institutional++ gold standard)  
+> **Portfolio readiness narrative superseded.** For honest implementation scores use  
+> [governor-spine-core/docs/operational-architecture-scorecard.md](../governor-spine-core/docs/operational-architecture-scorecard.md)  
+> (**6.5/10** combined). This document remains a **scalability pattern inventory** only.  
+> The self-assigned **92/100** below is **not** an independent audit grade.
+
+**Rating target (historical):** 92/100 (institutional++ gold standard)  
 **Assessment date:** 2026-06-25  
 **Scope:** ModelGovernor, Finance Governor, Insurance Governor, Cybersecurity Governor
 
