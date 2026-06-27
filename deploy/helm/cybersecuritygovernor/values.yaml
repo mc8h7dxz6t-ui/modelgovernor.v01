@@ -46,6 +46,18 @@ images:
     repository: cybersecuritygovernor/compliance-logger
     tag: latest
     pullPolicy: IfNotPresent
+  witnessBridge:
+    repository: cybersecuritygovernor/witness-bridge
+    tag: latest
+    pullPolicy: IfNotPresent
+  lineageIngest:
+    repository: cybersecuritygovernor/lineage-ingest
+    tag: latest
+    pullPolicy: IfNotPresent
+  contentGuard:
+    repository: cybersecuritygovernor/content-guard
+    tag: latest
+    pullPolicy: IfNotPresent
   postgres:
     repository: postgres
     tag: "16"
@@ -176,7 +188,7 @@ gateway:
       cpu: 300m
       memory: 256Mi
 
-# Plug-and-play platform workloads — six cyber enforcement platforms
+# Plug-and-play platform workloads — nine cyber enforcement platforms
 platforms:
   egress_govern:
     enabled: true
@@ -258,6 +270,45 @@ platforms:
     name: compliance_logger
     imageKey: complianceLogger
     port: 8128
+    replicas: 2
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+  witness_bridge:
+    enabled: true
+    name: witness_bridge
+    imageKey: witnessBridge
+    port: 8129
+    replicas: 2
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+  lineage_ingest:
+    enabled: true
+    name: lineage_ingest
+    imageKey: lineageIngest
+    port: 8130
+    replicas: 2
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+  content_guard:
+    enabled: true
+    name: content_guard
+    imageKey: contentGuard
+    port: 8131
     replicas: 2
     resources:
       requests:

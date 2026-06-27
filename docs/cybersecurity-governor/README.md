@@ -6,7 +6,7 @@ Fourth governor in the ModelGovernor institutional++ lineage — **runtime secur
 
 ```bash
 make cg-spine-up          # spine only (8120–8122)
-make cg-stack-up          # spine + six platforms (8123–8128)
+make cg-stack-up          # spine + nine platforms (8123–8131)
 make cg-certification-l4-ci
 ```
 

@@ -80,6 +80,9 @@ def test_l4_platforms_deployed(enterprise_docs):
         "incident-response-gate",
         "identity-govern",
         "compliance-logger",
+        "witness-bridge",
+        "lineage-ingest",
+        "content-guard",
     ):
         assert plat in names
 

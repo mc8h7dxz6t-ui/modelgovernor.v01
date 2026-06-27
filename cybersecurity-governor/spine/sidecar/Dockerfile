@@ -6,7 +6,7 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt
 COPY cybersecurity-governor /app/cybersecurity-governor
 ENV PYTHONPATH=/app/cybersecurity-governor/spine/sidecar:/app/cybersecurity-governor
 WORKDIR /app/cybersecurity-governor/spine/sidecar
-RUN useradd --create-home --uid 1000 igsidecar
-USER igsidecar
-EXPOSE 8101
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8101"]
+RUN useradd --create-home --uid 1000 cgsidecar
+USER cgsidecar
+EXPOSE 8121
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8121"]
