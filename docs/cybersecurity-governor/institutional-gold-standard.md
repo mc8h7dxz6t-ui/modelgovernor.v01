@@ -8,7 +8,7 @@
 | **L2 Institutional** | Done | Diagnostic mode, security_ops probes, CCP |
 | **L3 Institutional++** | Done | Hash chain verify, anchor table, guardrails + fallback |
 | **L4 Gold** | Done | 4-tier CI, Helm chart, load harness, Prometheus rules |
-| **L5 Zero-Trust** | Done | Istio STRICT mTLS, platform→sidecar AuthorizationPolicy |
+| **L5 Zero-Trust** | Helm template ready | Istio STRICT mTLS manifests — not live cluster attestation |
 
 ## Competitive tech edges (vs GRC / SIEM / CNAPP)
 
