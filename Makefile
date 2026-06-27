@@ -1,7 +1,7 @@
 .PHONY: demo-up demo-down demo-reset demo-smoke demo-drift-lock demo-status demo-ledger demo-events \
 	demo-gold-up demo-gold demo-gold-reliability demo-gold-down demo-gold-reset demo-gold-diagnose \
 	demo-all demo-all-platforms demo-all-platforms-live demo-all-platforms-manifests demo-all-platforms-proof \
-	demo-prereqs demo-prereqs-install proof-test load-test plug salvage-verify \
+	demo-prereqs demo-prereqs-install proof-test load-test plug salvage-verify compose-smoke-cg \
 	fg-spine-up fg-stack-up fg-spine-down fg-stack-down fg-spine-test fg-spine-smoke \
 	crystal-demo algofreeze-demo wirematch-demo fg-certification \
 	fg-demo-up fg-demo-down fg-demo-gold fg-integration-test fg-load-smoke \
@@ -292,3 +292,7 @@ demo-all-platforms-proof:
 plug salvage-verify:
 	chmod +x scripts/run-salvage-verification.sh
 	./scripts/run-salvage-verification.sh
+
+compose-smoke-cg:
+	chmod +x scripts/compose-smoke-cg.sh
+	./scripts/compose-smoke-cg.sh

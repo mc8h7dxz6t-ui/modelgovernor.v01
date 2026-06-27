@@ -1,25 +1,38 @@
 # Governor Spine Core
 
-Authoritative **port map** and **ledger table registry** for all four governors. This package does not replace per-governor SQLAlchemy sidecars — it provides the consolidation contract and repository integrity checks.
+Authoritative **port map**, **ledger table registry**, and **repository integrity checks** for all four governors.
+
+This package is the consolidation **contract** — not a replacement for per-governor SQLAlchemy sidecars.
 
 ## Maturity label
 
-Use **Institutional Self-Check Certified** for pytest + helm-render + port-alignment gates. Do not claim third-party L5 or "Industry Leading" without external audit.
+**Institutional Self-Check Certified** — use for `make plug` (pytest + port alignment + Helm render).
+
+Do not claim third-party L5 or "Industry Leading" without external audit.
+
+## Modules
+
+| Module | Purpose |
+|--------|---------|
+| `config.py` | `GovernorDomain`, ports 808x–812x, ledger table names |
+| `port_checks.py` | Spine Dockerfile/compose alignment + platform port drift |
+| `mode_contract.py` | Maps Active/Mock to existing env vars (no new singleton) |
+| `verify_http.py` | HTTP client for sidecar `verify-chain` endpoints |
+| `docs/disaster-recovery-runbook.md` | Honest DR — circuit breaker, diagnostic, fallback |
 
 ## Verify
 
 ```bash
-PYTHONPATH=governor-spine-core python3 -m pytest governor-spine-core/tests/ -q
-make plug   # full portfolio salvage verification
+make plug                              # full portfolio harness
+python -m spine_core.port_checks       # ports only
+PYTHONPATH=governor-spine-core pytest governor-spine-core/tests/ -q
+make compose-smoke-cg                  # optional live CG (Docker)
 ```
 
-## Port map
+## What we deliberately did NOT add
 
-| Governor | Gateway | Sidecar | Reconciler |
-|----------|---------|---------|------------|
-| ModelGovernor | 8080 | 8081 | 8082 |
-| Finance | 8090 | 8091 | 8092 |
-| Insurance | 8100 | 8101 | 8102 |
-| Cybersecurity | 8120 | 8121 | 8122 |
+- Parallel `psycopg2` ledger writer (duplicates existing `commit_ledger.py` in each governor)
+- Kubernetes CronJob that `kubectl patch`es deployments on `curl openai.com` failure
+- Global singleton "mode controller" — use existing guardrails + diagnostic mode
 
-Dockerfile `--port` must match compose `host:container` publish ports (FG/IG/CG enforced by `port_checks.py`).
+Chain cryptography stays in each governor's `*_seal.py`; verify via HTTP `verify-chain`.
