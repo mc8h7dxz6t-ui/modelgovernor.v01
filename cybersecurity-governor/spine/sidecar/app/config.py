@@ -5,6 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5434/cybersecuritygovernor"
+    database_read_url: str | None = None
     redis_url: str = "redis://localhost:6381/0"
     cg_internal_tokens: str = "dev-cg-spine-token-change-me"
     commit_ttl_seconds: int = 300

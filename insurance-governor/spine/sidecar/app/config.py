@@ -5,6 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5434/insurancegovernor"
+    database_read_url: str | None = None
     redis_url: str = "redis://localhost:6381/0"
     ig_internal_tokens: str = "dev-ig-spine-token-change-me"
     commit_ttl_seconds: int = 300

@@ -114,3 +114,25 @@ spec:
             severity: warning
           annotations:
             summary: Sidecar metrics absent — synthetic canary may be failing
+
+    - name: cybersecuritygovernor.scalability
+      rules:
+        - alert: CybersecurityGovernorChainVerifyLatencyHigh
+          expr: |
+            histogram_quantile(
+              0.95,
+              sum(rate(cybersecuritygovernor_chain_verify_duration_seconds_bucket[5m])) by (le)
+            ) > 30
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: Chain verify p95 above 30s — consider read replica or checkpoint reset
+
+        - alert: CybersecurityGovernorPgbouncerPoolExhausted
+          expr: increase(cybersecuritygovernor_db_pool_timeout_total[5m]) > 5
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Database pool timeouts — scale PgBouncer or reduce per-pod pool size

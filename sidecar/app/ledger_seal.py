@@ -9,7 +9,22 @@ from typing import Any
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from .chain_checkpoint import (
+    VerifyCheckpoint,
+    count_events,
+    load_checkpoint,
+    save_checkpoint,
+    schema_supports_checkpoints,
+)
+
 GENESIS_HASH = "0" * 64
+EVENTS_TABLE = "ledger_events"
+CHECKPOINT_TABLE = "ledger_chain_verify_checkpoints"
+
+
+def _persist_checkpoint(session: Session, checkpoint: VerifyCheckpoint) -> None:
+    save_checkpoint(session, CHECKPOINT_TABLE, checkpoint)
+    session.commit()
 
 
 @dataclass(frozen=True)
@@ -26,6 +41,7 @@ class LedgerChainVerificationResult:
     total_events: int
     head_hash: str | None
     first_break: LedgerChainBreak | None = None
+    incremental: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         payload: dict[str, Any] = {
@@ -34,6 +50,7 @@ class LedgerChainVerificationResult:
             "unsealed_count": self.unsealed_count,
             "total_events": self.total_events,
             "head_hash": self.head_hash,
+            "incremental": self.incremental,
         }
         if self.first_break is not None:
             payload["first_break"] = {
@@ -150,19 +167,49 @@ def seal_ledger_event(
     return prev_hash, row_hash
 
 
-def verify_ledger_chain(session: Session) -> LedgerChainVerificationResult:
+def head_hash(session: Session) -> str | None:
     if not schema_supports_ledger_seal(session):
-        return LedgerChainVerificationResult(
-            valid=True,
-            sealed_count=0,
-            unsealed_count=0,
-            total_events=0,
-            head_hash=None,
-        )
+        return None
+    row = session.execute(
+        text(f"SELECT row_hash FROM {EVENTS_TABLE} WHERE row_hash IS NOT NULL ORDER BY event_id DESC LIMIT 1")
+    ).first()
+    return row[0] if row else None
 
+
+@dataclass
+class _LedgerVerifyState:
+    valid: bool
+    sealed_count: int
+    unsealed_count: int
+    head_hash: str | None
+    first_break: LedgerChainBreak | None
+    last_event_id: int
+
+
+def _verify_ledger_rows(
+    session: Session,
+    *,
+    from_event_id: int = 0,
+    prior_sealed: int = 0,
+) -> _LedgerVerifyState:
+    if from_event_id > 0:
+        anchor = session.execute(
+            text(f"SELECT row_hash FROM {EVENTS_TABLE} WHERE event_id = :event_id"),
+            {"event_id": from_event_id},
+        ).first()
+        if not anchor:
+            from_event_id = 0
+            prior_sealed = 0
+            last_sealed_hash = GENESIS_HASH
+        else:
+            last_sealed_hash = anchor[0]
+    else:
+        last_sealed_hash = GENESIS_HASH
+
+    where_clause = "WHERE event_id > :from_event_id" if from_event_id > 0 else ""
     rows = session.execute(
         text(
-            """
+            f"""
             SELECT
                 event_id,
                 idempotency_key,
@@ -173,19 +220,32 @@ def verify_ledger_chain(session: Session) -> LedgerChainVerificationResult:
                 recorded_at,
                 prev_hash,
                 row_hash
-            FROM ledger_events
+            FROM {EVENTS_TABLE}
+            {where_clause}
             ORDER BY event_id ASC
             """
-        )
+        ),
+        {"from_event_id": from_event_id} if from_event_id > 0 else {},
     ).mappings().all()
 
-    last_sealed_hash = GENESIS_HASH
-    sealed_count = 0
+    if from_event_id > 0 and not rows:
+        return _LedgerVerifyState(
+            valid=True,
+            sealed_count=prior_sealed,
+            unsealed_count=0,
+            head_hash=last_sealed_hash,
+            first_break=None,
+            last_event_id=from_event_id,
+        )
+
+    sealed_count = prior_sealed
     unsealed_count = 0
-    head_hash: str | None = None
+    head: str | None = last_sealed_hash if last_sealed_hash != GENESIS_HASH else None
     first_break: LedgerChainBreak | None = None
+    last_event_id = from_event_id
 
     for row in rows:
+        last_event_id = int(row["event_id"])
         row_hash = row["row_hash"]
         if row_hash is None:
             unsealed_count += 1
@@ -198,13 +258,13 @@ def verify_ledger_chain(session: Session) -> LedgerChainVerificationResult:
 
         if prev_hash != last_sealed_hash:
             first_break = LedgerChainBreak(
-                event_id=int(row["event_id"]),
+                event_id=last_event_id,
                 reason=f"prev_hash mismatch at event_id={row['event_id']}",
             )
             break
 
         expected_hash = compute_row_hash(
-            event_id=int(row["event_id"]),
+            event_id=last_event_id,
             idempotency_key=row["idempotency_key"],
             user_id=row["user_id"],
             event_type=row["event_type"],
@@ -215,21 +275,106 @@ def verify_ledger_chain(session: Session) -> LedgerChainVerificationResult:
         )
         if row_hash != expected_hash:
             first_break = LedgerChainBreak(
-                event_id=int(row["event_id"]),
+                event_id=last_event_id,
                 reason=f"row_hash mismatch at event_id={row['event_id']}",
             )
             break
 
         sealed_count += 1
         last_sealed_hash = row_hash
-        head_hash = row_hash
+        head = row_hash
 
-    valid = first_break is None
-    return LedgerChainVerificationResult(
-        valid=valid,
+    return _LedgerVerifyState(
+        valid=first_break is None,
         sealed_count=sealed_count,
         unsealed_count=unsealed_count,
-        total_events=len(rows),
-        head_hash=head_hash,
+        head_hash=head,
         first_break=first_break,
+        last_event_id=last_event_id,
     )
+
+
+def verify_ledger_chain(
+    session: Session,
+    *,
+    incremental: bool = True,
+    read_session: Session | None = None,
+) -> LedgerChainVerificationResult:
+    verify_session = read_session or session
+
+    if not schema_supports_ledger_seal(verify_session):
+        return LedgerChainVerificationResult(
+            valid=True,
+            sealed_count=0,
+            unsealed_count=0,
+            total_events=0,
+            head_hash=None,
+        )
+
+    total_events = count_events(verify_session, EVENTS_TABLE)
+    if total_events == 0:
+        return LedgerChainVerificationResult(
+            valid=True, sealed_count=0, unsealed_count=0, total_events=0, head_hash=None
+        )
+
+    current_head = head_hash(verify_session)
+    checkpoints_enabled = schema_supports_checkpoints(verify_session, CHECKPOINT_TABLE)
+
+    if incremental and checkpoints_enabled:
+        checkpoint = load_checkpoint(verify_session, CHECKPOINT_TABLE)
+        if checkpoint and current_head and checkpoint.verified_head_hash == current_head:
+            return LedgerChainVerificationResult(
+                valid=True,
+                sealed_count=checkpoint.sealed_count,
+                unsealed_count=0,
+                total_events=total_events,
+                head_hash=current_head,
+                incremental=True,
+            )
+
+        if checkpoint and current_head:
+            tail_result = _verify_ledger_rows(
+                verify_session,
+                from_event_id=checkpoint.last_verified_event_id,
+                prior_sealed=checkpoint.sealed_count,
+            )
+            if tail_result.valid and tail_result.head_hash:
+                _persist_checkpoint(
+                    session,
+                    VerifyCheckpoint(
+                        last_verified_event_id=tail_result.last_event_id,
+                        verified_head_hash=tail_result.head_hash,
+                        sealed_count=tail_result.sealed_count,
+                        total_events=total_events,
+                    ),
+                )
+                return LedgerChainVerificationResult(
+                    valid=True,
+                    sealed_count=tail_result.sealed_count,
+                    unsealed_count=tail_result.unsealed_count,
+                    total_events=total_events,
+                    head_hash=tail_result.head_hash,
+                    incremental=True,
+                )
+
+    full = _verify_ledger_rows(verify_session)
+    result = LedgerChainVerificationResult(
+        valid=full.valid,
+        sealed_count=full.sealed_count,
+        unsealed_count=full.unsealed_count,
+        total_events=total_events,
+        head_hash=full.head_hash,
+        first_break=full.first_break,
+        incremental=False,
+    )
+    if result.valid and incremental and checkpoints_enabled and result.head_hash:
+        _persist_checkpoint(
+            session,
+            VerifyCheckpoint(
+                last_verified_event_id=full.last_event_id,
+                verified_head_hash=result.head_hash,
+                sealed_count=result.sealed_count,
+                total_events=total_events,
+            ),
+        )
+    return result
