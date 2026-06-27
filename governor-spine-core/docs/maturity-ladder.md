@@ -20,7 +20,7 @@ Authoritative portfolio readiness: [operational-architecture-scorecard.md](opera
 
 ### L5 — Institutional Self-Check Certified
 
-**Proves:** `make plug` — port alignment, cross-governor pytest subset, Helm smoke.
+**Proves:** `make plug` — four-governor pytest matrices, port contract, Helm smoke (enforced in CI job `portfolio-plug`).
 
 **Explicit disclaimer** (printed by harness):
 

@@ -126,4 +126,4 @@ make demo-gold                    # MG 7.0/10 proof path
 - [maturity-ladder.md](maturity-ladder.md) — L4 / L5 / IL definitions
 - [GOVERNOR-PORTFOLIO.md](../../docs/sales-sheets/GOVERNOR-PORTFOLIO.md) — SKU honesty
 
-**Supersedes** self-assigned **92/100** / **91/100** ratings in `docs/architecture-scalability-rating.md` and `docs/institutional-hardening-forensic-audit.md` for **portfolio readiness** narrative — those remain useful for scalability pattern inventory only.
+**Supersedes** removed unaudited self-grades (`architecture-scalability-rating.md` 92/100, `institutional-hardening-forensic-audit.md` 91/100). Evidence index: [forensic-audit-evidence.md](forensic-audit-evidence.md).

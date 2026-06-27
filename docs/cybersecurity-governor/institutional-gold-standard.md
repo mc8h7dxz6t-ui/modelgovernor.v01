@@ -8,7 +8,8 @@
 | **L2 Institutional** | Done | Diagnostic mode, security_ops probes, CCP |
 | **L3 Institutional++** | Done | Hash chain verify, anchor table, guardrails + fallback |
 | **L4 Gold** | Done | 4-tier CI, Helm chart, load harness, Prometheus rules |
-| **L5 Zero-Trust** | Helm template ready | Istio STRICT mTLS manifests — not live cluster attestation |
+| **L5 Helm overlay** | Istio STRICT mTLS templates in Helm | Not live cluster attestation |
+| **L5 Institutional Self-Check Certified** | `make plug` + optional live attestation | Not SOC2 — see [maturity-ladder.md](../../governor-spine-core/docs/maturity-ladder.md) |
 
 ## Competitive tech edges (vs GRC / SIEM / CNAPP)
 

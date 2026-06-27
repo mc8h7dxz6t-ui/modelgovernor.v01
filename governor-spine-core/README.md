@@ -20,7 +20,7 @@ Full scorecard: [docs/operational-architecture-scorecard.md](docs/operational-ar
 | Label | Proof |
 |-------|-------|
 | **L4 Gold Enterprise** | Per-governor 4-tier CI + Helm |
-| **L5 Institutional Self-Check** | `make plug` (not SOC2 / ISO) |
+| **L5 Institutional Self-Check Certified** | `make plug` — CI job `portfolio-plug` (not SOC2 / ISO) |
 | **Industry Leading (kernel)** | L4+L5 + live attestation + external evidence — see [maturity-ladder.md](docs/maturity-ladder.md) |
 
 ## Docs
@@ -28,6 +28,7 @@ Full scorecard: [docs/operational-architecture-scorecard.md](docs/operational-ar
 | Doc | Purpose |
 |-----|---------|
 | [operational-architecture-scorecard.md](docs/operational-architecture-scorecard.md) | **6.5/10** portfolio score + exit paths |
+| [forensic-audit-evidence.md](docs/forensic-audit-evidence.md) | Acquirer due diligence — provable engine vs gaps |
 | [transactional-kernel-strategy.md](docs/transactional-kernel-strategy.md) | Tech edge + buyer fit |
 | [maturity-ladder.md](docs/maturity-ladder.md) | L4 / L5 / IL definitions |
 | [disaster-recovery-runbook.md](docs/disaster-recovery-runbook.md) | Honest DR patterns |

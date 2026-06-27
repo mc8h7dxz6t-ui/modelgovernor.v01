@@ -25,8 +25,8 @@ def test_cyber_ports_are_812x():
     assert cyber.reconciler == 8122
 
 
-def test_maturity_label_is_self_check_not_l5_marketing():
-    assert "Self-Check" in MATURITY_LABEL
+def test_maturity_label_is_l5_self_check_not_industry_leading_marketing():
+    assert MATURITY_LABEL == "L5 Institutional Self-Check Certified"
     assert "Industry Leading" not in MATURITY_LABEL
 
 

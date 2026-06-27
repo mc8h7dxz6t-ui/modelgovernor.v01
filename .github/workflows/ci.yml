@@ -803,3 +803,30 @@ jobs:
       - name: Tear down chaos stack
         if: always()
         run: docker compose -f cybersecurity-governor/docker-compose.chaos.yml down -v
+
+  portfolio-plug:
+    name: Portfolio — L5 Institutional Self-Check (make plug)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Install portfolio test dependencies
+        run: |
+          pip install -r sidecar/requirements.txt -r reconciler/requirements.txt -r gateway/requirements.txt
+          pip install -r cybersecurity-governor/spine/sidecar/requirements.txt
+          pip install -r cybersecurity-governor/spine/gateway/requirements.txt
+          pip install -r cybersecurity-governor/spine/reconciler/requirements.txt
+          pip install -r cybersecurity-governor/platforms/requirements.txt
+          pip install pytest pyyaml httpx hypothesis fakeredis
+          make -C finance-governor fg-test-deps
+
+      - name: L5 Institutional Self-Check harness
+        run: make plug

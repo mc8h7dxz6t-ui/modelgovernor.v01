@@ -65,7 +65,8 @@ def build_pack() -> dict:
         "certification_targets": {
             "institutional_plus_plus": "make fg-certification",
             "l4_gold": "make fg-certification-l4",
-            "l5_industry_leading": "make fg-certification-external-full",
+            "l5_institutional_self_check": "make plug",
+            "l5_self_check_attestation": "make fg-certification-external-full",
         },
         "artifact_references": {k: {"path": v, "exists": Path(v).is_file()} for k, v in refs.items()},
         "invariant_counters": [
