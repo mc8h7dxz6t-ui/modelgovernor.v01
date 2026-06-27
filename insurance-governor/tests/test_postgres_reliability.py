@@ -11,22 +11,15 @@ from sqlalchemy.orm import sessionmaker
 
 ROOT = Path(__file__).resolve().parents[1]
 SIDECAR = ROOT / "spine" / "sidecar"
+TESTS = ROOT / "tests"
 sys.path.insert(0, str(SIDECAR))
+sys.path.insert(0, str(TESTS))
 
-MIGRATIONS = [
-    ROOT / "migrations" / "0001_ig_spine_init.sql",
-    ROOT / "migrations" / "0002_claim_chain_anchors.sql",
-    ROOT / "migrations" / "0003_admin_audit_log.sql",
-]
+from support.ig_migrations import apply_ig_migrations
 
 
 def _apply_migrations(engine) -> None:
-    with engine.begin() as conn:
-        for mig in MIGRATIONS:
-            for stmt in mig.read_text().split(";"):
-                s = stmt.strip()
-                if s and not s.startswith("--"):
-                    conn.execute(text(s))
+    apply_ig_migrations(engine)
 
 
 @pytest.fixture()

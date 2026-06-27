@@ -45,4 +45,4 @@ def apply_ig_migrations(
     for path in sorted(root.glob("*.sql")):
         with engine.begin() as conn:
             for fragment in sql_fragments(path.read_text()):
-                conn.execute(text(fragment))
+                conn.exec_driver_sql(fragment)
