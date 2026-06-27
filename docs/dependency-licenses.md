@@ -4,7 +4,7 @@ This document is an operational inventory for technical diligence. It is not leg
 
 ## Core runtime dependencies
 
-### Python application dependencies (direct)
+### ModelGovernor (Python application)
 
 From `sidecar/requirements.txt` and `reconciler/requirements.txt`:
 
@@ -15,6 +15,15 @@ From `sidecar/requirements.txt` and `reconciler/requirements.txt`:
 - SQLAlchemy (MIT)
 - Psycopg + psycopg-binary (LGPL-3.0)
 - Redis Python client (`redis`) (MIT)
+- PyJWT + cryptography (MIT) — OIDC RBAC on enterprise overlays
+
+### Cybersecurity Governor (Python application)
+
+From `cyber-governor/spine/sidecar/requirements.txt`, `cyber-governor/spine/gateway/requirements.txt`, and `cyber-governor/spine/reconciler/requirements.txt`:
+
+- FastAPI, Uvicorn, Pydantic, pydantic-settings, SQLAlchemy, Psycopg, Redis (same licenses as above)
+- PyJWT + cryptography (MIT) — OIDC on sidecar and gateway commit path
+- Hypothesis (MPL-2.0) — property tests only (dev/CI)
 
 ### Local stack components
 

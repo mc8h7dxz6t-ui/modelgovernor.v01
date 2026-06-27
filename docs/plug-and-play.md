@@ -76,3 +76,18 @@ kubectl apply -k deploy/argocd/
 | `LEDGER_ANCHOR_S3_*` | unset | bucket + Object Lock |
 
 All production manifests are in-repo and CI-validated (`kustomize build`, `helm lint`).
+
+---
+
+## Cybersecurity Governor (sibling spine)
+
+**Full checklist:** [cyber-governor/PLUG-AND-PLAY.md](../cyber-governor/PLUG-AND-PLAY.md)
+
+| Mode | Command |
+|------|---------|
+| Demo | `make cg-stack-up && make cg-security-demo` |
+| Dev secrets | `make -C cyber-governor cg-bootstrap` |
+| Staging K8s | `make -C cyber-governor cg-prod-bootstrap && kubectl apply -k cyber-governor/deploy/overlays/staging` |
+| Production | `WITH_S3=1 BUCKET_NAME=... make -C cyber-governor cg-prod-bootstrap` + production overlay |
+
+Fortune-500 hardening roadmap: [docs/cyber-governor/production-hardening.md](cyber-governor/production-hardening.md)

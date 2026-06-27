@@ -1,4 +1,13 @@
-.PHONY: cg-spine-up cg-spine-down cg-stack-up cg-stack-down cg-spine-test cg-spine-smoke claim-gate-demo cg-demo cg-certification cg-certification-strict cg-certification-l4 cg-certification-l4-ci cg-helm-enterprise cg-platform-conformance cg-load-test cg-chaos-test cg-ha-up cg-ha-down cg-pilot-attestation cg-cluster-attestation cg-rail-smoke cg-design-partner-package ig-claim-gate-load cg-full-rehearsal cg-embedded-rehearsal cg-examiner-evidence bind-authority-demo parametric-oracle-demo
+.PHONY: cg-spine-up cg-spine-down cg-stack-up cg-stack-down cg-spine-test cg-spine-smoke claim-gate-demo cg-demo cg-certification cg-certification-strict cg-certification-l4 cg-certification-l4-ci cg-helm-enterprise cg-platform-conformance cg-load-test cg-chaos-test cg-ha-up cg-ha-down cg-pilot-attestation cg-cluster-attestation cg-rail-smoke cg-design-partner-package ig-claim-gate-load cg-full-rehearsal cg-embedded-rehearsal cg-examiner-evidence bind-authority-demo parametric-oracle-demo cg-test-deps
+
+cg-test-deps:
+	python3 -m pip install --upgrade pip
+	python3 -m pip install \
+	  -r spine/sidecar/requirements.txt \
+	  -r spine/gateway/requirements.txt \
+	  -r spine/reconciler/requirements.txt \
+	  -r platforms/requirements.txt \
+	  pytest pyyaml httpx
 
 cg-spine-up:
 	docker compose -f docker-compose.spine.yml up -d --build
