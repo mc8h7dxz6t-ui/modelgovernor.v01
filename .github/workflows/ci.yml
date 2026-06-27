@@ -493,7 +493,7 @@ jobs:
         env:
           POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5432/ig_test
         run: |
-          PYTHONPATH=insurance-governor/spine/sidecar pytest \
+          PYTHONPATH=insurance-governor/spine/sidecar:insurance-governor/tests:insurance-governor python3 -m pytest \
             insurance-governor/tests/test_postgres_vigorous.py \
             insurance-governor/tests/test_postgres_reliability.py \
             insurance-governor/tests/test_migration_invariants.py \
@@ -509,7 +509,10 @@ jobs:
         with:
           python-version: "3.12"
       - name: Verify IG migration bundle
-        run: pip install pytest && PYTHONPATH=insurance-governor/spine/sidecar python3 -m pytest insurance-governor/tests/test_migration_invariants.py -q
+        run: |
+          pip install -r insurance-governor/spine/sidecar/requirements.txt pytest
+          PYTHONPATH=insurance-governor/spine/sidecar:insurance-governor/tests:insurance-governor \
+            python3 -m pytest insurance-governor/tests/test_migration_invariants.py -q
 
   ig-test-tier3:
     name: IG Tier 3 — Load harness
@@ -754,7 +757,7 @@ jobs:
         env:
           POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5432/cg_test
         run: |
-          PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor pytest \
+          PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor python3 -m pytest \
             cybersecurity-governor/tests/test_postgres_vigorous.py \
             cybersecurity-governor/tests/test_postgres_reliability.py \
             cybersecurity-governor/tests/test_migration_invariants.py \
@@ -770,7 +773,10 @@ jobs:
         with:
           python-version: "3.12"
       - name: Verify CG migration bundle
-        run: pip install pytest && PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor python3 -m pytest cybersecurity-governor/tests/test_migration_invariants.py -q
+        run: |
+          pip install -r cybersecurity-governor/spine/sidecar/requirements.txt pytest
+          PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor \
+            python3 -m pytest cybersecurity-governor/tests/test_migration_invariants.py -q
 
   cg-test-tier3:
     name: CG Tier 3 — Load harness

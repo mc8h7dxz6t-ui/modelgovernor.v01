@@ -10,25 +10,17 @@ from sqlalchemy import create_engine, text
 
 ROOT = Path(__file__).resolve().parents[1]
 SIDECAR = ROOT / "spine" / "sidecar"
+TESTS = ROOT / "tests"
 sys.path.insert(0, str(SIDECAR))
+sys.path.insert(0, str(TESTS))
+
+from support.cg_migrations import apply_cg_migrations
 
 from support.cyber_fixtures import EGRESS_PLATFORM, EGRESS_POLICY, egress_facets
 
-MIGRATIONS = [
-    ROOT / "migrations" / "0001_cg_spine_init.sql",
-    ROOT / "migrations" / "0002_security_chain_anchors.sql",
-    ROOT / "migrations" / "0003_admin_audit_log.sql",
-    ROOT / "migrations" / "0004_cg_platforms_mesh.sql",
-]
-
 
 def _apply_migrations(engine) -> None:
-    with engine.begin() as conn:
-        for mig in MIGRATIONS:
-            for stmt in mig.read_text().split(";"):
-                s = stmt.strip()
-                if s and not s.startswith("--"):
-                    conn.execute(text(s))
+    apply_cg_migrations(engine)
 
 
 @pytest.fixture()
