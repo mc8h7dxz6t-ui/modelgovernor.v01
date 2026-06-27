@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from .admin_audit import record_admin_action, schema_supports_admin_audit
 from .auth import AuthContext, require_financial_admin, require_internal_auth
-from .db import get_db_session
+from .db import get_db_session, get_read_db_session
 from .decision_anchor import anchor_verified_decision_head
 from .decision_seal import head_hash, verify_decision_chain
 from .diagnostic_mode import clear_diagnostic_mode, diagnostic_snapshot
@@ -14,8 +14,8 @@ router = APIRouter(tags=["admin"], prefix="/internal")
 
 @router.get("/decisions/verify-chain")
 def verify_chain(_: AuthContext = Depends(require_internal_auth)) -> dict:
-    with get_db_session() as session:
-        result = verify_decision_chain(session)
+    with get_read_db_session() as read_session, get_db_session() as write_session:
+        result = verify_decision_chain(write_session, incremental=True, read_session=read_session)
         if not result.valid:
             get_counters().increment("ledger_chain_verification_failed_total")
         return result.to_dict()

@@ -58,6 +58,13 @@ def test_l4_redis_sentinel_deployed(enterprise_docs):
     names = _names(enterprise_docs)
     assert "redis-sentinel" in names
     assert "redis-master" in names
+    assert "redis-replica" in names
+
+
+def test_l4_gateway_hpa_deployed(enterprise_docs):
+    hpas = [d for d in enterprise_docs if d.get("kind") == "HorizontalPodAutoscaler"]
+    names = {d["metadata"]["name"] for d in hpas}
+    assert "gateway-hpa" in names
 
 
 def test_l4_hpa_deployed(enterprise_docs):
@@ -102,7 +109,7 @@ def test_l4_reliability_cronjobs(enterprise_docs):
 
 def test_l4_extended_pdb_coverage(enterprise_docs):
     names = [d["metadata"]["name"] for d in enterprise_docs if d.get("kind") == "PodDisruptionBudget"]
-    for pdb in ("sidecar-pdb", "reconciler-pdb", "pgbouncer-pdb"):
+    for pdb in ("sidecar-pdb", "reconciler-pdb", "pgbouncer-pdb", "gateway-pdb"):
         assert pdb in names
 
 
