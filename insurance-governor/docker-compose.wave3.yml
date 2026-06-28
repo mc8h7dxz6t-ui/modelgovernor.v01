@@ -1,0 +1,12 @@
+# Wave 3 overlay — FNOL + FedNow sandbox env for live integration smoke (requires host mocks)
+services:
+  ig-claim-gate:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      FNOL_WRITEBACK_MODE: live
+      GUIDEWIRE_WRITEBACK_URL: http://host.docker.internal:8191/guidewire/v1/claims/sync
+      SNAPSHEET_WRITEBACK_URL: http://host.docker.internal:8191/snapsheet/v1/claims/sync
+      PAYMENT_RAIL_MODE: fednow_sandbox
+      FEDNOW_SANDBOX_URL: http://host.docker.internal:8190/v1/payments
+      BANK_RAIL_API_TOKEN: sandbox-token

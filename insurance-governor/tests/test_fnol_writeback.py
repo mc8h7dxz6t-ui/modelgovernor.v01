@@ -38,8 +38,8 @@ def test_ice_writeback_dry_run(monkeypatch):
 def test_unsupported_writeback_vendor(monkeypatch):
     monkeypatch.setenv("FNOL_WRITEBACK_MODE", "live")
     result = sync_fnol_decision(
-        vendor="snapsheet",
-        claim_id="SS-1",
+        vendor="majesco",
+        claim_id="MJ-1",
         decision="APPROVED",
         facets={},
     )

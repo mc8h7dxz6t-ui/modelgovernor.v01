@@ -863,3 +863,15 @@ jobs:
         run: |
           chmod +x scripts/compose-smoke-cg.sh
           make compose-smoke-cg
+
+  compose-smoke-ig:
+    name: IG live stack — compose-smoke-ig + pilot attestation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: IG compose smoke + sandbox FNOL/rail + pilot attestation
+        run: |
+          chmod +x scripts/compose-smoke-ig.sh insurance-governor/scripts/ig-pilot-attestation.sh
+          make compose-smoke-ig
+          ATTESTATION_CI=1 make ig-pilot-attestation

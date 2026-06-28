@@ -7,6 +7,17 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 
 class FedNowHandler(BaseHTTPRequestHandler):
+    def do_GET(self) -> None:
+        if self.path in ("/healthz", "/v1/payments"):
+            payload = b'{"status":"ok","sandbox":true}'
+            self.send_response(200)
+            self.send_header("content-type", "application/json")
+            self.send_header("content-length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+            return
+        self.send_error(404)
+
     def do_POST(self) -> None:
         length = int(self.headers.get("Content-Length", 0))
         body = json.loads(self.rfile.read(length).decode() or "{}")
