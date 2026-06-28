@@ -55,9 +55,9 @@ Insurance Governor is a **governed commit control plane** for insurers and MGAs.
 | **BindAuthority** | 8104 | Premium/limit bind gate; mesh blocks on underwriting violation | **vs PAS authority tables:** Static limits — no cross-platform warranty enforcement at bind commit. |
 | **ParametricOracle** | 8105 | Oracle feed + `sha256(source:payload)` attestation before parametric trigger | **vs raw weather APIs / Chainlink read:** Data feed without **governed reserve commit** and examiner hash. Cat/parametric MGAs get **trigger proof**, not just a number. |
 | **ZkClaimAudit** | 8106 | SHA-256 fact commitments; selective disclosure proofs for exams | **vs document vaults:** Storage — not **cryptographic commitment** that disclosed subset recomputes same hash. Lloyd's / state DOI exam narrative. |
-| **SpatialTwin** | 8107 | LiDAR point-cloud hash + damage estimate gate | **vs photogrammetry vendors:** Estimate output — no **governed commit** tied to reserve. Property/cat spatial wedge (scaffold + tests; vendor connectors phase 2). |
+| **SpatialTwin** | 8107 | Governed spatial evidence envelope + vendor attestation hash | **vs photogrammetry vendors:** Estimate output — no **governed commit** tied to reserve. **7.5** mock vendor feed + multi-scenario gate; production LiDAR connector = SOW. |
 | **BatteryLiability** | 8108 | EV battery SOH / thermal liability gate | **vs telematics dashboards:** Telemetry — no policy warranty enforcement at claim commit. Auto OEM / fleet programs. |
-| **SubrogationGraph** | 8109 | Multi-defendant recovery routing gate | **vs subro desk workflow:** Task management — not governed recovery commit on spine. |
+| **SubrogationGraph** | 8109 | Governed subro desk evidence + recovery routing | **vs subro desk workflow:** Task management — not governed recovery commit on spine. **7.5** mock desk feed + salvage/statute rules; live desk API = SOW. |
 
 ---
 

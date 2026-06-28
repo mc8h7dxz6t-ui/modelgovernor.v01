@@ -25,7 +25,8 @@ curl -sf http://localhost:8190/v1/payments -X POST -H 'content-type: application
 cd "$IG"
 echo "==> Starting IG stack (spine + ClaimGate)..."
 docker compose -f docker-compose.yml -f docker-compose.wave3.yml up -d --build \
-  ig-postgres ig-redis ig-sidecar ig-reconciler ig-gateway ig-claim-gate
+  ig-postgres ig-redis ig-sidecar ig-reconciler ig-gateway ig-claim-gate \
+  ig-spatial-twin ig-subrogation-graph
 sleep 10
 
 echo "==> Gateway health (8100)"
@@ -67,5 +68,13 @@ RAIL=$(curl -sf -X POST http://localhost:8103/claim/evaluate \
   -H 'content-type: application/json' \
   -d '{"claim_id":"smoke-rail-1","payout_amount":"100.00","policy_number":"POL-AUTO-001","idempotency_key":"smoke-rail-1","payee_id":"sandbox-payee"}')
 echo "$RAIL" | python3 -c "import json,sys; d=json.load(sys.stdin); assert d.get('payment_status')=='COMPLETED', d; assert str(d.get('payment_id','')).startswith('pay_') or d.get('payment_id'), d"
+
+echo "==> SpatialTwin demo wedge"
+chmod +x "$ROOT/insurance-governor/scripts/spatial-twin-demo.sh"
+SPATIAL_TWIN_URL=http://localhost:8107 "$ROOT/insurance-governor/scripts/spatial-twin-demo.sh"
+
+echo "==> SubrogationGraph demo wedge"
+chmod +x "$ROOT/insurance-governor/scripts/subrogation-graph-demo.sh"
+SUBROGATION_GRAPH_URL=http://localhost:8109 "$ROOT/insurance-governor/scripts/subrogation-graph-demo.sh"
 
 echo "compose-smoke-ig OK"

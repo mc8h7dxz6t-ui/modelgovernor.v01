@@ -72,7 +72,7 @@ PYTHONPATH=insurance-governor python3 -m pytest insurance-governor/tests/test_fn
 make ig-certification-l4-ci   # includes sandbox integration tests
 ```
 
-**Not claimed at 9/10:** SpatialTwin / subrogation wedges stay **6.0** without carrier SOW. IL 9/10 still requires Phase C design-partner evidence.
+**Not claimed at 9/10:** SpatialTwin / SubrogationGraph are **7.5 governed evidence envelopes** with mock vendor connectors — production LiDAR/desk APIs remain carrier SOW. IL 9/10 for IG still requires ClaimGate hero + Phase C design-partner evidence.
 
 ---
 
@@ -239,7 +239,7 @@ make cg-pilot-attestation
 | **A2** | `ig-pilot-attestation.sh` — FNOL ingest → reserve → commit → verify-chain | Parity with CG |
 | **A3** | One **sandbox** FNOL integration (Snapsheet or Guidewire mock server) — not just shape normalizer | Integration test in CI |
 | **A4** | FedNow **sandbox** in CI (not manual `ig-rail-smoke` only) | Payment rail proof |
-| **B1** | SpatialTwin / subrogation — keep **6.0** unless carrier SOW | Honest scoring |
+| **B1** | SpatialTwin / SubrogationGraph — **7.5** governed evidence envelope + mock vendor feed + demo/CI | Honest secondary wedges |
 | **C1** | Carrier design-partner (MGA or Tier-2) + signed PoC letter | External evidence |
 
 ### Hero wedge at 9/10

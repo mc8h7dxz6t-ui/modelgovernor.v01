@@ -1,4 +1,4 @@
-.PHONY: ig-spine-up ig-spine-down ig-stack-up ig-stack-down ig-spine-test ig-spine-smoke claim-gate-demo ig-demo ig-certification ig-certification-strict ig-certification-l4 ig-certification-l4-ci ig-helm-enterprise ig-platform-conformance ig-load-test ig-chaos-test ig-ha-up ig-ha-down ig-pilot-attestation ig-cluster-attestation ig-rail-smoke ig-design-partner-package ig-claim-gate-load ig-full-rehearsal ig-embedded-rehearsal ig-examiner-evidence bind-authority-demo parametric-oracle-demo
+.PHONY: ig-spine-up ig-spine-down ig-stack-up ig-stack-down ig-spine-test ig-spine-smoke claim-gate-demo ig-demo ig-certification ig-certification-strict ig-certification-l4 ig-certification-l4-ci ig-helm-enterprise ig-platform-conformance ig-load-test ig-chaos-test ig-ha-up ig-ha-down ig-pilot-attestation ig-cluster-attestation ig-rail-smoke ig-design-partner-package ig-claim-gate-load ig-full-rehearsal ig-embedded-rehearsal ig-examiner-evidence bind-authority-demo parametric-oracle-demo spatial-twin-demo subrogation-graph-demo
 
 ig-spine-up:
 	docker compose -f docker-compose.spine.yml up -d --build
@@ -85,7 +85,8 @@ ig-certification-l4-ci:
 	  insurance-governor/tests/test_incremental_chain_verify.py \
 	  insurance-governor/tests/test_platform_registry_failclosed.py \
 	  insurance-governor/tests/test_regulatory_export.py \
-	  insurance-governor/tests/test_fnol_sandbox_integration.py -q
+	  insurance-governor/tests/test_fnol_sandbox_integration.py \
+	  insurance-governor/tests/test_spatial_subro_http.py -q
 	@$(MAKE) ig-helm-enterprise > /dev/null
 	@echo "ig-certification-l4-ci complete"
 
@@ -160,3 +161,11 @@ bind-authority-demo:
 
 parametric-oracle-demo:
 	curl -sf http://localhost:8105/healthz
+
+spatial-twin-demo:
+	chmod +x scripts/spatial-twin-demo.sh
+	./scripts/spatial-twin-demo.sh
+
+subrogation-graph-demo:
+	chmod +x scripts/subrogation-graph-demo.sh
+	./scripts/subrogation-graph-demo.sh
