@@ -74,10 +74,14 @@ make -C cybersecurity-governor cg-helm-enterprise > /dev/null
 helm template mg deploy/helm/modelgovernor --set secrets.create=true \
   --set secrets.postgresPassword=postgres > /dev/null
 
+echo "Step 9: Portfolio maturity artifact (K2)..."
+PYTHONPATH=governor-spine-core python3 -c "from spine_core.portfolio_self_check import write_portfolio_self_check; p=write_portfolio_self_check(); print('OK   wrote', p)"
+
 echo "=========================================================================="
 echo "  MATURITY PROFILE: L5 Institutional Self-Check Certified"
 echo "  Portfolio readiness: governor-spine-core/docs/operational-architecture-scorecard.md"
+echo "  Artifact: artifacts/portfolio_self_check.json"
 echo "  This run: four-governor pytest matrices + port alignment + Helm render."
 echo "  This is NOT SOC 2, ISO 27001, NHS DTAC, or third-party audit certification."
-echo "  Optional live gate: make compose-smoke-cg (requires Docker)"
+echo "  Optional live gates: make compose-smoke-cg|mg|fg|ig (requires Docker)"
 echo "=========================================================================="

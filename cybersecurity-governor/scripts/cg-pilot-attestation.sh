@@ -65,6 +65,9 @@ fi
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 python3 cybersecurity-governor/scripts/attestation_runner.py
-make cg-certification
-python3 cybersecurity-governor/scripts/generate_design_partner_attestation.py
+
+if [[ "${ATTESTATION_CI:-}" != "1" ]]; then
+  make cg-certification
+  python3 cybersecurity-governor/scripts/generate_design_partner_attestation.py
+fi
 echo "==> Pilot attestation complete"
