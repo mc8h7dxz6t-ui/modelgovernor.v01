@@ -30,6 +30,13 @@ def test_maturity_label_is_l5_self_check_not_industry_leading_marketing():
     assert "Industry Leading" not in MATURITY_LABEL
 
 
+def test_ledger_contract_documents_domain_tables():
+    from spine_core.ledger_contract import LEDGER_TABLE_BY_DOMAIN
+
+    assert len(LEDGER_TABLE_BY_DOMAIN) == 4
+    assert LEDGER_TABLE_BY_DOMAIN["CYBER_GOVERNOR"] == "security_events"
+
+
 def test_spine_dockerfile_compose_port_alignment():
     failures = port_alignment_failures()
     assert failures == [], "port misalignment:\n" + "\n".join(failures)

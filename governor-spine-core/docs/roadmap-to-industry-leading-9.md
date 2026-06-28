@@ -1,19 +1,55 @@
-# Roadmap — Four Governors to 9/10 Industry Leading Gold Standard
+# Roadmap — Four Governors to 9/10 Industry Leading + 10/10 Enterprise Vendor
 
-**Today (implementation scores):**
-
-| Governor | Spine / kernel | Wedges / product | **Governor total** |
-|----------|----------------|------------------|-------------------|
-| **Shared kernel** | 8.5/10 | — | 8.5/10 |
-| **ModelGovernor (MG)** | 8.5/10 | 7.0/10 demo | **7.0/10** |
-| **Finance Governor (FG)** | 8.5/10 | 6.0–7.0/10 mixed | **~7.0/10** |
-| **Cybersecurity Governor (CG)** | 8.5/10 | 6.5–7.5/10 | **~7.5/10** |
-| **Insurance Governor (IG)** | 8.5/10 | 6.0/10 | **~6.5/10** |
-| **Portfolio** | — | — | **6.5/10** |
-
-**Target:** **9/10 per governor** = **Industry Leading Gold Standard** under [maturity-ladder.md](maturity-ladder.md) — not marketing copy.
+**Today (implementation scores):** [operational-architecture-scorecard.md](operational-architecture-scorecard.md)
 
 ---
+
+## Full tier ladder (all governors)
+
+```
+10/10  EV  Gold-Standard Enterprise Vendor     SOC2 + SLA + references + vendor contracts
+ 9/10  IL  Industry Leading Gold Standard      L4+L5+live CI+demo+external evidence
+ 8.5    —  Engineering ceiling (code only)       Phase A+B complete, no design partner
+ 7–8   L5  Institutional Self-Check Certified   make plug + portfolio-plug CI
+ 6–8   L4  Gold Enterprise                       *-certification-l4-ci per governor
+```
+
+| Tier | MG | FG | CG | IG | Portfolio |
+|------|----|----|----|----|-----------|
+| **Today** | 7.0 | ~7.0 | ~7.5 | ~6.5 | **6.5** |
+| **After Wave 0** (items 1–4) | 7.5 | 7.0 | **8.5** | 6.5 | **7.0** |
+| **After Phase A+B** | 8.5 | 8.5 | 8.5 | 8.0 | **8.5** |
+| **IL 9/10** (+ Phase C each) | 9.0 | 9.0 | 9.0 | 9.0 | **9.0** |
+| **EV 10/10** (+ company) | 10 | 10 | 10 | 10 | **10** |
+
+See [maturity-ladder.md](maturity-ladder.md) for EV vs IL definitions.
+
+---
+
+## Wave 0 — immediate engineering (items 1–4)
+
+Highest ROI on path to **8.5 code / CG first IL candidate**.
+
+| # | Item | Governor | Deliverable | Status |
+|---|------|----------|-------------|--------|
+| **1** | Mesh 409 in live demo | **CG** | `cg-egress-wedge-demo.sh` step 5 | ✅ Shipped |
+| **2** | Compose smoke in CI | **CG** | CI job `compose-smoke-cg` | ✅ Shipped |
+| **3** | Shared spine contract (K1) | **Kernel** | `spine_core/ledger_contract.py` | ✅ Phase K1 scaffold |
+| **4** | MG-ECP + L4 aggregator | **MG** | `certification/program.yaml` + `make mg-certification-l4-ci` | ✅ Shipped |
+
+**Verify Wave 0:**
+
+```bash
+make cg-egress-wedge-demo    # requires CG stack — shows mesh 409
+make compose-smoke-cg
+make mg-certification-l4-ci
+python3 -c "from spine_core.ledger_contract import LedgerSealer; print('K1 OK')"
+```
+
+**Wave 1 (next):** `compose-smoke-mg`, `mg-pilot-attestation`, `fg-pilot-attestation`, extract seal impl behind `ledger_contract`.
+
+---
+
 
 ## What 9/10 actually means (rubric)
 

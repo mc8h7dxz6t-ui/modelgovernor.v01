@@ -47,4 +47,4 @@ make compose-smoke-cg    # optional live CG
 - Kubernetes CronJob that `kubectl patch`es on `curl openai.com`
 - Global singleton mode controller
 
-Chain cryptography stays in each governor's `*_seal.py`; verify via HTTP `verify-chain`.
+Chain cryptography stays in each governor's `*_seal.py`; shared interface in `spine_core/ledger_contract.py` (K1). Verify via HTTP `verify-chain`.

@@ -804,6 +804,28 @@ jobs:
         if: always()
         run: docker compose -f cybersecurity-governor/docker-compose.chaos.yml down -v
 
+  mg-certification-l4:
+    name: MG L4 Gold — enterprise certification CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Install dependencies
+        run: |
+          pip install -r sidecar/requirements.txt -r reconciler/requirements.txt -r gateway/requirements.txt
+          pip install pytest hypothesis fakeredis
+
+      - name: L4 Gold CI gate
+        run: make mg-certification-l4-ci
+
   portfolio-plug:
     name: Portfolio — L5 Institutional Self-Check (make plug)
     runs-on: ubuntu-latest
@@ -830,3 +852,14 @@ jobs:
 
       - name: L5 Institutional Self-Check harness
         run: make plug
+
+  compose-smoke-cg:
+    name: CG live stack — compose-smoke-cg
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: CG compose smoke (8120–8123 + verify-chain)
+        run: |
+          chmod +x scripts/compose-smoke-cg.sh
+          make compose-smoke-cg
