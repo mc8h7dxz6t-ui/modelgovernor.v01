@@ -6,7 +6,7 @@ from .admin_audit import record_admin_action
 from .auth import AuthContext, require_security_admin, require_internal_auth
 from .security_anchor import anchor_verified_chain_head
 from .security_seal import head_hash, verify_security_chain
-from .db import get_db_session
+from .db import get_db_session, get_read_db_session
 from .diagnostic_mode import clear_diagnostic_mode, diagnostic_snapshot
 from .guardrails import get_guardrails
 from .metrics import get_counters
@@ -54,8 +54,8 @@ def reconstruct_crystal(crystal_id: str, _: AuthContext = Depends(require_intern
 
 @router.get("/security/verify-chain")
 def verify_chain(_: AuthContext = Depends(require_internal_auth)) -> dict:
-    with get_db_session() as session:
-        result = verify_security_chain(session)
+    with get_read_db_session() as read_session, get_db_session() as write_session:
+        result = verify_security_chain(write_session, incremental=True, read_session=read_session)
         if not result.valid:
             get_counters().increment("security_chain_verification_failed_total")
             raise HTTPException(status_code=422, detail=result.to_dict())
