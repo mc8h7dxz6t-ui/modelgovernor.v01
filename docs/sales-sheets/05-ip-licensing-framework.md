@@ -47,17 +47,17 @@
 
 ### 3A. Platform governors (spine bundles)
 
-| SKU ID | Product | License default | List band (annual VPC)* | Perpetual VPC* | Evaluation |
-|--------|---------|-----------------|-------------------------|----------------|------------|
-| `MG-PLATFORM-DEMO` | ModelGovernor demo | Included / lead-gen | — | — | Open |
-| `MG-PLATFORM-STAGING` | Staging / pilot | `EVAL` → `DP` | £25K–£55K | — | 60 days |
-| `MG-PLATFORM-PRODUCTION` | Production institutional++ | `SUB-VPC` | £95K–£220K | £180K–£420K | 30 days read-only |
-| `MG-ADDON-ENTERPRISE-SECURITY` | Istio / mTLS pack | Add-on to MG-C | £35K–£85K | £70K–£150K | With parent |
-| `FG-PLATFORM-PRODUCTION` | Finance Governor (5 platforms) | `SUB-VPC` | £85K–£200K | £160K–£380K | 30 days |
-| `IG-PLATFORM-PRODUCTION` | Insurance Governor spine + 11 wedges | `SUB-VPC` | £90K–£240K | £175K–£450K | 30 days |
-| `IG-ADDON-ENTERPRISE-SECURITY` | IG Istio + zero-trust spine ingress | Add-on to IG | £30K–£75K | £60K–£130K | With parent |
+| SKU ID | Product | License default | Maturity tier | Evaluation |
+|--------|---------|-----------------|---------------|------------|
+| `MG-PLATFORM-DEMO` | ModelGovernor demo | Included / lead-gen | L4 demo | Open |
+| `MG-PLATFORM-STAGING` | Staging / pilot | `EVAL` → `DP` | L4 pilot | 60 days |
+| `MG-PLATFORM-PRODUCTION` | Production institutional++ | `SUB-VPC` | L5 | 30 days read-only |
+| `MG-ADDON-ENTERPRISE-SECURITY` | Istio / mTLS pack | Add-on to MG-C | L5 overlay | With parent |
+| `FG-PLATFORM-PRODUCTION` | Finance Governor (5 platforms) | `SUB-VPC` | L4+L5 | 30 days |
+| `IG-PLATFORM-PRODUCTION` | Insurance Governor spine + 11 wedges | `SUB-VPC` | L4+L5 | 30 days |
+| `IG-ADDON-ENTERPRISE-SECURITY` | IG Istio + zero-trust spine ingress | Add-on to IG | L5 overlay | With parent |
 
-\*Illustrative GBP list from consolidated catalog; USD OBO asset sale uses separate bundle (see `valuation-pre-revenue.md`).
+*No commercial figures in repo — scope via design-partner SOW.*
 
 ### 3B. Twelve commercial module SKUs (VPC modules)
 
@@ -76,7 +76,7 @@
 | 11 | `SKU-SPEND-GUARD` | Spend Guard | MG | `SUB-VPC` | MG-C |
 | 12 | `SKU-AGENT-LEDGER` | Agent Ledger | MG / FG | `SUB-VPC` | MG-C + FG-C |
 
-**Bundle pricing rule:** Full 12-module perpetual VPC list ≈ **£92.7K**; all-12 annual prepay ≈ **£115.3K/yr** (1 seat, 1 feed baseline). Spine governors sold separately or as `ENTERPRISE-ALL` package.
+**Bundle rule:** Twelve modules license independently or as `ENTERPRISE-ALL` package with spine governors.
 
 ### 3C. Composite packages (recommended GTM)
 
@@ -118,7 +118,7 @@ Checkbox table of SKU IDs from §3 with quantity (seats, feeds, VPC instances).
 
 | Model | Rate | When |
 |-------|------|------|
-| **Internal use** | $0 royalty | `SUB-VPC` / `PERP-VPC` |
+| **Internal use** | No royalty | `SUB-VPC` / `PERP-VPC` |
 | **OEM embed** | 8–15% of module gross | PAS/TPA resells to policyholders |
 | **Revenue share pilot** | 0% Yr1 → 5% Yr2+ | `DP` converts to OEM |
 | **Acquirer asset sale** | One-time | All IP assignment — no royalty |
@@ -141,9 +141,9 @@ Escrow agent: neutral third party (e.g. Iron Mountain / EscrowTech). Deposit: ta
 
 For **Acquire.com** or strategic LOI:
 
-> Buyer receives perpetual `PERP-VPC` license to entire repo IP (3 governors + 12 modules + deploy artifacts), assignment of copyright, and 90-day transition assistance. No customer contracts transfer (pre-revenue). Buyer commercializes under own entity; seller retains no SaaS operating obligation.
+> Buyer receives perpetual `PERP-VPC` license to entire repo IP (3 governors + 12 modules + deploy artifacts), assignment of copyright, and 90-day transition assistance. No customer contracts transfer. Buyer commercializes under own entity; seller retains no SaaS operating obligation.
 
-Recommended ask context: **$4.99M OBO** with IP schedule as Exhibit 1 to asset purchase agreement.
+Commercial terms negotiated outside repo — technical proof via `make plug` and per-governor attestation CI.
 
 ---
 
@@ -151,5 +151,5 @@ Recommended ask context: **$4.99M OBO** with IP schedule as Exhibit 1 to asset p
 
 - [README — sales sheet index](README.md)
 - [Insurance Governor production](insurance-governor-production.md)
-- [Valuation pre-revenue](valuation-pre-revenue.md)
+- [maturity-ladder.md](../../governor-spine-core/docs/maturity-ladder.md)
 - [Design-partner attestation](../insurance-governor/design-partner-attestation.md)

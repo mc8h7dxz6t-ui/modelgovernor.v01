@@ -14,8 +14,7 @@ Optional overlay for buyers with **InfoSec / zero-trust mandates**. Applies Isti
 | **Target buyer** | CISO office, zero-trust architects, regulated industries (banking, health, gov) |
 | **Sales motion** | Security review gate after technical win |
 | **Time to live** | 2–4 weeks (Istio already on cluster) |
-| **Suggested ACV add-on (list)** | **+$80K–$200K / year** |
-| **Pre-revenue asset worth** | **$350K–$650K** |
+| **Maturity tier** | **L5 security overlay** — Istio STRICT + egress allowlist |
 
 ---
 
@@ -113,42 +112,32 @@ Docs: `docs/enterprise-hardening-roadmap.md`, `deploy/overlays/enterprise/README
 
 ---
 
-## Commercial packaging
-
-### Add-on pricing (pre-revenue list)
-
-| Component | Annual add-on |
-|---|---|
-| Enterprise overlay license | +$50K–$100K |
-| Istio integration PS | $25K–$50K one-time |
-| IdP hardening workshop | $15K–$25K one-time |
-| **Typical bundle** | **+$80K–$200K / yr** |
+## Deployment packaging
 
 ### Bundle with Platform C
 
-| Package | Combined ACV |
+| Package | Components |
 |---|---|
-| Production Standard + Security | $430K–$650K |
-| Production Premium + Security | $580K–$850K |
-| Production Strategic + Security | $780K–$1.1M+ |
+| Production Standard + Security | Platform C + Istio overlay |
+| Production Premium + Security | C premium tier + Platform D |
+| Production Strategic + Security | C strategic tier + full zero-trust pack |
 
 ---
 
-## Pre-revenue worth
+## Maturity proof
 
-| Component | Estimate |
+| Component | Verified by |
 |---|---|
-| Istio manifests (egress + mTLS) | $80K–$150K |
-| OIDC dual-layer implementation | $120K–$220K (shared with C — partial) |
-| Live JWKS test harness | $40K–$80K |
-| Security architecture docs | $30K–$60K |
-| **Incremental asset worth (add-on slice)** | **$350K–$650K** |
+| Istio manifests (egress + mTLS) | `deploy/overlays/enterprise/` |
+| OIDC dual-layer implementation | Gateway + sidecar JWT (shared with C) |
+| Live JWKS test harness | L4 CI JWKS probe |
+| Security architecture docs | `docs/enterprise-hardening-roadmap.md` |
 
 ---
 
 ## Roadmap hooks (sales narrative)
 
-- SOC 2 Type II attestation (not yet — increases valuation +$1M–$2M when complete)
+- SOC 2 Type II attestation (organization — not repo alone)
 - FIPS-compliant Redis / Postgres options
 - Air-gapped Helm bundle for defense sector
 

@@ -16,7 +16,7 @@
 
 | Tier | MG | FG | CG | IG | Portfolio |
 |------|----|----|----|----|-----------|
-| **Today** | 7.0 | ~7.0 | ~7.5 | ~6.5 | **6.5** |
+| **Today** | 7.5 | 7.0 | **8.5** | **8.0** | **7.5** |
 | **After Wave 0** (items 1–4) | 7.5 | 7.0 | **8.5** | 6.5 | **7.0** |
 | **After Wave 1+3** (live CI all governors + K1/K2) | 7.5 | 7.0 | **8.5** | **8.0** | **7.5** |
 | **After Phase A+B** | 8.5 | 8.5 | 8.5 | 8.0 | **8.5** |
@@ -69,7 +69,33 @@ PYTHONPATH=governor-spine-core python3 -m pytest governor-spine-core/tests/test_
 
 ---
 
-## Wave 3 — Insurance Governor (IG 6.5 → 8.0 code)
+## Next engineering — Kernel K3/K4 (Wave 2)
+
+All four governors have live CI (Wave 1+3). **Next:** shared kernel items that lift spine from **8.5 → 9.0** code.
+
+| # | Item | Deliverable | Status |
+|---|------|-------------|--------|
+| **K3** | Reconciler sweep hash-seal | Post-sweep events sealed on ledger chain; `unsealed_count == 0` after sweep | ⏳ Next |
+| **K4** | Retention / partition CronJob | Reads `*_retention_policy` tables; Helm CronJob template | ⏳ Queued |
+
+**Verify K3 (target):**
+
+```bash
+PYTHONPATH=governor-spine-core python3 -m pytest governor-spine-core/tests/test_sweep_seal.py -q
+make plug   # portfolio_self_check includes sweep seal row
+```
+
+**Verify K4 (target):**
+
+```bash
+helm template deploy/helm/modelgovernor | grep -i retention
+```
+
+Phase C (design-partner letters) runs **in parallel** per governor — human gate, not blocked on K3/K4.
+
+---
+
+## Wave 3 — Insurance Governor (IG → 8.0 code) ✅
 
 Longest wedge path; hero = **ClaimGate + IG spine** (not 11 platforms).
 
@@ -244,7 +270,7 @@ make cg-pilot-attestation
 
 ---
 
-## Insurance Governor (~6.5 → 9.0) — longest wedge path
+## Insurance Governor (8.0 → 9.0) — Phase C remaining
 
 ### Current strengths
 - L4 CI, ClaimGate depth, `ig-full-rehearsal`, mesh rules, 11 platforms in tree.
@@ -260,8 +286,8 @@ make cg-pilot-attestation
 | **B1** | SpatialTwin / SubrogationGraph — **7.5** governed evidence envelope + mock vendor feed + demo/CI | Honest secondary wedges |
 | **C1** | Carrier design-partner (MGA or Tier-2) + signed PoC letter | External evidence |
 
-### Hero wedge at 9/10
-**ClaimGate + IG spine** — not 11 platforms. Price spine + ClaimGate; wedges are add-ons.
+**Hero wedge at 9/10**
+**ClaimGate + IG spine** — not 11 platforms. Lead with spine + ClaimGate; wedges are add-ons.
 
 ```bash
 make ig-certification-l4-ci
@@ -316,13 +342,13 @@ flowchart LR
 | Governor | Today | After Phase A+B (code) | After Phase C (IL claim) |
 |----------|-------|------------------------|--------------------------|
 | Kernel | 8.5 | **9.0** (with K1–K4) | 9.0 |
-| MG | 7.0 | **8.5** | **9.0** |
-| FG | ~7.0 | **8.5** | **9.0** |
-| CG | ~7.5 | **8.5** | **9.0** |
-| IG | ~6.5 | **8.0** | **9.0** |
-| **Portfolio** | 6.5 | **8.5** | **9.0** |
+| MG | 7.5 | **8.5** | **9.0** |
+| FG | 7.0 | **8.5** | **9.0** |
+| CG | 8.5 | **8.5** | **9.0** |
+| IG | 8.0 | **8.0** | **9.0** |
+| **Portfolio** | 7.5 | **8.5** | **9.0** |
 
-Phase A+B alone gets **8.5 portfolio** — credible **pre-IP sale at premium**.  
+Phase A+B alone gets **8.5 portfolio** — credible engineering ceiling.  
 **9.0 Industry Leading** per governor requires **Phase C** external evidence per [maturity-ladder.md](maturity-ladder.md).
 
 ---

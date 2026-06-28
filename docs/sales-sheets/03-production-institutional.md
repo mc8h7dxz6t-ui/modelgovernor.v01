@@ -14,8 +14,7 @@ Full production topology for organizations that cannot tolerate post-hoc AI budg
 | **Target buyer** | Regulated finance, Fortune 500 platform teams, AI-heavy enterprises ($5M+ annual LLM spend) |
 | **Sales motion** | Pilot success → multi-year enterprise agreement |
 | **Time to live** | 4–8 weeks (with managed Postgres, Istio, IdP) |
-| **Suggested ACV (list)** | **$350K–$900K / year** |
-| **Pre-revenue asset worth** | **$1.8M–$3.5M** |
+| **Maturity tier** | **L5** — `make plug` + production Helm overlays |
 
 ---
 
@@ -161,55 +160,50 @@ Finance invariants (no error budget): negative wallet, duplicate refund/settleme
 
 ---
 
-## Commercial packaging
+## Deployment tiers (technical)
 
-### Enterprise license tiers
-
-| Tier | ACV range | Includes |
-|---|---|---|
-| **Standard** | $350K–$500K | Platform C, business-hours support, quarterly reviews |
-| **Premium** | $500K–$700K | + Platform D, 24×5 support, dedicated slack channel |
-| **Strategic** | $700K–$900K+ | + custom SLOs, on-site runbooks, chaos test attestation |
-
-### Professional services (typical)
-
-| Service | Range |
+| Tier | Includes |
 |---|---|
-| Production implementation | $80K–$150K |
-| IdP + OIDC integration | $25K–$50K |
-| Istio / zero-trust rollout | $40K–$80K (or bundle Platform D) |
-| Annual health check / chaos day | $30K–$60K |
+| **Standard** | Platform C, business-hours support path, quarterly review hooks |
+| **Premium** | + Platform D, extended support SLO templates |
+| **Strategic** | + custom SLOs, on-site runbooks, chaos test attestation |
+
+### Professional services scope (typical SOW items)
+
+| Service | Scope |
+|---|---|
+| Production implementation | Helm + Kustomize rollout |
+| IdP + OIDC integration | Gateway + sidecar JWT validation |
+| Istio / zero-trust rollout | Platform D overlay (or bundled) |
+| Annual health check / chaos day | Toxiproxy + load tier attestation |
 
 ### ROI narrative (for CFO)
 
 | Risk without MG | Cost driver |
 |---|---|
-| Runaway agent loops | $50K–$500K incident |
+| Runaway agent loops | Material incident tail risk |
 | Unreconciled provider bills | 5–15% LLM overspend |
 | Audit failure on AI spend | Regulatory / SOX exposure |
-| Homegrown rebuild | $1.5M–$3M eng + 12–18 mo |
-
-**Payback:** Often **< 6 months** at $2M+ annual LLM spend if 10% waste prevented.
+| Homegrown rebuild | 12–18 month engineering cycle |
 
 ---
 
-## Pre-revenue worth
+## Maturity proof
 
-| Component | Estimate |
+| Component | Verified by |
 |---|---|
-| Production overlay + Sentinel manifests | $200K–$350K |
-| Ledger hash-chain + S3 anchor system | $250K–$450K |
-| OIDC gateway + sidecar RBAC | $150K–$280K |
-| CronJobs, SLO rules, reconciler HA | $180K–$320K |
-| ExternalSecrets + GitOps (ArgoCD, Helm) | $120K–$220K |
-| Test suite + chaos / load tiers | $400K–$700K |
-| **Total asset worth** | **$1.8M–$3.5M** |
+| Production overlay + Sentinel manifests | `deploy/overlays/production/` |
+| Ledger hash-chain + S3 anchor system | `verify-chain` + anchor CronJob |
+| OIDC gateway + sidecar RBAC | JWKS live tests in L4 CI |
+| CronJobs, SLO rules, reconciler HA | Helm templates + chaos tier |
+| ExternalSecrets + GitOps (ArgoCD, Helm) | Staging → prod promotion path |
+| Test suite + chaos / load tiers | `make mg-certification-l4-ci` |
 
 ---
 
 ## Add-ons
 
 → **Platform D — Enterprise Security Pack** — Istio mTLS, egress allowlist  
-→ **Managed control plane** (future SaaS) — 2–3× ACV multiplier
+→ **Managed control plane** (future SaaS) — separate operating model
 
 See [04-enterprise-security-pack.md](04-enterprise-security-pack.md).

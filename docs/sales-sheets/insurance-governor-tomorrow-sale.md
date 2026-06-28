@@ -15,7 +15,7 @@ Insurance Governor is a **governed commit control plane** for insurers and MGAs.
 | | |
 |---|---|
 | **Buyer tomorrow** | Strategic acquirer, InsurTech platform, carrier innovation lab, PE roll-up |
-| **List ACV when operated** | **$320K–$850K / year** |
+| **Maturity tier** | **L4+L5** — live CI + pilot attestation (`compose-smoke-ig`) |
 | **Time to pilot** | 4–8 weeks |
 | **Demo** | `make ig-full-rehearsal` (Mac + Docker) |
 
@@ -110,51 +110,39 @@ make ig-demo              # 5-minute room demo
 
 ---
 
-## Packaging when operated (not asset sale)
+## Packaging when operated (technical SKUs)
 
-| SKU component | List ACV (annual) |
-|---------------|-------------------|
-| Spine HA kit (gateway, sidecar, reconciler) | $180K–$400K |
-| ClaimGate + FNOL pack (6 adapters + write-back) | $60K–$120K |
-| Loss-control wedge (pick one at depth) | $80K–$150K each |
-| Specialty wedge (Zk, Oracle, Spatial, etc.) | $40K–$100K each |
-| **Full production bundle** | **$320K–$850K** |
+| SKU component | Maturity | Proof |
+|---------------|----------|-------|
+| Spine HA kit (gateway, sidecar, reconciler) | L5 | `compose-smoke-ig` + `verify-chain` |
+| ClaimGate + FNOL pack (6 adapters + write-back) | 8.0 hero | FNOL sandbox CI |
+| Loss-control wedge (pick one at depth) | 7.5+ | Shell demo + attestation |
+| Specialty wedge (Zk, Oracle, Spatial, etc.) | 6.0–7.5 | Mock envelope or carrier SOW |
+| **Full production bundle** | L4+L5 | `make ig-certification-l4-ci` + pilot attestation |
 
 ---
 
-## Pre-revenue asset valuation — tomorrow sale
+## Technical diligence bundle (asset sale)
 
-*Illustrative ranges for asset purchase / acqui-hire / IP sale conversations. Not a formal appraisal. Methodology: replacement cost (40%) + differentiation premium (35%) + implied commercial value (25%).*
+*No commercial figures in repo — buyer runs own diligence.*
 
-### Insurance Governor standalone (this SKU)
+### What moves credibility in the room
 
-| Lens | Low | Mid | High |
-|------|-----|-----|------|
-| Replacement cost (11 platforms + spine + 83 tests + Helm/GTM) | $1.2M | $1.6M | $2.0M |
-| Differentiation (warranty mesh + hash-chain + L4 CI) | +$400K | +$800K | +$1.2M |
-| **Pre-revenue fair value** | **$1.6M** | **$2.4M** | **$3.2M** |
+| Evidence | Impact |
+|----------|--------|
+| Published data room (7/7 probes, manifest hashes) | Baseline technical credibility |
+| Named design-partner LOI (even unpaid) | Phase C IL row 5 |
+| First paid pilot in buyer VPC | Reference customer path |
+| Full repo bundle (ModelGovernor + Finance Governor + IG) | Portfolio `make plug` matrix |
 
-**Recommended ask tomorrow:** **$2.5M–$3.5M**  
-**Walk-away floor:** **$1.8M** (replacement cost + minimal premium)  
-**Strategic buyer with carrier pipeline:** **$3.5M–$4.5M**
+### Tomorrow sale structures (legal archetypes)
 
-### What moves the number in the room
-
-| Evidence | Valuation impact |
-|----------|------------------|
-| Published data room (7/7 probes, manifest hashes) | Baseline credibility — included |
-| Named design-partner LOI (even unpaid) | +$500K–$1.0M |
-| First paid pilot ($150K+) | 3–5× on that logo |
-| Full repo bundle (ModelGovernor + Finance Governor + IG) | **$5.0M–$8.5M** consolidated |
-
-### Tomorrow sale structures
-
-| Structure | Typical range | Best for |
-|-----------|---------------|----------|
-| **IP + repo assignment** | $2.0M–$3.5M | Acquirer with eng team to operate |
-| **IP + 90-day transition** | +$200K–$400K services | Buyer needs handoff |
-| **Exclusive license (not sale)** | $400K–$800K/yr | Buyer wants optionality |
-| **Acqui-hire + asset** | Asset price + team | Strategic with hiring budget |
+| Structure | Best for |
+|-----------|----------|
+| **IP + repo assignment** | Acquirer with eng team to operate |
+| **IP + 90-day transition** | Buyer needs handoff |
+| **Exclusive license (not sale)** | Buyer wants optionality |
+| **Acqui-hire + asset** | Strategic with hiring budget |
 
 ---
 
@@ -164,7 +152,7 @@ make ig-demo              # 5-minute room demo
 2. **Product:** 11 governed platforms on a hash-chained spine with cross-platform warranty mesh.  
 3. **Proof:** L4 Gold CI, 7/7 attestation probes, published data room, FNOL adapters live.  
 4. **Moat:** Mesh rules block cascading losses (model freeze → payout block) — PAS cannot do this without rebuilding commit semantics.  
-5. **Ask:** **$2.5M–$3.5M** pre-revenue asset · **$320K–$850K** ACV when operated.
+5. **Verify:** `make compose-smoke-ig` → `ATTESTATION_CI=1 make ig-pilot-attestation`
 
 ---
 
@@ -181,4 +169,4 @@ make ig-demo              # 5-minute room demo
 
 ---
 
-*Figures are illustrative list prices and pre-revenue estimates for negotiation support. Buyer should run own technical diligence via `make ig-full-rehearsal` on the `cursor/insurance-governor-spine-254e` branch.*
+*Technical spec only — no commercial figures in repo. Buyer should run own technical diligence via `make ig-full-rehearsal`.*

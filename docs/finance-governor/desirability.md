@@ -46,9 +46,8 @@ Finance Governor platforms hit all three. Each standalone product has a **single
 **ROI sketch:**
 
 ```
-Cost of one preventable incident:     $50M–$440M (tail risk)
-AlgoFreeze annual platform cost:      $150K–$400K (target ACV)
-Break-even:                           Preventing 0.001 incidents/year
+Cost of one preventable incident:     material tail risk (Knight-class)
+Break-even:                           Preventing a single catastrophic deploy
 ```
 
 **Desirability score:** ⭐⭐⭐⭐⭐ — highest urgency, shortest sales cycle for standalone.
@@ -70,9 +69,9 @@ Break-even:                           Preventing 0.001 incidents/year
 **ROI sketch:**
 
 ```
-Single prevented fat-finger wire:     $1M–$900M
-Manual reconciliation FTE cost:         $500K–$2M/year (mid-size bank)
-WireMatch annual platform cost:         $200K–$500K (target ACV)
+Single prevented fat-finger wire:     material irreversible loss (Citigroup-class)
+Manual reconciliation FTE burden:     ongoing operational cost
+WireMatch value:                      pre-send semantic gate before irreversible wire
 ```
 
 **Desirability score:** ⭐⭐⭐⭐⭐ — universal treasury pain; demo is visceral (show HELD wire).
@@ -94,10 +93,10 @@ WireMatch annual platform cost:         $200K–$500K (target ACV)
 **ROI sketch:**
 
 ```
-Audit fee reduction (10–20%):           $200K–$1M/year
-Tax efficiency recovered:               Highly variable; often $500K+
-SubledgerSync annual platform cost:     $150K–$350K (target ACV)
-Payback:                                Often < 12 months
+Audit fee reduction (10–20%):           material for mid-size groups
+Tax efficiency recovered:               highly variable by entity
+SubledgerSync value:                    drift caught at clear, not year-end audit
+Payback:                                Often < 12 months when drift is material
 ```
 
 **Desirability score:** ⭐⭐⭐⭐ — strong CFO pull; longer ERP integration cycle than AlgoFreeze.
@@ -119,9 +118,9 @@ Payback:                                Often < 12 months
 **ROI sketch:**
 
 ```
-Tax overpayment from stale books:       $100K–$5M+ (entity size dependent)
-Manual FTE for year-end write-offs:     $80K–$300K/year
-AssetLedger annual platform cost:       $100K–$250K (target ACV)
+Tax overpayment from stale books:       entity-size dependent
+Manual FTE for year-end write-offs:     recurring close burden
+AssetLedger value:                      regulatory table version pinned in audit chain
 ```
 
 **Desirability score:** ⭐⭐⭐ — steady, less dramatic than AlgoFreeze/WireMatch; easier retain.
@@ -143,9 +142,9 @@ AssetLedger annual platform cost:       $100K–$250K (target ACV)
 **ROI sketch:**
 
 ```
-Single fair lending enforcement:        $10M–$50M+
-MRM manual evidence assembly:           $500K–$2M/year
-CreditGovern annual platform cost:      $250K–$600K (target ACV)
+Single fair lending enforcement:        material consent-order tail risk
+MRM manual evidence assembly:           recurring compliance burden
+CreditGovern value:                     runtime gate + regulatory export pack
 ```
 
 **Desirability score:** ⭐⭐⭐⭐ — high strategic value; longer procurement (MRM involvement).
@@ -215,29 +214,29 @@ flowchart LR
 | 3 | Three+ platforms | "Full spine: cross-platform invariants (no wire while desk frozen)" |
 | 4 | Enterprise | "Platform D security: mTLS, egress allowlist, S3 anchor" |
 
-**Bundle ACV target (when sold):**
+**Recommended bundles (technical):**
 
-| Bundle | Platforms | Target ACV/year |
-|--------|-----------|-----------------|
-| **Risk Critical** | AlgoFreeze + WireMatch | $400K–$800K |
-| **Finance Ops** | SubledgerSync + AssetLedger | $300K–$600K |
-| **Regulated AI** | CreditGovern + spine | $500K–$1M |
-| **Enterprise Full** | All five + spine + security | $1M–$2.5M |
+| Bundle | Platforms | Maturity focus |
+|--------|-----------|----------------|
+| **Risk Critical** | AlgoFreeze + WireMatch | Hero wedges — shell demos + L4 CI |
+| **Finance Ops** | SubledgerSync + AssetLedger | 6.0 scaffold — connector SOW |
+| **Regulated AI** | CreditGovern + spine | L4+L5 + mock rail contract tests |
+| **Enterprise Full** | All five + spine + security | `make plug` + `fg-pilot-attestation` |
 
 ---
 
-## Pre-revenue asset desirability (investor / M&A lens)
+## Technical asset desirability (acquirer lens)
 
-Finance Governor inherits ModelGovernor's **proven institutional++ engineering** and applies it to **larger TAM** (all of regulated finance vs LLM spend only).
+Finance Governor inherits ModelGovernor's **proven institutional++ engineering** and applies it to regulated finance domains.
 
-| Asset | Pre-revenue worth driver |
-|-------|--------------------------|
-| ModelGovernor spine (ported) | $900K–$1.6M replacement cost (proven) |
-| Five platform specs + domain schema | $400K–$800K |
-| Demo-ready standalone paths (when built) | $300K–$600K each at maturity |
-| **Finance Governor bundle (design + spine IP)** | **$5M–$10M** fair value at full scaffold |
+| Asset | Proof driver |
+|-------|--------------|
+| ModelGovernor spine (ported) | `ledger_contract` + K1 registry |
+| Five platform specs + domain schema | Per-platform L4 CI |
+| Demo-ready standalone paths | AlgoFreeze + WireMatch shell demos |
+| **Finance Governor bundle** | `fg-pilot-attestation` in CI |
 
-**Strategic acquirer premium:** RegTech, core banking, market infrastructure — buyers pay for **runtime control plane** IP, not another dashboard.
+**Strategic acquirer premium:** RegTech, core banking, market infrastructure — buyers want **runtime control plane** IP, not another dashboard.
 
 ---
 

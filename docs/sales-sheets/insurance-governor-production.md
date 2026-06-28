@@ -14,8 +14,7 @@ Production topology for carriers and MGAs selling **loss control**, not workflow
 | **Target buyer** | Financial lines underwriters, CRO, Chief Actuary, wholesale brokers (London / Lloyd's) |
 | **Sales motion** | “Deductible reduction via verified controls” → design-partner pilot |
 | **Time to live** | 4–8 weeks |
-| **Suggested ACV (list)** | **$320K–$850K / year** |
-| **Pre-revenue asset worth** | **$2.0M–$4.0M** (11 platforms + warranty mesh) |
+| **Maturity tier** | **L4+L5** — `ig-certification-l4-ci` + live pilot attestation CI |
 
 ---
 
@@ -130,16 +129,14 @@ Payload shape is normalized to `NormalizedFnol` before policy evaluation and gov
 
 ---
 
-## Packaging & pricing (illustrative)
+## Packaging (technical SKUs)
 
-| SKU component | List (annual) |
-|---|---|
-| Spine (gateway, sidecar, reconciler, HA kit) | $180K–$400K |
-| ClaimGate + FNOL adapter pack | $60K–$120K |
-| Headline wedge (pick one at depth) | $40K–$150K each |
-| Design-partner attestation + runbook | Included in pilot |
-
-Bundle discount available for spine + ClaimGate + one headline wedge.
+| SKU component | Maturity | Proof |
+|---|---|---|
+| Spine (gateway, sidecar, reconciler, HA kit) | L5 | `compose-smoke-ig` |
+| ClaimGate + FNOL adapter pack | 8.0 hero | FNOL sandbox CI |
+| Headline wedge (pick one at depth) | 7.5+ | Shell demo + attestation |
+| Design-partner attestation + runbook | Phase C | `ig-pilot-attestation` JSON |
 
 ---
 

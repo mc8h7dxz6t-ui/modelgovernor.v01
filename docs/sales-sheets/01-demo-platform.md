@@ -14,8 +14,7 @@ A **Docker-only**, **zero external dependency** stack that runs the full ModelGo
 | **Target buyer** | VP Eng, Head of AI Platform, CFO office (AI spend), enterprise architects |
 | **Sales motion** | Top-of-funnel, diligence calls, bake-offs vs LiteLLM / homegrown |
 | **Time to live** | 5 minutes (first build ~2 min) |
-| **Suggested pricing** | **Included** with enterprise evaluation; optional **$0–$25K** workshop fee for on-site demo day |
-| **Pre-revenue asset worth** | **$75K–$150K** |
+| **Maturity tier** | **L4 demo** — `make demo-gold` |
 
 ---
 
@@ -113,26 +112,25 @@ make demo-gold-down  # teardown
 | Slides-only pitch | Runnable proof in buyer's laptop |
 | Cloud-only budget alerts | Shows **governance gateway** pattern |
 
-### Suggested deal structure (pre-revenue)
+### Evaluation path
 
-| Package | Price | Deliverable |
-|---|---|---|
-| Open source / eval | $0 | Repo + demo commands |
-| Guided eval call | $0 | SE runs `make demo-gold` on Zoom |
-| Executive briefing | $15K–$25K | On-site demo + architecture Q&A (1 day) |
+| Package | Deliverable |
+|---|---|
+| Open eval | Repo + `make demo-gold` |
+| Guided eval call | SE runs demo on Zoom |
+| Executive briefing | On-site demo + architecture Q&A (1 day) |
 
 ---
 
-## Pre-revenue worth
+## Maturity proof
 
-| Component | Estimate |
+| Component | Verified by |
 |---|---|
-| Compose stack + migration automation | $35K–$55K |
-| Scripted 7-step sales walkthrough | $20K–$35K |
-| Talk track + capability matrix | $15K–$25K |
-| **Total asset worth** | **$75K–$150K** |
+| Compose stack + migration automation | `make demo-gold-up` |
+| Scripted 7-step sales walkthrough | `make demo-gold` |
+| Talk track + capability matrix | [SALES-DEMO.md](../../SALES-DEMO.md) |
 
-**Strategic value beyond asset:** Shortens sales cycle 30–60 days vs build-your-own-demo; required for any institutional outbound motion.
+**Strategic value:** Shortens sales cycle vs build-your-own-demo; required for institutional outbound motion.
 
 ---
 

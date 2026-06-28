@@ -121,8 +121,8 @@ pytest tests/ -q --ignore=tests/integration
 
 ---
 
-## Pre-revenue valuation framing
+## Maturity framing
 
-Finance Governor inherits ModelGovernor's **proven institutional++ engineering** and applies it to **larger TAM** (all of regulated finance vs LLM spend only).
+Finance Governor inherits ModelGovernor's **proven institutional++ engineering** and applies it to regulated finance domains.
 
-See [desirability.md](desirability.md) for buyer ROI and bundle ACV targets.
+See [desirability.md](desirability.md) for buyer ROI narratives (incident-class prevention, not commercial figures).

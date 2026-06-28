@@ -75,8 +75,8 @@ Source: [warranty-enforcement-engine.md](../insurance-governor/warranty-enforcem
 
 | Control deployed | Leakage type | Indicative annual saving* | Assumption |
 |------------------|--------------|---------------------------|------------|
-| SIU block at commit | Fraud paid loss | 0.3–0.8% of net claims | £500M net claims base |
-| IndemnityPayGate | Crime wire fraud | £2M–£8M | 4–15 prevented wires |
+| SIU block at commit | Fraud paid loss | 0.3–0.8% of net claims | Hypothetical net claims base |
+| IndemnityPayGate | Crime wire fraud | Material tail reduction | Multiple prevented wires |
 | ModelRiskFreeze mesh | E&O tail | 5–15% tail reduction | Cyber book |
 | ReserveReconcile | Reserve strengthening | 0.5–1.2% reserve volatility | FI lines |
 
@@ -100,7 +100,7 @@ Source: [warranty-enforcement-engine.md](../insurance-governor/warranty-enforcem
 | Slide | Title | Content |
 |-------|-------|---------|
 | **F1** | 30-day PoC | Scope, success criteria, stub payment rail | Link: [Tier-1 PoC playbook](06-tier1-carrier-poc-playbook.md) |
-| **F2** | Packaging | Spine + ClaimGate + wedge · £180K–£320K Yr1 VPC | `IG-PLATFORM-PRODUCTION` |
+| **F2** | Packaging | Spine + ClaimGate + wedge · `IG-PLATFORM-PRODUCTION` | Maturity proof in data room |
 | **F3** | Ask | Design-partner LOI + staging VPC week · named CRO sponsor | Signature block |
 
 ---

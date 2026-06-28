@@ -2,13 +2,13 @@
 
 **Classification:** Strategic due-diligence brief  
 **Audience:** acquirers, technical founders, design-partner CTOs  
-**Portfolio readiness:** **6.5/10** — see [operational-architecture-scorecard.md](operational-architecture-scorecard.md)
+**Portfolio readiness:** **7.5/10** — see [operational-architecture-scorecard.md](operational-architecture-scorecard.md)
 
 ---
 
 ## Executive verdict
 
-Maturity is **implementation, not intent**. The **core transactional kernel** scores **8.5/10** — industry-leading **class** architecture with CI proof. The **combined portfolio** scores **6.5/10** — a credible **pre-hardened source-code asset**, not a gold-standard enterprise vendor platform.
+Maturity is **implementation, not intent**. The **core transactional kernel** scores **8.5/10** — industry-leading **class** architecture with CI proof. The **combined portfolio** scores **7.5/10** — a credible **pre-hardened source-code asset** with live attestation CI on all four governors; not IL 9/10 without Phase C.
 
 | Dimension | Score | Evidence |
 |-----------|-------|----------|

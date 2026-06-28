@@ -2,7 +2,7 @@
 
 **Principle:** Certification labels describe **what was implemented and tested** — not architectural intent.
 
-Authoritative portfolio readiness: [operational-architecture-scorecard.md](operational-architecture-scorecard.md) (**6.5/10** combined).  
+Authoritative portfolio readiness: [operational-architecture-scorecard.md](operational-architecture-scorecard.md) (**7.5/10** combined).  
 Path to **9/10**: [roadmap-to-industry-leading-9.md](roadmap-to-industry-leading-9.md).
 
 ---

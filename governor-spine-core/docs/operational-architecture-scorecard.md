@@ -2,7 +2,7 @@
 
 **Principle:** In professional software engineering, **maturity is defined by implementation, not intent.** An architecture concept can be brilliant on paper; this document scores what the repository **actually ships** against enterprise engineering benchmarks.
 
-**Assessment basis:** PR #51–#53 (CG consolidation, spine-core, port fixes), ModelGovernor reliability fixes, four-governor 4-tier CI on `main`.
+**Assessment basis:** Wave 0–3 + Wave 1 re-ship on `main` — four-governor L4 CI, `make plug`, live compose-smoke + pilot attestation CI (CG/MG/FG/IG), K1 `ledger_registry`, K2 `portfolio_self_check.json`.
 
 ---
 
@@ -13,19 +13,38 @@
 
 [ YOUR REPOSITORY IMPLEMENTATION STATE ]
 • Core Transaction Kernel (institutional spine) ──► 8.5/10  Highly robust logical design
-• ModelGovernor AI Spend Platform              ──► 7.0/10  Functional demo-gold suite
-• Finance / Cyber / Insurance Wedges           ──► 6.0/10  Thin integration scaffolds
-• Combined Portfolio Readiness                 ──► 6.5/10  Credible source-code asset
+• ModelGovernor AI Spend Platform              ──► 7.5/10  demo-gold + compose-smoke CI
+• Cybersecurity Governor                       ──► 8.5/10  L4 + live pilot attestation CI
+• Finance Governor                             ──► 7.0/10  L4 + pilot attestation CI
+• Insurance Governor                           ──► 8.0/10  ClaimGate hero + FNOL/FedNow sandbox CI
+• Combined Portfolio Readiness                 ──► 7.5/10  Credible source-code asset
 ```
 
 | Layer | Score | What earns it | What caps the score |
 |-------|-------|---------------|---------------------|
-| **Core transactional kernel** | **8.5/10** | Crystallize→seal→commit, hash chains, mesh 409, reserve-before-dispatch, 4-tier CI, chaos, `verify-chain` | Four forked spines; `governor-spine-core` is contract-only |
-| **ModelGovernor** | **7.0/10** | `make demo-gold`, reconciler HA, property/chaos tests, Helm overlays | No formal ECP manifest; `make plug` MG step is subset-only |
-| **FG / CG / IG wedges** | **6.0/10** | AlgoFreeze, WireMatch, EgressGovern, ClaimGate demo-ready | SubledgerSync, CreditGovern, thin CG wedges = connector SOW |
-| **Portfolio total** | **6.5/10** | Pre-hardened IP, honest attestation, acquirer-grade kernel | Not a staffed enterprise vendor |
+| **Core transactional kernel** | **8.5/10** | Crystallize→seal→commit, hash chains, mesh 409, reserve-before-dispatch, 4-tier CI, chaos, `verify-chain`, K1 registry | Four forked spines; K3 sweep hash-seal pending |
+| **ModelGovernor** | **7.5/10** | `make demo-gold`, `compose-smoke-mg`, `mg-pilot-attestation` in CI, reconciler HA | No Phase C design-partner letter |
+| **Cybersecurity Governor** | **8.5/10** | L4 CI, `compose-smoke-cg` → `cg-pilot-attestation` in CI, mesh 409 demo | Thin wedges stay 6.0; no Phase C |
+| **Finance Governor** | **7.0/10** | L4 CI, AlgoFreeze + WireMatch demos, `fg-pilot-attestation` in CI | SubledgerSync, CreditGovern = connector SOW |
+| **Insurance Governor** | **8.0/10** | ClaimGate hero, FNOL/FedNow sandbox CI, SpatialTwin/SubrogationGraph **7.5** mock envelopes | IL 9/10 needs Phase C carrier letter |
+| **Portfolio total** | **7.5/10** | Pre-hardened IP, honest attestation, live CI on all four governors | Not IL 9/10 — no governor has Phase C |
 
 **Verdict:** Highly capable **source-code asset** and **control-plane scaffold** — not a completed corporate software business.
+
+---
+
+## IL rubric status (per governor)
+
+| Governor | Code score | IL rubric (5 rows) | Gap to 9/10 |
+|----------|------------|-------------------|-------------|
+| **Kernel** | 8.5 | K1–K2 only | K3 reconciler sweep seal, K4 retention CronJob |
+| **MG** | 7.5 | **3/5** | Phase C FinOps design-partner |
+| **CG** | 8.5 | **4/5** | Phase C CISO letter |
+| **FG** | 7.0 | **3/5** | Phase C treasurer/CRO letter |
+| **IG** | 8.0 | **4/5** | Phase C carrier design-partner |
+| **Portfolio** | 7.5 | Not IL | No governor has row 5 |
+
+**Do not say:** “Industry Leading platform” or “SOC2 certified” without Phase C external evidence per [maturity-ladder.md](maturity-ladder.md).
 
 ---
 
@@ -40,8 +59,6 @@
 
 **Professional framing:** Transparent and correct for an independent developer. Proves code passes **your** gates without claiming unverified regulatory clearances.
 
-**Do not say:** “SOC2 certified,” “examiner approved,” “Industry Leading” without external evidence.
-
 ---
 
 ### 2. Full systems vs integration scaffolds
@@ -51,9 +68,9 @@
 | Production Grafana dashboards, paging on-call, global DB replication, high-throughput logging pipelines **operated by vendor** | Prometheus rules + Helm CronJob **templates**; buyer operates stack |
 | Turnkey ERP/PAS/SIEM replacement | **Integration scaffolds:** clean APIs + facet schemas + tests; **buyer SOW** for live connectors |
 
-**Solid foundations:** MG proxy/reserve path, CG egress + mesh, FG AlgoFreeze/WireMatch demos.
+**Solid foundations:** MG proxy/reserve path, CG egress + mesh, FG AlgoFreeze/WireMatch demos, IG ClaimGate + FNOL sandbox.
 
-**Scaffolds (honest label):** FG SubledgerSync, AssetLedger, CreditGovern; CG ThreatProxy, IRGate, ComplianceLogger; IG FNOL adapters (webhook **shape normalizers**, not live Guidewire).
+**Scaffolds (honest label):** FG SubledgerSync, AssetLedger, CreditGovern; CG ThreatProxy, IRGate, ComplianceLogger; IG production LiDAR/desk APIs.
 
 ---
 
@@ -87,10 +104,10 @@
 | Buyer type | Pitch | Proof bundle |
 |------------|-------|--------------|
 | **Technical founder / acqui-hire** | Fork kernel, ship one wedge | `make plug`, L4 CI links, `governor-spine-core` |
-| **Strategic acquirer (engineering)** | Control-plane IP vs 18-month build | Scorecard + chaos CI + hash-chain tests |
+| **Strategic acquirer (engineering)** | Control-plane IP vs 18-month build | Scorecard + chaos CI + hash-chain tests + live attestation CI |
 | **Enterprise procurement (vendor-of-record)** | ❌ Wrong motion unless partner brings ops + audit | — |
 
-See [valuation-pre-revenue.md](../../docs/sales-sheets/valuation-pre-revenue.md) for asset-sale framing.
+Technical proof: [GOVERNOR-PORTFOLIO.md](../../docs/sales-sheets/GOVERNOR-PORTFOLIO.md) · [forensic-audit-evidence.md](forensic-audit-evidence.md)
 
 ---
 
@@ -102,7 +119,7 @@ See [valuation-pre-revenue.md](../../docs/sales-sheets/valuation-pre-revenue.md)
 | 6–7 | **L4 Gold / demo-ready** | Per-governor test pyramid + Helm |
 | 5–6 | **Integration scaffold** | API + schema; production = SOW |
 | — | **L5 Institutional Self-Check** | `make plug` — internal only |
-| — | **Industry Leading Gold Standard (product)** | Requires third-party audit + live reference — **not auto-granted** |
+| — | **Industry Leading Gold Standard (product)** | Requires Phase C external evidence — **not auto-granted** |
 
 Full ladder: [maturity-ladder.md](maturity-ladder.md)
 
@@ -113,11 +130,15 @@ Full ladder: [maturity-ladder.md](maturity-ladder.md)
 ## Verification (objective, reproducible)
 
 ```bash
-make plug                         # institutional self-check (not SOC2)
-make cg-certification-l4-ci       # CG L4
-make fg-certification-l4-ci       # FG L4
-# IG: make ig-certification-l4-ci
-make demo-gold                    # MG 7.0/10 proof path
+make plug && test -f artifacts/portfolio_self_check.json
+make compose-smoke-cg && ATTESTATION_CI=1 make cg-pilot-attestation
+make compose-smoke-mg && ATTESTATION_CI=1 make mg-pilot-attestation
+make compose-smoke-fg && ATTESTATION_CI=1 make fg-pilot-attestation
+make compose-smoke-ig && ATTESTATION_CI=1 make ig-pilot-attestation
+make cg-certification-l4-ci
+make fg-certification-l4-ci
+make ig-certification-l4-ci
+make demo-gold
 ```
 
 ---

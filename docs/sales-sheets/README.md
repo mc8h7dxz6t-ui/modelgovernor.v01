@@ -1,25 +1,33 @@
 # Platform sales sheets — index
 
-**Portfolio readiness:** **6.5/10** — [operational-architecture-scorecard.md](../governor-spine-core/docs/operational-architecture-scorecard.md).  
+**Portfolio readiness:** **7.5/10** — [operational-architecture-scorecard.md](../governor-spine-core/docs/operational-architecture-scorecard.md).  
 **Primary exit:** pre-hardened source-code IP sale to technical founders / acquirer engineering.
 
-Full specification and commercial packaging for each governor deployment platform.
+Full specification and maturity packaging for each governor deployment platform. **No commercial pricing in this repo** — scope deals via design-partner SOW and technical proof bundles.
 
-| Platform | Sheet | Primary audience | Suggested ACV (list) | Pre-revenue asset worth* |
-|---|---|---|---|---|
-| **A — Sales Demo** | [01-demo-platform.md](01-demo-platform.md) | Marketing, conferences, first calls | Included / lead-gen | **$75K–$150K** |
-| **B — Staging / Pilot** | [02-staging-pilot-platform.md](02-staging-pilot-platform.md) | POC in customer VPC | **$120K–$250K** / yr | **$400K–$800K** |
-| **C — Production Institutional++** | [03-production-institutional.md](03-production-institutional.md) | Regulated enterprise, platform teams | **$350K–$900K** / yr | **$1.8M–$3.5M** |
-| **D — Enterprise Security Pack** | [04-enterprise-security-pack.md](04-enterprise-security-pack.md) | Zero-trust / InfoSec add-on | **+$80K–$200K** / yr | **$350K–$650K** |
-| **Insurance Governor — Production** | [insurance-governor-production.md](insurance-governor-production.md) | P&C carriers, claims modernization | **$280K–$750K** / yr | **$1.5M–$3.0M** |
-| **Insurance Governor — Tomorrow sale** | [insurance-governor-tomorrow-sale.md](insurance-governor-tomorrow-sale.md) | Asset sale / strategic acquirer | **$320K–$850K** / yr when operated | **$2.0M–$3.5M ask** |
-| **Governor portfolio (all SKUs)** | [GOVERNOR-PORTFOLIO.md](GOVERNOR-PORTFOLIO.md) | Acquirers, technical founders | Per SKU | **6.5/10** asset — see scorecard |
-| **Tier-1 carrier PoC playbook** | [06-tier1-carrier-poc-playbook.md](06-tier1-carrier-poc-playbook.md) | Carrier design-partner evaluation | 30–90 day pilot | Included in `DP` |
-| **CRO claims leakage deck** | [07-cro-claims-leakage-deck.md](07-cro-claims-leakage-deck.md) | CRO, Chief Actuary, Lloyd's | 45-min presentation | Sales enablement |
+| Platform | Sheet | Primary audience | Maturity tier |
+|---|---|---|---|
+| **A — Sales Demo** | [01-demo-platform.md](01-demo-platform.md) | Marketing, conferences, first calls | L4 demo · `make demo-gold` |
+| **B — Staging / Pilot** | [02-staging-pilot-platform.md](02-staging-pilot-platform.md) | POC in customer VPC | L4 pilot · live provider path |
+| **C — Production Institutional++** | [03-production-institutional.md](03-production-institutional.md) | Regulated enterprise, platform teams | L5 · `make plug` + production overlays |
+| **D — Enterprise Security Pack** | [04-enterprise-security-pack.md](04-enterprise-security-pack.md) | Zero-trust / InfoSec add-on | L5 security overlay |
+| **Insurance Governor — Production** | [insurance-governor-production.md](insurance-governor-production.md) | P&C carriers, claims modernization | L4+L5 · IG live CI |
+| **Insurance Governor — Asset sale** | [insurance-governor-tomorrow-sale.md](insurance-governor-tomorrow-sale.md) | Strategic acquirer | Technical proof bundle |
+| **Governor portfolio (all SKUs)** | [GOVERNOR-PORTFOLIO.md](GOVERNOR-PORTFOLIO.md) | Acquirers, technical founders | **7.5/10** — see scorecard |
+| **Tier-1 carrier PoC playbook** | [06-tier1-carrier-poc-playbook.md](06-tier1-carrier-poc-playbook.md) | Carrier design-partner evaluation | 30–90 day pilot |
+| **CRO claims leakage deck** | [07-cro-claims-leakage-deck.md](07-cro-claims-leakage-deck.md) | CRO, Chief Actuary, Lloyd's | 45-min presentation |
 
-**Consolidated pre-revenue valuation (full bundle):** see [valuation-pre-revenue.md](valuation-pre-revenue.md) — **$3.5M–$8.5M** illustrative range post gold-standard packaging.
+## Industry Leading rubric (9/10)
 
-\* *Asset worth = replacement cost + differentiated IP premium, not revenue multiples. See valuation doc for methodology.*
+A governor reaches **IL 9/10** only when all five rows are green per [maturity-ladder.md](../governor-spine-core/docs/maturity-ladder.md):
+
+1. L4 CI (`make *-certification-l4-ci`)
+2. L5 plug (`make plug`)
+3. Live compose-smoke + pilot attestation in CI
+4. Hero wedge shell demo (not pytest-only)
+5. External design-partner letter or VPC attestation (Phase C)
+
+**Path:** [roadmap-to-industry-leading-9.md](../governor-spine-core/docs/roadmap-to-industry-leading-9.md)
 
 ## Quick links
 

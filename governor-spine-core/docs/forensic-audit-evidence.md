@@ -2,7 +2,7 @@
 
 **Audience:** institutional fund engineers, tech acquirer due diligence  
 **Method:** clone → grep → execute CI (`ci.yml`, `fg-ci.yml`) → run `make plug`  
-**Portfolio score:** [operational-architecture-scorecard.md](operational-architecture-scorecard.md) (**6.5/10** combined)
+**Portfolio score:** [operational-architecture-scorecard.md](operational-architecture-scorecard.md) (**7.5/10** combined)
 
 Maturity is **implementation, not intent**. High-level narrative claims are secondary to provable code and CI gates.
 
@@ -79,7 +79,7 @@ CI workflows: `.github/workflows/ci.yml`, `.github/workflows/fg-ci.yml`, job `po
 
 | Path | Fit |
 |------|-----|
-| **Pre-hardened source-code IP sale** | ✅ Matches 6.5/10 asset |
+| **Pre-hardened source-code IP sale** | ✅ Matches 7.5/10 asset |
 | **L5 12-SKU enterprise vendor procurement** | ❌ Blocked — no SOC2 org, no support SLA |
 
 See [transactional-kernel-strategy.md](transactional-kernel-strategy.md) and [GOVERNOR-PORTFOLIO.md](../../docs/sales-sheets/GOVERNOR-PORTFOLIO.md).
