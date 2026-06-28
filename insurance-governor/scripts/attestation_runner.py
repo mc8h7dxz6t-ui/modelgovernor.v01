@@ -135,14 +135,11 @@ def run_attestation() -> dict[str, Any]:
 
     host_base = os.environ.get("IG_PLATFORM_HOST", "http://localhost")
 
-    def _optional_probe(name: str, health_path: str, action: str, body: dict[str, Any] | None) -> None:
+    def _optional_probe(name: str, health_path: str, evaluate_path: str, body: dict[str, Any] | None) -> None:
         def _run() -> None:
             _get(f"{host_base}{health_path}")
-            if action == "GET":
-                _get(f"{host_base}{health_path.replace('/healthz', '/status')}")
-            elif body is not None:
-                endpoint = health_path.replace("/healthz", "/indemnity/evaluate" if "8110" in health_path else "/bind/evaluate")
-                _post(f"{host_base}{endpoint}", body)
+            if body is not None:
+                _post(f"{host_base}{evaluate_path}", body)
 
         try:
             _get(f"{host_base}{health_path}")
@@ -151,8 +148,16 @@ def run_attestation() -> dict[str, Any]:
             return
         probes.append(_probe(name, _run))
 
-    _optional_probe("bind_authority", ":8104/healthz", "POST", {"application_id": "pilot-bind", "premium": "10000", "limit": "500000"})
-    _optional_probe("indemnity_pay_gate", ":8110/healthz", "POST", {
+    _optional_probe("bind_authority", ":8104/healthz", ":8104/bind/evaluate", {
+        "application_id": "pilot-bind", "premium": "10000", "limit": "500000",
+    })
+    _optional_probe("spatial_twin", ":8107/healthz", ":8107/spatial/evaluate", {
+        "claim_id": "pilot-spatial", "point_count": 500000, "damage_estimate": "25000.00", "confidence": 0.9,
+    })
+    _optional_probe("subrogation_graph", ":8109/healthz", ":8109/subrogation/evaluate", {
+        "claim_id": "pilot-subro", "total_loss": "100000.00", "defendants": {"carrier_a": 0.55},
+    })
+    _optional_probe("indemnity_pay_gate", ":8110/healthz", ":8110/indemnity/evaluate", {
         "payment_id": "pilot-crime", "payee_name": "Acme Indemnity Trust",
         "payee_account": "US44ACME001", "amount": "50000", "jurisdiction": "US",
     })

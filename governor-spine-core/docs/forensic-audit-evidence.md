@@ -41,7 +41,8 @@ Maturity is **implementation, not intent**. High-level narrative claims are seco
 | **Four governor spines (L4 CI)** | Complete — kernels pass L4 gates | 8.5/10 |
 | **ModelGovernor demo-gold** | Functional demo suite | 7.0/10 |
 | **Demo wedges** (AlgoFreeze, WireMatch, EgressGovern, ClaimGate) | Demo-ready | 6–7/10 |
-| **Integration scaffolds** (SubledgerSync, CreditGovern, ThreatProxy, SpatialTwin, …) | API + schema; buyer SOW | 6.0/10 |
+| **Integration scaffolds** (SubledgerSync, CreditGovern, ThreatProxy, …) | API + schema; buyer SOW | 6.0/10 |
+| **Secondary IG wedges** (SpatialTwin, SubrogationGraph) | Governed evidence envelope + mock vendor feed + demo/CI | **7.5/10** |
 | **IG FNOL modules** | Payload **normalizers** — not live PAS connectors | 6.0/10 |
 
 ---

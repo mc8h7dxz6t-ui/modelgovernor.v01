@@ -7,3 +7,8 @@ required_facet_keys:
   - claim_id
 commit_decisions:
   - RECOVERY_APPROVED
+invariant_counters:
+  - subro_recovery_approved_total
+  - subro_no_recovery_total
+  - subro_referred_total
+  - subro_attestation_mismatch_total

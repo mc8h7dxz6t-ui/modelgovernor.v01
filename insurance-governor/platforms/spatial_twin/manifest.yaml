@@ -8,3 +8,9 @@ required_facet_keys:
   - point_cloud_hash
 commit_decisions:
   - APPROVED
+invariant_counters:
+  - spatial_approved_total
+  - spatial_held_total
+  - spatial_referred_total
+  - spatial_declined_total
+  - spatial_attestation_mismatch_total
