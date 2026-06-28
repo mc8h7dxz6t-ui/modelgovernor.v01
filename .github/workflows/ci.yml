@@ -854,12 +854,37 @@ jobs:
         run: make plug
 
   compose-smoke-cg:
-    name: CG live stack — compose-smoke-cg
+    name: CG live stack — compose-smoke-cg + pilot attestation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: CG compose smoke (8120–8123 + verify-chain)
+      - name: CG compose smoke + pilot attestation (8120–8123)
         run: |
-          chmod +x scripts/compose-smoke-cg.sh
+          chmod +x scripts/compose-smoke-cg.sh cybersecurity-governor/scripts/cg-pilot-attestation.sh
           make compose-smoke-cg
+          ATTESTATION_CI=1 make cg-pilot-attestation
+
+  compose-smoke-mg:
+    name: MG live stack — compose-smoke-mg + pilot attestation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: MG compose smoke + pilot attestation (8080–8082)
+        run: |
+          chmod +x scripts/compose-smoke-mg.sh scripts/mg-pilot-attestation.sh scripts/mg_attestation_runner.py
+          make compose-smoke-mg
+          ATTESTATION_CI=1 make mg-pilot-attestation
+
+  compose-smoke-fg:
+    name: FG live stack — compose-smoke-fg + pilot attestation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: FG compose smoke + pilot attestation (8090–8092)
+        run: |
+          chmod +x scripts/compose-smoke-fg.sh finance-governor/scripts/fg-pilot-attestation.sh finance-governor/scripts/fg_attestation_runner.py
+          make compose-smoke-fg
+          ATTESTATION_CI=1 make fg-pilot-attestation
