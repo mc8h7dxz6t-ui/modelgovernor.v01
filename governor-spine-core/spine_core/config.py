@@ -67,4 +67,4 @@ DOMAIN_REGISTRY: dict[GovernorDomain, TableSchemaConfig] = {
     ),
 }
 
-MATURITY_LABEL = "Institutional Self-Check Certified"
+MATURITY_LABEL = "L5 Institutional Self-Check Certified"

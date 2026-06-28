@@ -15,7 +15,8 @@
 	cg-spine-up cg-stack-up cg-spine-down cg-stack-down cg-spine-test cg-spine-smoke \
 	egress-govern-demo cg-demo cg-security-demo cg-egress-wedge-demo posture-reconcile-demo content-guard-demo \
 	cg-certification cg-certification-strict cg-certification-l4 cg-certification-l4-ci \
-	cg-helm-enterprise cg-platform-conformance cg-load-test cg-examiner-evidence cg-pilot-attestation
+	cg-helm-enterprise cg-platform-conformance cg-load-test cg-examiner-evidence cg-pilot-attestation \
+	mg-certification-l4 mg-certification-l4-ci
 
 demo-prereqs:
 	./scripts/install-demo-prereqs.sh --check-only
@@ -276,6 +277,22 @@ fg-test-deps:
 
 cg-test-deps:
 	$(MAKE) -C cybersecurity-governor cg-test-deps
+
+mg-certification-l4-ci:
+	@echo "==> MG L4 Gold CI gate"
+	python3 -m pytest tests/test_l4_certification.py \
+	  tests/integration/test_property_ledger.py \
+	  tests/programs/finance_ops_finals/test_reconciler_leader_election.py \
+	  tests/programs/finance_ops_finals/test_finance_ops_finals.py -q
+	helm template mg deploy/helm/modelgovernor --set secrets.create=true \
+	  --set secrets.postgresPassword=postgres > /dev/null
+	@echo "mg-certification-l4-ci complete"
+
+mg-certification-l4:
+	@echo "==> MG L4 Gold certification gate"
+	$(MAKE) mg-certification-l4-ci
+	$(MAKE) demo-gold-reliability
+	@echo "mg-certification-l4 complete (L4 Gold)"
 
 demo-all-platforms:
 	./scripts/demo-all-platforms.sh

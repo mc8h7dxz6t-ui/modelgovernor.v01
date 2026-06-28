@@ -1,8 +1,10 @@
 # Pre-revenue valuation summary
 
-**As-of:** institutional++ gold-standard packaging (demo stack, production overlays, 57+ Tier-1 tests, GitOps manifests).
+**As-of:** four-governor portfolio; **implementation readiness 6.5/10** — [operational-architecture-scorecard.md](../governor-spine-core/docs/operational-architecture-scorecard.md).
 
-This document estimates **what the platform is worth before first dollar of revenue** — for fundraising, M&A conversations, or internal portfolio accounting. Figures are **illustrative ranges**, not appraisals.
+**Primary exit motion:** **Pre-hardened source-code IP sale** to technical founders / strategic acquirer engineering — not fantasy L5 12-SKU enterprise vendor procurement.
+
+This document estimates **what the codebase is worth before first dollar of revenue** — for M&A and founder conversations. Figures are **illustrative ranges**, not appraisals.
 
 ---
 

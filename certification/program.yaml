@@ -1,0 +1,64 @@
+# ModelGovernor External Certification Program (MG-ECP)
+
+program:
+  id: mg-ecp-v1
+  name: ModelGovernor External Certification Program
+  issuer: ModelGovernor institutional++ lineage
+  version: "1.0.0"
+
+levels:
+  L1:
+    title: Platform Ready
+    requirements:
+      - standalone_health_endpoints
+      - tier1_unit_tests
+      - gateway_openai_compat
+  L2:
+    title: Institutional
+    extends: L1
+    requirements:
+      - diagnostic_mode_compatible
+      - guardrails_with_fallback
+      - idempotent_reserve
+  L3:
+    title: Institutional++
+    extends: L2
+    requirements:
+      - hash_chain_verify
+      - reconciler_leader_election
+      - postgres_integration_tests
+  L4:
+    title: Gold Enterprise
+    extends: L3
+    requirements:
+      - mg_certification_l4_ci
+      - helm_enterprise_render
+      - chaos_toxiproxy
+      - gitops_manifests
+  L5:
+    title: Institutional Self-Check Certified
+    extends: L4
+    requirements:
+      - portfolio_plug_harness
+      - compose_smoke_or_pilot_attestation
+      - examiner_evidence_pack
+
+evidence_artifacts:
+  - path: docs/capability-matrix.md
+    id: capability_matrix_doc
+  - path: docs/institutional-reliability.md
+    id: institutional_reliability_doc
+  - path: certification/partner-checklist.md
+    id: partner_checklist
+
+submission:
+  report_format: json
+  report_schema_version: "1"
+  required_fields:
+    - program_id
+    - level_claimed
+    - git_commit
+    - generated_at
+    - checks
+    - report_sha256
+  contact: certification@modelgovernor.example

@@ -1,6 +1,6 @@
 # Finance Governor External Certification Program (FG-ECP)
 
-**FG-ECP** is the third-party certification framework for platforms integrating with Finance Governor. It extends internal Makefile gates (`fg-certification-l4`) with **vendor-submittable attestation reports** suitable for procurement, model risk, and examiner diligence.
+**FG-ECP** extends internal Makefile gates (`fg-certification-l4`) with **self-generated attestation reports** suitable for vendor diligence folders. This is **not** accreditation by an independent auditor (SOC 2, ISO 27001).
 
 ## Levels
 
@@ -8,7 +8,7 @@
 |-------|----------|-----------|
 | **L3** | Platform vendors | SDK conformance + Postgres integration |
 | **L4** | Enterprise deploy | L4 Gold Helm + chaos + GitOps |
-| **L5 Industry Leading** | Regulated production | Live rails + RDS + Istio all workloads + signed attestation |
+| **L5 Institutional Self-Check** | Regulated production wiring | Live rails + RDS + Istio overlays + **self-run** attestation JSON |
 
 Program manifest: [certification/program.yaml](../certification/program.yaml)
 
@@ -49,7 +49,9 @@ Each report includes:
 
 Internal gates block merges. External attestation is the **vendor deliverable** for RFP and SOC2 evidence folders.
 
-## L5 Industry Leading requirements
+## L5 Institutional Self-Check requirements
+
+**Not** SOC 2 Type II or ISO 27001 — see [operational-architecture-scorecard.md](../../governor-spine-core/docs/operational-architecture-scorecard.md).
 
 - **Live inference rails** — `FG_CREDIT_RAIL_MODE=live` with HTTP provider (`inference_rail.py`)
 - **Managed Postgres** — `values-rds.yaml` overlay (no in-cluster StatefulSet)

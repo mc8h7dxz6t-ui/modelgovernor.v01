@@ -25,9 +25,16 @@ def test_cyber_ports_are_812x():
     assert cyber.reconciler == 8122
 
 
-def test_maturity_label_is_self_check_not_l5_marketing():
-    assert "Self-Check" in MATURITY_LABEL
+def test_maturity_label_is_l5_self_check_not_industry_leading_marketing():
+    assert MATURITY_LABEL == "L5 Institutional Self-Check Certified"
     assert "Industry Leading" not in MATURITY_LABEL
+
+
+def test_ledger_contract_documents_domain_tables():
+    from spine_core.ledger_contract import LEDGER_TABLE_BY_DOMAIN
+
+    assert len(LEDGER_TABLE_BY_DOMAIN) == 4
+    assert LEDGER_TABLE_BY_DOMAIN["CYBER_GOVERNOR"] == "security_events"
 
 
 def test_spine_dockerfile_compose_port_alignment():

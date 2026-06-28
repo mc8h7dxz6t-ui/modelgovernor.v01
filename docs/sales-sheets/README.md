@@ -1,6 +1,9 @@
 # Platform sales sheets — index
 
-Full specification and commercial packaging for each ModelGovernor deployment platform. Use in investor decks, enterprise RFPs, and partner enablement.
+**Portfolio readiness:** **6.5/10** — [operational-architecture-scorecard.md](../governor-spine-core/docs/operational-architecture-scorecard.md).  
+**Primary exit:** pre-hardened source-code IP sale to technical founders / acquirer engineering.
+
+Full specification and commercial packaging for each governor deployment platform.
 
 | Platform | Sheet | Primary audience | Suggested ACV (list) | Pre-revenue asset worth* |
 |---|---|---|---|---|
@@ -10,7 +13,7 @@ Full specification and commercial packaging for each ModelGovernor deployment pl
 | **D — Enterprise Security Pack** | [04-enterprise-security-pack.md](04-enterprise-security-pack.md) | Zero-trust / InfoSec add-on | **+$80K–$200K** / yr | **$350K–$650K** |
 | **Insurance Governor — Production** | [insurance-governor-production.md](insurance-governor-production.md) | P&C carriers, claims modernization | **$280K–$750K** / yr | **$1.5M–$3.0M** |
 | **Insurance Governor — Tomorrow sale** | [insurance-governor-tomorrow-sale.md](insurance-governor-tomorrow-sale.md) | Asset sale / strategic acquirer | **$320K–$850K** / yr when operated | **$2.0M–$3.5M ask** |
-| **IP licensing framework** | [05-ip-licensing-framework.md](05-ip-licensing-framework.md) | Legal, M&A, enterprise procurement | Per SKU schedule | Bundle exhibit |
+| **Governor portfolio (all SKUs)** | [GOVERNOR-PORTFOLIO.md](GOVERNOR-PORTFOLIO.md) | Acquirers, technical founders | Per SKU | **6.5/10** asset — see scorecard |
 | **Tier-1 carrier PoC playbook** | [06-tier1-carrier-poc-playbook.md](06-tier1-carrier-poc-playbook.md) | Carrier design-partner evaluation | 30–90 day pilot | Included in `DP` |
 | **CRO claims leakage deck** | [07-cro-claims-leakage-deck.md](07-cro-claims-leakage-deck.md) | CRO, Chief Actuary, Lloyd's | 45-min presentation | Sales enablement |
 
@@ -22,5 +25,6 @@ Full specification and commercial packaging for each ModelGovernor deployment pl
 
 - **All platforms collated demo:** [../demo-all-platforms.md](../demo-all-platforms.md) → `make demo-all-platforms`
 - Capability matrix: [../capability-matrix.md](../capability-matrix.md)
+- Forensic audit evidence: [../governor-spine-core/docs/forensic-audit-evidence.md](../governor-spine-core/docs/forensic-audit-evidence.md)
 - Plug-and-play modes: [../plug-and-play.md](../plug-and-play.md)
 - Live demo (Platform A): [../../SALES-DEMO.md](../../SALES-DEMO.md) → `make demo-gold`
