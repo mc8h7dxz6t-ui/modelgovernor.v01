@@ -53,6 +53,22 @@ def writeback_ice(*, claim_id: str, decision: str, facets: dict[str, Any]) -> Wr
     return WritebackResult("ice", claim_id, "synced", str(data.get("syncId", claim_id)), dry_run=False)
 
 
+def writeback_snapsheet(*, claim_id: str, decision: str, facets: dict[str, Any]) -> WritebackResult:
+    url = os.environ.get("SNAPSHEET_WRITEBACK_URL")
+    if not writeback_enabled() or not url:
+        return WritebackResult("snapsheet", claim_id, "dry_run_recorded", f"dry-{claim_id}", dry_run=True)
+    body = {"claimNumber": claim_id, "gateDecision": decision, "facets": facets}
+    headers = {"content-type": "application/json"}
+    token = os.environ.get("SNAPSHEET_API_TOKEN")
+    if token:
+        headers["authorization"] = f"Bearer {token}"
+    with httpx.Client(timeout=15.0) as client:
+        response = client.post(url, json=body, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+    return WritebackResult("snapsheet", claim_id, "synced", str(data.get("id", claim_id)), dry_run=False)
+
+
 def writeback_acturis(*, claim_id: str, decision: str, facets: dict[str, Any]) -> WritebackResult:
     url = os.environ.get("ACTURIS_WRITEBACK_URL")
     if not writeback_enabled() or not url:
@@ -67,6 +83,7 @@ def writeback_acturis(*, claim_id: str, decision: str, facets: dict[str, Any]) -
 
 _WRITEBACK = {
     "guidewire": writeback_guidewire,
+    "snapsheet": writeback_snapsheet,
     "acturis": writeback_acturis,
     "ice": writeback_ice,
 }

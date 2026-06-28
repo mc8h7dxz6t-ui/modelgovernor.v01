@@ -18,6 +18,7 @@
 |------|----|----|----|----|-----------|
 | **Today** | 7.0 | ~7.0 | ~7.5 | ~6.5 | **6.5** |
 | **After Wave 0** (items 1–4) | 7.5 | 7.0 | **8.5** | 6.5 | **7.0** |
+| **After Wave 3** (IG live CI + sandbox) | 7.5 | 7.0 | **8.5** | **8.0** | **7.5** |
 | **After Phase A+B** | 8.5 | 8.5 | 8.5 | 8.0 | **8.5** |
 | **IL 9/10** (+ Phase C each) | 9.0 | 9.0 | 9.0 | 9.0 | **9.0** |
 | **EV 10/10** (+ company) | 10 | 10 | 10 | 10 | **10** |
@@ -47,6 +48,31 @@ python3 -c "from spine_core.ledger_contract import LedgerSealer; print('K1 OK')"
 ```
 
 **Wave 1 (next):** `compose-smoke-mg`, `mg-pilot-attestation`, `fg-pilot-attestation`, extract seal impl behind `ledger_contract`.
+
+---
+
+## Wave 3 — Insurance Governor (IG 6.5 → 8.0 code)
+
+Longest wedge path; hero = **ClaimGate + IG spine** (not 11 platforms).
+
+| # | Item | Governor | Deliverable | Status |
+|---|------|----------|-------------|--------|
+| **1** | Compose smoke in CI | **IG** | `scripts/compose-smoke-ig.sh` — 8100–8103 + verify-chain | ✅ Shipped |
+| **2** | Pilot attestation in CI | **IG** | `compose-smoke-ig` → `ig-pilot-attestation` (`ATTESTATION_CI`) | ✅ Shipped |
+| **3** | FNOL sandbox integration | **IG** | `mock_pas_writeback_sandbox.py` + Guidewire/Snapsheet live writeback in smoke + `test_fnol_sandbox_integration.py` | ✅ Shipped |
+| **4** | FedNow sandbox in CI | **IG** | `mock_fednow_sandbox.py` in compose-smoke + `test_fnol_sandbox_integration.py` rail probe | ✅ Shipped |
+| **5** | Phase C external evidence | **IG** | Carrier design-partner letter + VPC attestation | ⏳ Human gate |
+
+**Verify Wave 3:**
+
+```bash
+make compose-smoke-ig
+ATTESTATION_CI=1 make ig-pilot-attestation
+PYTHONPATH=insurance-governor python3 -m pytest insurance-governor/tests/test_fnol_sandbox_integration.py -q
+make ig-certification-l4-ci   # includes sandbox integration tests
+```
+
+**Not claimed at 9/10:** SpatialTwin / subrogation wedges stay **6.0** without carrier SOW. IL 9/10 still requires Phase C design-partner evidence.
 
 ---
 
