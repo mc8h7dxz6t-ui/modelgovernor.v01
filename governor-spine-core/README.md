@@ -31,7 +31,7 @@ Full scorecard: [docs/operational-architecture-scorecard.md](docs/operational-ar
 | [forensic-audit-evidence.md](docs/forensic-audit-evidence.md) | Acquirer due diligence — provable engine vs gaps |
 | [transactional-kernel-strategy.md](docs/transactional-kernel-strategy.md) | Tech edge + buyer fit |
 | [maturity-ladder.md](docs/maturity-ladder.md) | L4 / L5 / IL definitions |
-| [disaster-recovery-runbook.md](docs/disaster-recovery-runbook.md) | Honest DR patterns |
+| [roadmap-to-industry-leading-9.md](docs/roadmap-to-industry-leading-9.md) | Per-governor path 7→9 / 6.5→9 |
 
 ## Verify
 

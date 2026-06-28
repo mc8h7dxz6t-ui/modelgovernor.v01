@@ -106,6 +106,8 @@ See [valuation-pre-revenue.md](../../docs/sales-sheets/valuation-pre-revenue.md)
 
 Full ladder: [maturity-ladder.md](maturity-ladder.md)
 
+**Path to 9/10:** [roadmap-to-industry-leading-9.md](roadmap-to-industry-leading-9.md)
+
 ---
 
 ## Verification (objective, reproducible)

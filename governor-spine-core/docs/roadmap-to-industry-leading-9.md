@@ -1,0 +1,297 @@
+# Roadmap — Four Governors to 9/10 Industry Leading Gold Standard
+
+**Today (implementation scores):**
+
+| Governor | Spine / kernel | Wedges / product | **Governor total** |
+|----------|----------------|------------------|-------------------|
+| **Shared kernel** | 8.5/10 | — | 8.5/10 |
+| **ModelGovernor (MG)** | 8.5/10 | 7.0/10 demo | **7.0/10** |
+| **Finance Governor (FG)** | 8.5/10 | 6.0–7.0/10 mixed | **~7.0/10** |
+| **Cybersecurity Governor (CG)** | 8.5/10 | 6.5–7.5/10 | **~7.5/10** |
+| **Insurance Governor (IG)** | 8.5/10 | 6.0/10 | **~6.5/10** |
+| **Portfolio** | — | — | **6.5/10** |
+
+**Target:** **9/10 per governor** = **Industry Leading Gold Standard** under [maturity-ladder.md](maturity-ladder.md) — not marketing copy.
+
+---
+
+## What 9/10 actually means (rubric)
+
+A governor scores **9/10** only when **all five rows** are green:
+
+| # | Dimension | 9/10 requires | Verified by |
+|---|-----------|---------------|-------------|
+| 1 | **L4 engineering** | Tier 1–4 CI green on `main` | `make *-certification-l4-ci` |
+| 2 | **L5 self-check** | Portfolio plug includes governor | `make plug` (job `portfolio-plug`) |
+| 3 | **Live stack proof** | Docker compose smoke + pilot attestation **in CI** | `compose-smoke-*`, `*-pilot-attestation` |
+| 4 | **Hero wedge depth** | At least one defensible wedge shows end-to-end enforcement **in shell demo**, not pytest-only | Demo scripts + attestation JSON |
+| 5 | **External evidence** | Design-partner signed letter **or** acquirer reference VPC attestation (no `probes_note` stub) | `attestation_validate.py` |
+
+**9/10 does not require** (that's **10/10 vendor-of-record**):
+
+- SOC 2 Type II (organization — partner or acquirer)
+- 24×7 support SLA
+- Turnkey replacement of Okta / Guidewire / BlackLine
+
+**Portfolio 9/10** = all four governors ≥ 9/10 **plus** shared kernel package extraction (below).
+
+---
+
+## Architecture: three phases (all governors)
+
+```
+PHASE A — ENGINEERING 9/10     PHASE B — LIVE PROOF 9/10     PHASE C — IL EVIDENCE 9/10
+(code + CI, no humans)          (Docker CI, demos)             (design partner / acquirer)
+        │                                │                              │
+        ▼                                ▼                              ▼
+  L4 + plug + smoke CI            pilot-attestation CI          signed letter + live VPC JSON
+  hero wedge demo parity          mesh 409 in shell demos       examiner pack archived
+  shared spine_core package       compose-smoke per governor    reference customer (optional)
+```
+
+Estimated **engineering-only** path to **8.5→9.0** on code: Phase A + B.  
+**9.0 Industry Leading claim** requires Phase C for that governor.
+
+---
+
+## Shared kernel (8.5 → 9.0) — lifts all four
+
+| # | Deliverable | Unblocks |
+|---|-------------|----------|
+| K1 | **Shared spine Python package** — extract `commit_ledger` / seal / verify interfaces (thin); keep governor-specific tables | Single patch for kernel bugs; acquirer story |
+| K2 | **`governor-spine-core` maturity artifact** — `make plug` emits `artifacts/portfolio_self_check.json` with scores + git SHA | Data room single file |
+| K3 | **Reconciler sweep hash-seal** (MG P2 gap) | Examiner “no unsealed sweeps” |
+| K4 | **Retention / partition CronJob** reads `*_retention_policy` tables | Ops 9/10 credibility |
+
+**Verify:** `make plug` + `python -m spine_core.port_checks` + shared package unit tests.
+
+---
+
+## ModelGovernor (7.0 → 9.0)
+
+### Current strengths
+- `make demo-gold`, reserve-before-dispatch, 4-tier CI, property + chaos tests.
+
+### Gaps to 9/10
+
+| Phase | Work | Exit criterion |
+|-------|------|----------------|
+| **A1** | Add `certification/program.yaml` (parity with FG/IG/CG) | MG-ECP manifest in repo |
+| **A2** | `make mg-certification-l4-ci` aggregator on root Makefile + CI job name | Explicit MG L4 gate |
+| **A3** | Deprecate `demo-up` → alias `demo-gold-up` in README/Makefile | One demo entrypoint |
+| **B1** | `scripts/compose-smoke-mg.sh` + CI job (gateway 8080, verify-chain) | Live proof in GitHub |
+| **B2** | `scripts/mg-pilot-attestation.sh` (reserve → dispatch → verify-chain → anchor) | Same pattern as CG |
+| **C1** | One FinOps design-partner runs attestation in their VPC; archive JSON + redacted letter | `attestation_validate.py` pass |
+
+### Hero wedge at 9/10
+**MG-SPINE / Spend Guard** — already the product. Do not chase 12 MG catalog SKUs; depth on **reserve → settle → drift lockout** demo.
+
+```bash
+make demo-gold
+make plug
+make compose-smoke-mg          # Phase B
+make mg-pilot-attestation      # Phase B
+```
+
+**MG 9/10 date realistic when:** B1+B2 in CI + one C1 artifact.
+
+---
+
+## Finance Governor (~7.0 → 9.0)
+
+### Current strengths
+- L4 CI (`fg-certification-l4-ci`), AlgoFreeze + WireMatch demos, FG-ECP self-attestation.
+
+### Gaps to 9/10
+
+| Phase | Work | Exit criterion |
+|-------|------|----------------|
+| **A1** | **Do not** lift SubledgerSync / AssetLedger to 9 without connector — label stays scaffold | Honest portfolio |
+| **A2** | AlgoFreeze: CI integration test with frozen EMS mock + version mismatch → 409 | `test_algofreeze_integration.py` in L4 CI |
+| **A3** | WireMatch: golden-record mismatch demo script shows HELD wire + chain row | `make wirematch-demo` in attestation |
+| **A4** | CreditGovern: `FG_CREDIT_RAIL_MODE=live` HTTP rail contract test (mock server) | L5 overlay proof without buyer model |
+| **B1** | `compose-smoke-fg.sh` — spine 8090–8092 + AlgoFreeze health | CI Docker job |
+| **B2** | `fg-pilot-attestation.sh` — crystallize → commit → verify-chain | Parity with CG |
+| **C1** | Treasurer or CRO design-partner letter + attestation JSON | External evidence |
+
+### Wedge scoring target
+
+| SKU | Today | 9/10 path |
+|-----|-------|-----------|
+| **FG spine** | 8.5 | B1+B2 |
+| **AlgoFreeze** | 7.5 | A2 + live freeze in demo |
+| **WireMatch** | 7.5 | A3 |
+| **CreditGovern** | 6.0 | A4 only (scaffold → **7.5**, not 9, without buyer model) |
+| **SubledgerSync / AssetLedger** | 6.0 | **Stay 6** or 18-month ERP SOW |
+
+**FG governor 9/10** = spine + **two hero wedges** (AlgoFreeze, WireMatch) at 9 + Phase C — not all five platforms.
+
+```bash
+make fg-certification-l4-ci
+make algofreeze-demo && make wirematch-demo
+make fg-pilot-attestation    # Phase B
+```
+
+---
+
+## Cybersecurity Governor (~7.5 → 9.0) — closest to target
+
+### Current strengths
+- Strongest post-#52: ext_authz, mesh pytest, L4 CI, port fix, Helm 9 platforms.
+
+### Gaps to 9/10
+
+| Phase | Work | Exit criterion |
+|-------|------|----------------|
+| **A1** | **Mesh 409 in `cg-egress-wedge-demo.sh`** — identity VIOLATION → egress commit blocked | Demo matches pytest story |
+| **A2** | `compose-smoke-cg` in CI (Docker job on `main`) | Already scripted — wire CI |
+| **A3** | `cg-pilot-attestation` in CI after compose-smoke | Full live gate automated |
+| **A4** | Envoy sidecar compose profile: ext_authz → egress-govern:8123 | Edge enforcement demo |
+| **B1** | Thin wedges (ThreatProxy, IRGate, ComplianceLogger) — document as **6.0 add-ons** in sales sheet only | No faux 9/10 on thin SKUs |
+| **C1** | CISO design-partner: `make cg-pilot-attestation` in their VPC + examiner pack | External evidence |
+
+### Hero wedge at 9/10
+**CG-EGRESSLOCK** + TCP spine — identity arm → mesh 409 → ext_authz deny → verify-chain.
+
+```bash
+make cg-certification-l4-ci
+make compose-smoke-cg
+make cg-egress-wedge-demo    # after A1
+make cg-pilot-attestation
+```
+
+**CG is the fastest path to first 9/10 governor** — A1+A2+A3 are small engineering.
+
+---
+
+## Insurance Governor (~6.5 → 9.0) — longest wedge path
+
+### Current strengths
+- L4 CI, ClaimGate depth, `ig-full-rehearsal`, mesh rules, 11 platforms in tree.
+
+### Gaps to 9/10
+
+| Phase | Work | Exit criterion |
+|-------|------|----------------|
+| **A1** | `compose-smoke-ig.sh` — 8100–8102 + ClaimGate 8103 health + verify-chain | CI Docker |
+| **A2** | `ig-pilot-attestation.sh` — FNOL ingest → reserve → commit → verify-chain | Parity with CG |
+| **A3** | One **sandbox** FNOL integration (Snapsheet or Guidewire mock server) — not just shape normalizer | Integration test in CI |
+| **A4** | FedNow **sandbox** in CI (not manual `ig-rail-smoke` only) | Payment rail proof |
+| **B1** | SpatialTwin / subrogation — keep **6.0** unless carrier SOW | Honest scoring |
+| **C1** | Carrier design-partner (MGA or Tier-2) + signed PoC letter | External evidence |
+
+### Hero wedge at 9/10
+**ClaimGate + IG spine** — not 11 platforms. Price spine + ClaimGate; wedges are add-ons.
+
+```bash
+make ig-certification-l4-ci
+make ig-full-rehearsal
+make compose-smoke-ig         # Phase A1
+make ig-pilot-attestation       # Phase A2
+```
+
+**IG 9/10** requires A3 (one live sandbox connector) — largest lift after CG.
+
+---
+
+## Portfolio 9/10 — sequencing
+
+```mermaid
+flowchart LR
+    subgraph wave1 [Wave 1 — fastest IL]
+        CG[CG 7.5→9]
+    end
+    subgraph wave2 [Wave 2 — finance + AI]
+        MG[MG 7→9]
+        FG[FG 7→9]
+    end
+    subgraph wave3 [Wave 3 — insurance]
+        IG[IG 6.5→9]
+    end
+    subgraph kernel [Parallel — kernel 9]
+        K[shared spine package K1–K4]
+    end
+    K --> CG
+    K --> MG
+    K --> FG
+    K --> IG
+    CG --> MG
+    CG --> FG
+    MG --> IG
+```
+
+| Order | Governor | Why first | Key unlock |
+|-------|----------|-----------|------------|
+| **1** | **CG** | Already 7.5; mesh demo + compose CI | First IL reference story |
+| **2** | **MG** | Acquirer knows ModelGovernor brand | FinOps design partner |
+| **3** | **FG** | AlgoFreeze + WireMatch heroes | CRO/Treasurer letter |
+| **4** | **IG** | Needs sandbox FNOL + rail CI | Carrier PoC |
+
+**Parallel always:** kernel package (K1–K4) — without it, four forks cap spine at 8.5.
+
+---
+
+## Score projection after phases
+
+| Governor | Today | After Phase A+B (code) | After Phase C (IL claim) |
+|----------|-------|------------------------|--------------------------|
+| Kernel | 8.5 | **9.0** (with K1–K4) | 9.0 |
+| MG | 7.0 | **8.5** | **9.0** |
+| FG | ~7.0 | **8.5** | **9.0** |
+| CG | ~7.5 | **8.5** | **9.0** |
+| IG | ~6.5 | **8.0** | **9.0** |
+| **Portfolio** | 6.5 | **8.5** | **9.0** |
+
+Phase A+B alone gets **8.5 portfolio** — credible **pre-IP sale at premium**.  
+**9.0 Industry Leading** per governor requires **Phase C** external evidence per [maturity-ladder.md](maturity-ladder.md).
+
+---
+
+## Anti-patterns (do not do on path to 9/10)
+
+| Action | Why it fails diligence |
+|--------|------------------------|
+| Rename docs to “Industry Leading” without Phase C | Same as deleted 92/100 files |
+| Build 12 SKUs to 9/10 | Depth beats breadth; scaffolds stay 6 |
+| Invent Lamport / mode_controller / kubectl failover | Rejected patterns |
+| Claim SOC2 from `make plug` | L5 ≠ third-party audit |
+| Merge draft PRs #48/#49 unreviewed | Reintroduces unaudited scores |
+
+---
+
+## Verification checklist (target end state)
+
+```bash
+# Portfolio
+make plug && test -f artifacts/portfolio_self_check.json   # K2 (future)
+
+# Per governor L4
+make mg-certification-l4-ci   # A2 MG
+make fg-certification-l4-ci
+make cg-certification-l4-ci
+make ig-certification-l4-ci
+
+# Per governor live (Phase B)
+make compose-smoke-mg           # MG B1
+make compose-smoke-fg           # FG B1
+make compose-smoke-cg           # CG A2
+make compose-smoke-ig           # IG A1
+
+# Per governor attestation (Phase B/C)
+make mg-pilot-attestation
+make fg-pilot-attestation
+make cg-pilot-attestation
+make ig-pilot-attestation
+
+# External (Phase C) — human gate
+python3 */scripts/attestation_validate.py artifacts/.../cluster_attestation.json
+```
+
+---
+
+## Related
+
+- [operational-architecture-scorecard.md](operational-architecture-scorecard.md) — today’s scores
+- [forensic-audit-evidence.md](forensic-audit-evidence.md) — provable vs gap
+- [maturity-ladder.md](maturity-ladder.md) — IL definition
+- [GOVERNOR-PORTFOLIO.md](../../docs/sales-sheets/GOVERNOR-PORTFOLIO.md) — SKU honesty
