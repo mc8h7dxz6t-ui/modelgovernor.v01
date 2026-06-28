@@ -18,7 +18,6 @@
 |------|----|----|----|----|-----------|
 | **Today** | 7.0 | ~7.0 | ~7.5 | ~6.5 | **6.5** |
 | **After Wave 0** (items 1–4) | 7.5 | 7.0 | **8.5** | 6.5 | **7.0** |
-| **After Wave 1** (live CI + K1/K2) | 7.5 | 7.0 | **8.5** | 6.5 | **7.5** |
 | **After Phase A+B** | 8.5 | 8.5 | 8.5 | 8.0 | **8.5** |
 | **IL 9/10** (+ Phase C each) | 9.0 | 9.0 | 9.0 | 9.0 | **9.0** |
 | **EV 10/10** (+ company) | 10 | 10 | 10 | 10 | **10** |
@@ -47,27 +46,7 @@ make mg-certification-l4-ci
 python3 -c "from spine_core.ledger_contract import LedgerSealer; print('K1 OK')"
 ```
 
-**Wave 1 (shipped):** `compose-smoke-mg`, `mg-pilot-attestation`, `fg-pilot-attestation`, K1 `ledger_registry` conformance, K2 `artifacts/portfolio_self_check.json`, `cg-pilot-attestation` in CI.
-
-| # | Item | Governor | Deliverable | Status |
-|---|------|----------|-------------|--------|
-| **1** | CG pilot attestation in CI | **CG** | `compose-smoke-cg` → `cg-pilot-attestation` (ATTESTATION_CI) | ✅ Shipped |
-| **2** | MG compose smoke + pilot | **MG** | `scripts/compose-smoke-mg.sh` + `mg-pilot-attestation` + CI | ✅ Shipped |
-| **3** | FG pilot attestation | **FG** | `compose-smoke-fg` + `fg-pilot-attestation` + CI | ✅ Shipped |
-| **4** | K1 seal conformance | **Kernel** | `spine_core/ledger_registry.py` + tests | ✅ Shipped |
-| **5** | K2 portfolio artifact | **Kernel** | `make plug` → `artifacts/portfolio_self_check.json` | ✅ Shipped |
-
-**Verify Wave 1:**
-
-```bash
-make compose-smoke-mg && ATTESTATION_CI=1 make mg-pilot-attestation
-make compose-smoke-fg && ATTESTATION_CI=1 make fg-pilot-attestation
-make compose-smoke-cg && ATTESTATION_CI=1 make cg-pilot-attestation
-make plug && test -f artifacts/portfolio_self_check.json
-PYTHONPATH=governor-spine-core python3 -m pytest governor-spine-core/tests/test_ledger_conformance.py -q
-```
-
-**Wave 2 (next):** `compose-smoke-ig`, `ig-pilot-attestation` in CI, reconciler sweep hash-seal (K3), retention CronJob (K4).
+**Wave 1 (next):** `compose-smoke-mg`, `mg-pilot-attestation`, `fg-pilot-attestation`, extract seal impl behind `ledger_contract`.
 
 ---
 
@@ -320,7 +299,7 @@ Phase A+B alone gets **8.5 portfolio** — credible **pre-IP sale at premium**.
 
 ```bash
 # Portfolio
-make plug && test -f artifacts/portfolio_self_check.json   # K2
+make plug && test -f artifacts/portfolio_self_check.json   # K2 (future)
 
 # Per governor L4
 make mg-certification-l4-ci   # A2 MG

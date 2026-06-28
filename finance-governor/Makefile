@@ -6,7 +6,7 @@
 	fg-test-postgres-up fg-test-postgres-down fg-integration-test fg-chaos-test fg-load-smoke \
 	fg-helm-enterprise fg-kustomize-install fg-kustomize-enterprise fg-platform-conformance \
 	fg-certification-external fg-certification-external-full fg-examiner-evidence fg-docker-build \
-	fg-test-deps fg-test-deps-check fg-pilot-attestation
+	fg-test-deps fg-test-deps-check
 
 fg-test-deps:
 	chmod +x scripts/install-test-deps.sh
@@ -264,7 +264,3 @@ fg-docker-build:
 	docker build -f platforms/asset_ledger/Dockerfile -t finance-governor-assetledger:local ..
 	docker build -f platforms/credit_govern/Dockerfile -t finance-governor-creditgovern:local ..
 	@echo "fg-docker-build OK"
-
-fg-pilot-attestation:
-	chmod +x scripts/fg-pilot-attestation.sh scripts/fg_attestation_runner.py
-	cd .. && finance-governor/scripts/fg-pilot-attestation.sh
