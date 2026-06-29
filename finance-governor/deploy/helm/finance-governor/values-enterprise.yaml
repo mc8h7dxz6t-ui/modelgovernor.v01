@@ -1,0 +1,133 @@
+# Finance Governor L4 Gold — enterprise overlay
+# Usage:
+#   helm upgrade --install fg ./deploy/helm/finance-governor \
+#     -f values-production.yaml -f values-enterprise.yaml
+
+namespace: finance-governor
+
+image:
+  pullPolicy: Always
+  wirematch: finance-governor-wirematch:0.4.0
+  algofreeze: finance-governor-algofreeze:0.4.0
+  subledger: finance-governor-subledger:0.4.0
+  assetledger: finance-governor-assetledger:0.4.0
+  creditgovern: finance-governor-creditgovern:0.4.0
+
+replicas:
+  gateway: 3
+  sidecar: 5
+  reconciler: 3
+
+enterprise:
+  podAntiAffinity: true
+  networkPolicy: true
+
+istio:
+  enabled: true
+  holdApplicationUntilProxyStarts: true
+
+postgres:
+  external:
+    enabled: false
+
+pgbouncer:
+  enabled: true
+  replicas: 3
+  maxClientConn: 500
+  defaultPoolSize: 25
+
+redis:
+  enabled: false
+  sentinel:
+    enabled: true
+    replicas: 3
+
+platforms:
+  enabled: true
+  spineEnabled: true
+  wirematch:
+    enabled: true
+    replicas: 2
+    port: 8093
+  algofreeze:
+    enabled: true
+    replicas: 2
+    port: 8094
+  subledger:
+    enabled: true
+    replicas: 2
+    port: 8095
+  assetledger:
+    enabled: true
+    replicas: 2
+    port: 8096
+  creditgovern:
+    enabled: true
+    replicas: 2
+    port: 8097
+    rail:
+      mode: live
+      url: http://fg-credit-rail:8098
+      timeout: "10"
+      circuitThreshold: "5"
+
+hpa:
+  enabled: true
+  sidecar:
+    minReplicas: 3
+    maxReplicas: 12
+    targetCPUUtilization: 70
+  gateway:
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilization: 70
+
+podMonitor:
+  enabled: true
+
+creditRail:
+  enabled: true
+  replicas: 2
+  port: 8098
+
+platformCanary:
+  enabled: true
+  schedule: "*/5 * * * *"
+
+oidc:
+  enabled: true
+  allowInternalTokenFallback: false
+
+s3Anchor:
+  objectLock: true
+
+prometheusRules:
+  enabled: true
+
+podDisruptionBudget:
+  enabled: true
+  sidecar:
+    minAvailable: 3
+  gateway:
+    minAvailable: 2
+  reconciler:
+    enabled: true
+    minAvailable: 2
+  pgbouncer:
+    enabled: true
+    minAvailable: 2
+  platforms:
+    enabled: true
+    minAvailable: 4
+
+syntheticCanary:
+  enabled: true
+  schedule: "*/10 * * * *"
+
+algofreezeVersionProbe:
+  enabled: true
+  schedule: "*/15 * * * *"
+
+wirematchGoldenProbe:
+  enabled: true
+  schedule: "*/15 * * * *"

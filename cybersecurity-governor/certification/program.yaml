@@ -1,0 +1,53 @@
+# Cybersecurity Governor External Certification Program (CG-ECP)
+
+program:
+  id: cg-ecp-v1
+  name: Cybersecurity Governor External Certification Program
+  issuer: Cybersecurity Governor / ModelGovernor institutional++ lineage
+  version: "1.0.0"
+
+levels:
+  L1:
+    title: Platform Ready
+    requirements:
+      - standalone_health_endpoints
+      - tier1_unit_tests
+      - facet_schema_declared
+  L2:
+    title: Institutional
+    extends: L1
+    requirements:
+      - diagnostic_mode_compatible
+      - invariant_counters
+      - idempotent_mutations
+  L3:
+    title: Institutional++
+    extends: L2
+    requirements:
+      - spine_adapter_integration
+      - postgres_integration_tests
+      - platform_registry_row
+      - cg_platform_conformance
+  L4:
+    title: Gold Enterprise
+    extends: L3
+    requirements:
+      - cg_certification_l4
+      - helm_enterprise_render
+      - chaos_toxiproxy
+      - gitops_manifests
+  L5:
+    title: Zero-Trust Enterprise
+    extends: L4
+    requirements:
+      - istio_strict_mtls
+      - platform_sidecar_authorization_policy
+      - security_enforcement_mesh
+
+platforms:
+  - egress_govern
+  - identity_govern
+  - threat_proxy
+  - incident_response_gate
+  - posture_reconcile
+  - compliance_logger

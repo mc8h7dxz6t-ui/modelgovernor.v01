@@ -9,8 +9,10 @@ from uuid import uuid4
 import os
 import sys
 
-import psycopg
 import pytest
+
+pytest.importorskip("psycopg")
+import psycopg
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import URL, make_url
 from sqlalchemy.orm import Session, sessionmaker

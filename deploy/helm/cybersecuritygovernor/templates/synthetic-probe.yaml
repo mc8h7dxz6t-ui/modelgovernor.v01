@@ -1,0 +1,30 @@
+{{- if .Values.syntheticProbe.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: synthetic-canary
+  namespace: {{ include "cybersecuritygovernor.namespace" . }}
+  labels:
+    {{- include "cybersecuritygovernor.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  schedule: {{ .Values.syntheticProbe.schedule | quote }}
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: canary
+              image: curlimages/curl:8.5.0
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -e
+                  curl -sf http://sidecar:8121/readyz
+                  curl -sf http://gateway:8120/readyz
+                  curl -sf http://reconciler:8122/healthz
+                  echo "synthetic canary probes ok"
+{{- end }}

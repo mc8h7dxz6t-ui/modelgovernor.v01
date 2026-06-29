@@ -1,0 +1,48 @@
+{
+  "artifact_sha256": "c9cdef3ffdf79f6988689e5284faa7a3352e8c30e8545efb3301fd5833e0383e",
+  "attestation_type": "cluster",
+  "certification": true,
+  "cluster_id": "ig-embedded-rehearsal-001",
+  "design_partner": "[REDACTED_CARRIER]",
+  "endpoints": {
+    "mode": "embedded_testclient",
+    "note": "Prefer make ig-full-rehearsal on Docker for HTTP stack"
+  },
+  "environment": "local-embedded-rehearsal",
+  "generated_at": "2026-06-25T16:26:49.231989+00:00",
+  "probes": [
+    {
+      "name": "spine_ready",
+      "status": "pass"
+    },
+    {
+      "name": "governed_commit",
+      "status": "pass"
+    },
+    {
+      "name": "verify_chain",
+      "status": "pass"
+    },
+    {
+      "name": "anchor_head",
+      "status": "pass"
+    },
+    {
+      "name": "claim_gate_evaluate",
+      "status": "pass"
+    },
+    {
+      "name": "claim_gate_fnol_guidewire",
+      "status": "pass"
+    },
+    {
+      "name": "claim_gate_fnol_acturis_uk",
+      "status": "pass"
+    }
+  ],
+  "probes_failed": 0,
+  "probes_passed": 7,
+  "probes_total": 7,
+  "certification_sha256": "5aef4d4bdd56625ec60c593fdaeebaf0f1964cb588d35788e76221b9b8094c22",
+  "certification_bundled": true
+}

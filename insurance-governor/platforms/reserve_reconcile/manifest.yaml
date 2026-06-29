@@ -1,0 +1,10 @@
+name: reserve_reconcile
+display_name: ReserveReconcile
+default_policy_id: reserve-sync-us
+default_risk_tier: high
+port: 8113
+required_facet_keys:
+  - claim_id
+  - match_state
+commit_decisions:
+  - MATCHED

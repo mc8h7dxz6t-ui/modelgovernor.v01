@@ -6,6 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     database_url: str
+    database_read_url: str | None = None
     redis_url: str
     sidecar_internal_tokens: str
     reserve_ttl_seconds: int = 300

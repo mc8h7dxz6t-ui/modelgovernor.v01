@@ -1,0 +1,9 @@
+name: claim_gate
+display_name: ClaimGate
+default_policy_id: claim-high-us
+default_risk_tier: high
+port: 8103
+required_facet_keys:
+  - claim_id
+commit_decisions:
+  - APPROVED

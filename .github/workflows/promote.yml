@@ -144,3 +144,24 @@ jobs:
 
       - name: kubectl dry-run client validation
         run: kubectl apply --dry-run=client -f /tmp/rendered.yaml
+
+  ig-promote:
+    name: IG Tier 1–4 promotion gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install IG dependencies
+        run: |
+          pip install -r insurance-governor/spine/sidecar/requirements.txt
+          pip install -r insurance-governor/spine/reconciler/requirements.txt
+          pip install pytest pyyaml httpx requests
+      - name: Tier 1
+        run: make ig-spine-test
+      - name: Tier 3 load harness
+        run: make ig-load-test
+      - uses: azure/setup-helm@v4
+      - name: Helm lint production
+        run: helm lint deploy/helm/insurancegovernor -f deploy/helm/insurancegovernor/values-production.yaml

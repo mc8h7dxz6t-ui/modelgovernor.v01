@@ -1,0 +1,44 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Insurance Governor tamper-evident claim chain anchor bucket with Object Lock.
+
+Parameters:
+  BucketName:
+    Type: String
+    Description: Globally unique S3 bucket name for claim chain anchors.
+
+Resources:
+  ClaimAnchorBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Ref BucketName
+      ObjectLockEnabled: true
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+
+  ClaimAnchorObjectLockDefault:
+    Type: AWS::S3::BucketObjectLockConfiguration
+    Properties:
+      Bucket: !Ref ClaimAnchorBucket
+      ObjectLockConfiguration:
+        ObjectLockEnabled: Enabled
+        Rule:
+          DefaultRetention:
+            Mode: GOVERNANCE
+            Years: 10
+
+Outputs:
+  BucketName:
+    Value: !Ref ClaimAnchorBucket
+  BucketArn:
+    Value: !GetAtt ClaimAnchorBucket.Arn

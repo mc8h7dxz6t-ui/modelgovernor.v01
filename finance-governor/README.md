@@ -56,23 +56,42 @@ Every irreversible action on the spine requires a **Governance Crystal**. See [c
 | `platforms/common/crystal.py` | ✅ Protocol module |
 | `platforms/common/spine_adapter.py` | ✅ Adapter contract |
 | Spine services (gateway/sidecar/reconciler) | ✅ Phase 2 |
-| Integration tests (23 passing) | ✅ |
-| Decision hash chain + verify API | ✅ |
-| Gateway auth on `/governed/commit` | ✅ |
-| Diagnostic mode + reconciler sweep halt | ✅ |
-| `make fg-certification` | ✅ |
+| Integration tests (63+ passing) | ✅ |
+| OIDC/RBAC (FG-native) | ✅ |
+| Decision chain verify + S3 anchor | ✅ |
+| Admin audit log | ✅ |
+| `make fg-demo-gold` | ✅ |
+| `make fg-certification` (4-tier) | ✅ |
+| `make fg-certification-l4` (L4 Gold) | ✅ |
+| Platform SDK plug-and-play (`platform_sdk`, registry, facet schemas) | ✅ |
+| Live inference rails (HTTP + circuit breaker) | ✅ |
+| FG-ECP external vendor certification | ✅ |
+| AWS RDS overlay (`values-rds.yaml`) | ✅ |
+| Istio sidecar injection (all workloads) | ✅ |
+| `make fg-certification-external` (L5) | ✅ |
+| `make fg-certification-external-full` (release attestation) | ✅ |
+| `make fg-docker-build` (all images) | ✅ |
+| Per-platform README + standalone compose | ✅ |
+| Fleet on Platform SDK (`platform_configs` + `spine_helpers`) | ✅ |
+| `make fg-platform-conformance` | ✅ |
+| Helm L4 enterprise (PgBouncer, Sentinel, HPA, platforms) | ✅ |
+| ArgoCD GitOps + Istio enterprise overlay | ✅ |
+| Helm chart (`deploy/helm/finance-governor`) | ✅ |
 | AlgoFreeze (Phase 1) | ✅ |
 | WireMatch (Phase 1b) | ✅ |
 | `make crystal-demo` walkthrough | ✅ |
 
 ```bash
-make fg-stack-up          # spine + WireMatch + AlgoFreeze (from repo root)
-make fg-spine-test        # pytest (23 tests)
-make fg-certification     # unit suite + optional live chain verify
-make crystal-demo         # 3-minute CCP walkthrough (stack must be up)
-make algofreeze-demo      # Knight-class freeze smoke
-make wirematch-demo       # Citigroup-class amount anomaly smoke
+make fg-demo-up            # spine + platforms
+make fg-demo-gold          # 11-step institutional++ walkthrough
+make fg-certification      # 4-tier: unit → postgres → load → chain verify
+make fg-spine-test         # pytest (63+ unit/platform tests)
+make crystal-demo          # quick CCP walkthrough
 ```
+
+All tooling lives under `finance-governor/` — **no ModelGovernor runtime dependency**.
+
+Production: [deploy/PRODUCTION.md](deploy/PRODUCTION.md) · `make fg-prod-setup` · `make fg-helm-install`
 
 ## Environment
 

@@ -1,0 +1,31 @@
+{{- if .Values.decisionChainVerify.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: fg-decision-chain-verify
+  namespace: {{ include "fg.namespace" . }}
+spec:
+  schedule: {{ .Values.decisionChainVerify.schedule | quote }}
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: verify
+              image: curlimages/curl:8.5.0
+              env:
+                - name: FG_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "fg.secretName" . }}
+                      key: fg-internal-tokens
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -e
+                  curl -sf -H "x-internal-token: ${FG_TOKEN}" \
+                    http://fg-sidecar:8091/internal/decisions/verify-chain | grep -q '"valid":true'
+                  echo "fg decision chain verify ok"
+{{- end }}

@@ -1,0 +1,58 @@
+{{- if .Values.modelRiskFreezeVersionProbe.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: model-risk-freeze-version-probe
+  namespace: {{ include "insurancegovernor.namespace" . }}
+  labels:
+    {{- include "insurancegovernor.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.modelRiskFreezeVersionProbe.schedule | quote }}
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: probe
+              image: curlimages/curl:8.5.0
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -e
+                  curl -sf http://model-risk-freeze:8111/healthz
+                  curl -sf http://model-risk-freeze:8111/status | grep -q freeze_state
+                  echo "model-risk-freeze version probe ok"
+{{- end }}
+---
+{{- if .Values.claimGateGoldenProbe.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: claim-gate-golden-probe
+  namespace: {{ include "insurancegovernor.namespace" . }}
+  labels:
+    {{- include "insurancegovernor.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.claimGateGoldenProbe.schedule | quote }}
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: probe
+              image: curlimages/curl:8.5.0
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -e
+                  curl -sf http://claim-gate:8103/healthz
+                  curl -sf -X POST http://claim-gate:8103/claim/evaluate \
+                    -H 'content-type: application/json' \
+                    -d '{"claim_id":"golden-probe","payout_amount":"50000.00"}' \
+                    | grep -q decision
+                  echo "claim-gate golden probe ok"
+{{- end }}

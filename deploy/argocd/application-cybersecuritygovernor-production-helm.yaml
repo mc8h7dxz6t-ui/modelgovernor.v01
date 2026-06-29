@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cybersecuritygovernor-production-helm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: cybersecuritygovernor
+    environment: production
+    deploy-method: helm
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/mc8h7dxz6t-ui/modelgovernor.v01
+    targetRevision: main
+    path: deploy/helm/cybersecuritygovernor
+    helm:
+      releaseName: cybersecuritygovernor
+      valueFiles:
+        - values-production.yaml
+        - values-enterprise.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cybersecuritygovernor
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

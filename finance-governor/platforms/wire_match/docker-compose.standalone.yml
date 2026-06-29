@@ -1,0 +1,11 @@
+# Run from repo root:
+#   docker compose -f finance-governor/platforms/wire_match/docker-compose.standalone.yml up --build
+services:
+  wirematch:
+    build:
+      context: .
+      dockerfile: finance-governor/platforms/wire_match/Dockerfile
+    environment:
+      FG_SPINE_ENABLED: "false"
+    ports:
+      - "8093:8093"

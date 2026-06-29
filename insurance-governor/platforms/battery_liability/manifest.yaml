@@ -1,0 +1,9 @@
+name: battery_liability
+display_name: BatteryLiability
+default_policy_id: ev-battery-us
+default_risk_tier: critical
+port: 8108
+required_facet_keys:
+  - claim_id
+commit_decisions:
+  - APPROVED

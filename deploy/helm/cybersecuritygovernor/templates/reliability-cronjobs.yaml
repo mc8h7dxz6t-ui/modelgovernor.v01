@@ -1,0 +1,58 @@
+{{- if .Values.postureReconcileVersionProbe.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: posture-reconcile-version-probe
+  namespace: {{ include "cybersecuritygovernor.namespace" . }}
+  labels:
+    {{- include "cybersecuritygovernor.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.postureReconcileVersionProbe.schedule | quote }}
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: probe
+              image: curlimages/curl:8.5.0
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -e
+                  curl -sf http://posture-reconcile:8127/healthz
+                  curl -sf http://posture-reconcile:8127/status | grep -q freeze_state
+                  echo "posture-reconcile version probe ok"
+{{- end }}
+---
+{{- if .Values.egressGovernGoldenProbe.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: egress-govern-golden-probe
+  namespace: {{ include "cybersecuritygovernor.namespace" . }}
+  labels:
+    {{- include "cybersecuritygovernor.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.egressGovernGoldenProbe.schedule | quote }}
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: probe
+              image: curlimages/curl:8.5.0
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -e
+                  curl -sf http://egress-govern:8123/healthz
+                  curl -sf -X POST http://egress-govern:8123/egress/evaluate \
+                    -H 'content-type: application/json' \
+                    -d '{"flow_id":"golden-probe","destination_host":"api.openai.com"}' \
+                    | grep -q decision
+                  echo "egress-govern golden probe ok"
+{{- end }}

@@ -1,0 +1,9 @@
+name: subrogation_graph
+display_name: SubrogationGraph
+default_policy_id: subrogation-us
+default_risk_tier: high
+port: 8109
+required_facet_keys:
+  - claim_id
+commit_decisions:
+  - RECOVERY_APPROVED

@@ -1,0 +1,42 @@
+{{- if and .Values.redis.enabled (not .Values.redis.sentinel.enabled) }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fg-redis
+  namespace: {{ include "fg.namespace" . }}
+  labels:
+    {{- include "fg.labels" . | nindent 4 }}
+    app.kubernetes.io/component: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: redis
+        {{- include "fg.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: redis
+          image: redis:7
+          ports:
+            - containerPort: 6379
+          readinessProbe:
+            tcpSocket:
+              port: 6379
+            initialDelaySeconds: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fg-redis
+  namespace: {{ include "fg.namespace" . }}
+spec:
+  selector:
+    app.kubernetes.io/component: redis
+  ports:
+    - port: 6379
+      targetPort: 6379
+{{- end }}

@@ -24,7 +24,7 @@ def client(spine_db):
 
 
 def test_mesh_blocks_wire_when_algo_frozen(client):
-    freeze_facets = {"freeze_state": "FROZEN", "desk_id": "desk-1"}
+    freeze_facets = {"freeze_state": "FROZEN", "desk_id": "desk-1", "runtime_sha": "deploy-sha-mesh"}
     client.post(
         "/crystallize",
         headers=HEADERS,

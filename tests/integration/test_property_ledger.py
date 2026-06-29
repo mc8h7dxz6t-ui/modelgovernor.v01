@@ -7,6 +7,8 @@ from tempfile import mkdtemp
 from uuid import uuid4
 
 import pytest
+
+pytest.importorskip("hypothesis")
 from hypothesis import given, settings
 from hypothesis import strategies as st
 from sqlalchemy import text
@@ -16,8 +18,6 @@ from sidecar.app.config import Settings
 from sidecar.app.ledger import reserve_operation
 from sidecar.app.schemas import ReserveRequest
 from tests.integration.test_ledger_hardening import _bootstrap_schema, _create_test_engine, _seed_wallet_and_model
-
-pytest.importorskip("hypothesis")
 
 MONEY = st.decimals(min_value=Decimal("0.01"), max_value=Decimal("5"), places=2)
 

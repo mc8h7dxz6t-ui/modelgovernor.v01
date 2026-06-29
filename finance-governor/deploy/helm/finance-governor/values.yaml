@@ -1,0 +1,205 @@
+namespace: finance-governor
+
+image:
+  gateway: finance-governor-gateway:0.3.0
+  sidecar: finance-governor-sidecar:0.3.0
+  reconciler: finance-governor-reconciler:0.3.0
+  migrate: postgres:16
+  wirematch: finance-governor-wirematch:0.4.0
+  algofreeze: finance-governor-algofreeze:0.4.0
+  subledger: finance-governor-subledger:0.4.0
+  assetledger: finance-governor-assetledger:0.4.0
+  creditgovern: finance-governor-creditgovern:0.4.0
+  pullPolicy: IfNotPresent
+
+replicas:
+  gateway: 2
+  sidecar: 3
+  reconciler: 2
+
+postgres:
+  enabled: true
+  database: financegovernor
+  user: postgres
+  password: postgres
+  storage: 20Gi
+  external:
+    enabled: false
+    host: ""
+    port: 5432
+    sslMode: require
+    rds:
+      enabled: false
+      iamAuth: false
+
+istio:
+  enabled: false
+  holdApplicationUntilProxyStarts: true
+
+redis:
+  enabled: true
+
+secrets:
+  create: true
+  name: fg-internal
+  # Override in production — use: openssl rand -hex 32
+  internalToken: change-me-in-production
+
+externalSecrets:
+  enabled: false
+  secretStoreRef:
+    name: aws-secrets-manager
+    kind: ClusterSecretStore
+  remoteRefs:
+    internalToken: fg/prod/internal-token
+    postgresPassword: fg/prod/postgres-password
+    oidcIssuerUrl: fg/prod/oidc-issuer-url
+    oidcAudience: fg/prod/oidc-audience
+    s3Bucket: fg/prod/decision-anchor-s3-bucket
+
+oidc:
+  enabled: false
+  issuerUrl: ""
+  jwksUrl: ""
+  audience: ""
+  algorithms: RS256
+  commitRoles: fg-commit,financial-admin
+  financialAdminRoles: financial-admin,fg-admin
+  viewerRoles: viewer,financial-admin,fg-admin
+  allowInternalTokenFallback: false
+  internalTokenIsAdmin: false
+
+s3Anchor:
+  bucket: ""
+  prefix: finance-governor/decision-chain
+  region: ""
+  objectLock: false
+  retentionDays: 365
+
+serviceAccount:
+  create: true
+  name: fg-sidecar
+  annotations: {}
+
+migrations:
+  enabled: true
+
+decisionChainVerify:
+  enabled: true
+  schedule: "0 * * * *"
+
+decisionChainAnchor:
+  enabled: true
+  schedule: "15 * * * *"
+
+governanceCanary:
+  enabled: true
+  schedule: "*/10 * * * *"
+
+redis:
+  enabled: true
+  sentinel:
+    enabled: false
+    replicas: 3
+
+pgbouncer:
+  enabled: false
+  replicas: 2
+  maxClientConn: 200
+  defaultPoolSize: 20
+
+enterprise:
+  podAntiAffinity: false
+  networkPolicy: false
+
+platforms:
+  enabled: false
+  spineEnabled: true
+  fleet: []
+  wirematch:
+    enabled: true
+    replicas: 1
+    port: 8093
+  algofreeze:
+    enabled: true
+    replicas: 1
+    port: 8094
+  subledger:
+    enabled: true
+    replicas: 1
+    port: 8095
+  assetledger:
+    enabled: true
+    replicas: 1
+    port: 8096
+  creditgovern:
+    enabled: true
+    replicas: 1
+    port: 8097
+    rail:
+      mode: auto
+      url: ""
+      timeout: "10"
+      circuitThreshold: "5"
+
+creditRail:
+  enabled: false
+  replicas: 1
+  port: 8098
+
+hpa:
+  enabled: false
+  sidecar:
+    minReplicas: 3
+    maxReplicas: 12
+    targetCPUUtilization: 70
+  gateway:
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilization: 70
+
+podMonitor:
+  enabled: false
+
+platformCanary:
+  enabled: false
+  schedule: "*/5 * * * *"
+
+prometheusRules:
+  enabled: false
+
+podDisruptionBudget:
+  enabled: false
+  sidecar:
+    minAvailable: 2
+  gateway:
+    minAvailable: 1
+  reconciler:
+    enabled: false
+    minAvailable: 1
+  pgbouncer:
+    enabled: false
+    minAvailable: 1
+  platforms:
+    enabled: false
+    minAvailable: 1
+
+syntheticCanary:
+  enabled: false
+  schedule: "*/10 * * * *"
+
+algofreezeVersionProbe:
+  enabled: false
+  schedule: "*/15 * * * *"
+
+wirematchGoldenProbe:
+  enabled: false
+  schedule: "*/15 * * * *"
+
+service:
+  gateway:
+    type: ClusterIP
+    port: 8090
+  sidecar:
+    type: ClusterIP
+    port: 8091
