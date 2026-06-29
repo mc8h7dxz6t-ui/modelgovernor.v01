@@ -67,7 +67,7 @@ make -C insurance-governor ig-spine-test
 
 echo "Step 7: ModelGovernor integration suite (Tier 1 parity — failures stop build)..."
 pip install -q -r sidecar/requirements.txt -r reconciler/requirements.txt -r gateway/requirements.txt pytest hypothesis fakeredis 2>/dev/null || true
-PYTHONPATH=. python3 -m pytest "${MG_INTEGRATION_TESTS[@]}" -q
+PYTHONPATH=governor-spine-core:. python3 -m pytest "${MG_INTEGRATION_TESTS[@]}" -q
 
 echo "Step 8: Helm deploy kit render (CG + MG)..."
 make -C cybersecurity-governor cg-helm-enterprise > /dev/null

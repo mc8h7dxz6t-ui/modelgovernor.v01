@@ -46,12 +46,12 @@ fg-test-postgres-down:
 	docker compose -f docker-compose.test.yml down
 
 fg-spine-test: fg-test-deps
-	python3 -m pytest tests/ -q --ignore=tests/integration
+	PYTHONPATH=../governor-spine-core:spine/sidecar:tests:. python3 -m pytest tests/ -q --ignore=tests/integration
 
 fg-integration-test:
 	@if command -v docker >/dev/null 2>&1; then $(MAKE) fg-test-postgres-up; else echo "docker not available — integration tests will skip if postgres unreachable"; fi
 	FG_POSTGRES_TEST_URL=postgresql+psycopg://postgres:postgres@localhost:5434/fg_test \
-	  python3 -m pytest tests/integration/ -q; status=$$?; \
+	  PYTHONPATH=../governor-spine-core:spine/sidecar:tests:. python3 -m pytest tests/integration/ -q; status=$$?; \
 	if command -v docker >/dev/null 2>&1; then $(MAKE) fg-test-postgres-down; fi; \
 	exit $$status
 
@@ -62,7 +62,7 @@ fg-chaos-test:
 	else echo "docker not available — skipping chaos"; exit 0; fi
 	FG_POSTGRES_TEST_URL=postgresql+psycopg://postgres:postgres@localhost:5437/fg_chaos \
 	  FG_TOXIPROXY_API=http://localhost:8475 \
-	  python3 -m pytest tests/chaos/test_toxiproxy_fg_spine.py -q; status=$$?; \
+	  PYTHONPATH=../governor-spine-core:spine/sidecar:tests:. python3 -m pytest tests/chaos/test_toxiproxy_fg_spine.py -q; status=$$?; \
 	if command -v docker >/dev/null 2>&1; then docker compose -f docker-compose.chaos.yml down -v; fi; \
 	exit $$status
 
@@ -192,13 +192,13 @@ crystal-demo:
 
 fg-certification:
 	@echo "==> Tier 1: unit + platform tests"
-	python3 -m pytest tests/ -q --ignore=tests/integration --ignore=tests/chaos/test_toxiproxy_fg_spine.py
+	PYTHONPATH=../governor-spine-core:spine/sidecar:tests:. python3 -m pytest tests/ -q --ignore=tests/integration --ignore=tests/chaos/test_toxiproxy_fg_spine.py
 	@echo "==> Tier 1b: reconciler + CCP invariant reliability"
-	python3 -m pytest tests/test_horizon_sweeper.py tests/test_reconciler_leader.py tests/test_commit_invariants.py tests/test_load_smoke_offline.py -q
+	PYTHONPATH=../governor-spine-core:spine/sidecar:tests:. python3 -m pytest tests/test_horizon_sweeper.py tests/test_reconciler_leader.py tests/test_commit_invariants.py tests/test_load_smoke_offline.py -q
 	@echo "==> Tier 2: Postgres integration (starts test DB if needed)"
 	@$(MAKE) fg-integration-test
 	@echo "==> Tier 3: offline load smoke + reconciler invariants"
-	python3 -m pytest tests/test_load_smoke_offline.py tests/test_horizon_sweeper.py tests/test_commit_invariants.py -q
+	PYTHONPATH=../governor-spine-core:spine/sidecar:tests:. python3 -m pytest tests/test_load_smoke_offline.py tests/test_horizon_sweeper.py tests/test_commit_invariants.py -q
 	@echo "==> Tier 4: Toxiproxy chaos (skipped if docker unavailable)"
 	@$(MAKE) fg-chaos-test 2>/dev/null || echo "chaos skipped"
 	@echo "==> Tier 5: live chain verify (skipped if spine down)"
@@ -218,7 +218,7 @@ fg-certification-strict:
 	  | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get('valid') is True, d"
 
 fg-platform-conformance:
-	python3 -m pytest tests/test_facet_schemas.py tests/test_platform_sdk.py tests/test_platform_registry.py -q
+	PYTHONPATH=../governor-spine-core:spine/sidecar:tests:. python3 -m pytest tests/test_facet_schemas.py tests/test_platform_sdk.py tests/test_platform_registry.py -q
 
 fg-certification-external:
 	chmod +x scripts/fg_certification_report.py
@@ -234,7 +234,7 @@ fg-examiner-evidence:
 
 fg-certification-l4-ci:
 	@echo "==> L4 Gold CI gate (reliability + enterprise manifests)"
-	python3 -m pytest tests/test_l4_helm_enterprise.py tests/test_l4_certification.py \
+	PYTHONPATH=../governor-spine-core:spine/sidecar:tests:. python3 -m pytest tests/test_l4_helm_enterprise.py tests/test_l4_certification.py \
 	  tests/test_horizon_sweeper.py tests/test_reconciler_leader.py \
 	  tests/test_commit_invariants.py tests/test_incremental_chain_verify.py \
 	  tests/test_load_smoke_offline.py -q
@@ -248,7 +248,7 @@ fg-certification-l4:
 	@echo "==> L4 Helm enterprise render"
 	@$(MAKE) fg-helm-enterprise > /dev/null
 	@echo "==> L4 Helm enterprise tests"
-	python3 -m pytest tests/test_l4_helm_enterprise.py tests/test_l4_certification.py -q
+	PYTHONPATH=../governor-spine-core:spine/sidecar:tests:. python3 -m pytest tests/test_l4_helm_enterprise.py tests/test_l4_certification.py -q
 	@echo "==> L4 Kustomize enterprise"
 	@$(MAKE) fg-kustomize-enterprise > /dev/null
 	@$(MAKE) fg-examiner-evidence
