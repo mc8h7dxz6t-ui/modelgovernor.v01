@@ -33,10 +33,12 @@ SEAL_REGISTRY: dict[GovernorDomain, SealModuleSpec] = {
     GovernorDomain.INSURANCE: SealModuleSpec(
         rel_path="insurance-governor/spine/sidecar/app/claim_seal.py",
         verify_fn="verify_claim_chain",
+        seal_fn="seal_claim_event",
     ),
     GovernorDomain.CYBER: SealModuleSpec(
         rel_path="cybersecurity-governor/spine/sidecar/app/security_seal.py",
         verify_fn="verify_security_chain",
+        seal_fn="seal_security_event",
     ),
 }
 

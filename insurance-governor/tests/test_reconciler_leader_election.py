@@ -68,8 +68,7 @@ def test_only_one_reconciler_leader_acquires_lock_at_a_time(pg_engine, clean_pg_
     with ThreadPoolExecutor(max_workers=4) as pool:
         results = list(pool.map(lambda _: attempt(), range(4)))
 
-    assert sum(results) >= 1
-    assert sum(results) <= 2
+    assert sum(results) == 1
 
 
 def test_leader_elected_reconciler_sweeps_horizon_under_pg(pg_engine, clean_pg_tables) -> None:

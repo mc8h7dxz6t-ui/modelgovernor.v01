@@ -109,4 +109,5 @@ def _seal_last_event(
         get_counters().increment("ledger_event_sealed_total")
     except Exception as exc:
         get_counters().increment("ledger_event_seal_failed_total")
-        logger.warning("ledger event seal failed idempotency_key=%s: %s", idempotency_key, exc)
+        logger.error("ledger event seal failed idempotency_key=%s: %s", idempotency_key, exc)
+        raise

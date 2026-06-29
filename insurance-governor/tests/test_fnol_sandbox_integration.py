@@ -9,12 +9,15 @@ import threading
 import time
 import urllib.request
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
 from platforms.common.integrations.bank_rail import dispatch_payment
 from platforms.common.integrations.fnol_writeback import sync_fnol_decision
 from platforms.common.persistence.payment_types import PaymentInstruction, PaymentStatus
+
+IG_ROOT = Path(__file__).resolve().parents[1]
 
 
 def _wait_for_url(url: str, timeout: float = 10.0) -> None:
@@ -31,7 +34,7 @@ def _wait_for_url(url: str, timeout: float = 10.0) -> None:
 @pytest.fixture
 def fednow_sandbox_server():
     proc = subprocess.Popen(
-        [sys.executable, "insurance-governor/scripts/mock_fednow_sandbox.py"],
+        [sys.executable, str(IG_ROOT / "scripts" / "mock_fednow_sandbox.py")],
         env={**os.environ, "FEDNOW_SANDBOX_PORT": "8192"},
     )
     try:
@@ -45,7 +48,7 @@ def fednow_sandbox_server():
 @pytest.fixture
 def pas_writeback_sandbox_server():
     proc = subprocess.Popen(
-        [sys.executable, "insurance-governor/scripts/mock_pas_writeback_sandbox.py"],
+        [sys.executable, str(IG_ROOT / "scripts" / "mock_pas_writeback_sandbox.py")],
         env={**os.environ, "PAS_WRITEBACK_SANDBOX_PORT": "8193"},
     )
     try:

@@ -14,11 +14,11 @@ if str(_IG_ROOT) not in sys.path:
     sys.path.insert(0, str(_IG_ROOT))
 from platforms.common.crystal import should_strand_on_expiry
 
+from app.claim_events import append_claim_event
+
 try:
-    from app.claim_events import append_claim_event
     from app.metrics import get_counters
 except ImportError:
-    append_claim_event = None  # type: ignore
     get_counters = None  # type: ignore
 
 
@@ -65,16 +65,15 @@ def sweep_expired_horizons(session: Session, batch_size: int = 100) -> int:
                 ),
                 {"cid": row["crystal_id"]},
             )
-            if append_claim_event:
-                append_claim_event(
-                    session,
-                    operation_id=row["operation_id"],
-                    crystal_id=row["crystal_id"],
-                    account_id=row["account_id"],
-                    event_type="STRANDED_HOLD",
-                    reserve_delta=0,
-                    metadata={"reason": "horizon_sweep"},
-                )
+            append_claim_event(
+                session,
+                operation_id=row["operation_id"],
+                crystal_id=row["crystal_id"],
+                account_id=row["account_id"],
+                event_type="STRANDED_HOLD",
+                reserve_delta=0,
+                metadata={"reason": "horizon_sweep"},
+            )
             if get_counters:
                 get_counters().increment("reconciler_horizon_strand_total")
         else:
@@ -102,16 +101,15 @@ def sweep_expired_horizons(session: Session, batch_size: int = 100) -> int:
                 ),
                 {"cid": row["crystal_id"]},
             )
-            if append_claim_event:
-                append_claim_event(
-                    session,
-                    operation_id=row["operation_id"],
-                    crystal_id=row["crystal_id"],
-                    account_id=row["account_id"],
-                    event_type="HORIZON_EXPIRED",
-                    reserve_delta=reserved,
-                    metadata={"reason": "horizon_sweep"},
-                )
+            append_claim_event(
+                session,
+                operation_id=row["operation_id"],
+                crystal_id=row["crystal_id"],
+                account_id=row["account_id"],
+                event_type="HORIZON_EXPIRED",
+                reserve_delta=reserved,
+                metadata={"reason": "horizon_sweep"},
+            )
             if get_counters:
                 get_counters().increment("reconciler_expired_total")
         swept += 1

@@ -133,16 +133,20 @@ def seal_ledger_event(
     metadata: dict[str, Any],
     recorded_at: str,
 ) -> tuple[str, str]:
-    prev_hash = session.execute(
-        text(
-            """
-            SELECT row_hash FROM ledger_events
-            WHERE row_hash IS NOT NULL
-            ORDER BY event_id DESC
-            LIMIT 1
-            """
-        )
-    ).scalar_one_or_none() or GENESIS_HASH
+    prev_hash = (
+        session.execute(
+            text(
+                f"""
+                SELECT row_hash FROM {EVENTS_TABLE}
+                WHERE row_hash IS NOT NULL AND row_hash != :genesis AND event_id < :eid
+                ORDER BY event_id DESC
+                LIMIT 1
+                """
+            ),
+            {"genesis": GENESIS_HASH, "eid": event_id},
+        ).scalar_one_or_none()
+        or GENESIS_HASH
+    )
 
     row_hash = compute_row_hash(
         event_id=event_id,
@@ -171,7 +175,15 @@ def head_hash(session: Session) -> str | None:
     if not schema_supports_ledger_seal(session):
         return None
     row = session.execute(
-        text(f"SELECT row_hash FROM {EVENTS_TABLE} WHERE row_hash IS NOT NULL ORDER BY event_id DESC LIMIT 1")
+        text(
+            f"""
+            SELECT row_hash FROM {EVENTS_TABLE}
+            WHERE row_hash IS NOT NULL AND row_hash != :genesis
+            ORDER BY event_id DESC
+            LIMIT 1
+            """
+        ),
+        {"genesis": GENESIS_HASH},
     ).first()
     return row[0] if row else None
 
@@ -304,11 +316,12 @@ def verify_ledger_chain(
 
     if not schema_supports_ledger_seal(verify_session):
         return LedgerChainVerificationResult(
-            valid=True,
+            valid=False,
             sealed_count=0,
             unsealed_count=0,
             total_events=0,
             head_hash=None,
+            first_break=LedgerChainBreak(event_id=0, reason="seal_schema_unavailable"),
         )
 
     total_events = count_events(verify_session, EVENTS_TABLE)
