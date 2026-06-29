@@ -25,6 +25,29 @@ def append_sealed_ledger_event(
     metadata: dict[str, Any],
 ) -> None:
     """Insert a ledger_events row and seal it when row_hash columns exist."""
+    from spine_core.chain_advisory_lock import chain_append_lock
+    from spine_core.config import CHAIN_APPEND_LOCK_KEYS, GovernorDomain
+
+    with chain_append_lock(session, lock_key=CHAIN_APPEND_LOCK_KEYS[GovernorDomain.MODEL]):
+        _append_sealed_ledger_event_locked(
+            session,
+            idempotency_key=idempotency_key,
+            user_id=user_id,
+            event_type=event_type,
+            amount_delta=amount_delta,
+            metadata=metadata,
+        )
+
+
+def _append_sealed_ledger_event_locked(
+    session: Session,
+    *,
+    idempotency_key: str,
+    user_id: str,
+    event_type: str,
+    amount_delta: Decimal,
+    metadata: dict[str, Any],
+) -> None:
     metadata_json = json.dumps(metadata, sort_keys=True)
     metadata_value = ":metadata"
     if session.bind.dialect.name == "postgresql":

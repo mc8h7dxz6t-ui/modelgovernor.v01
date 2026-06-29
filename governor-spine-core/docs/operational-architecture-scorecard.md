@@ -22,7 +22,7 @@
 
 | Layer | Score | What earns it | What caps the score |
 |-------|-------|---------------|---------------------|
-| **Core transactional kernel** | **8.5/10** | Crystallize→seal→commit, hash chains, mesh 409, reserve-before-dispatch, 4-tier CI, chaos, `verify-chain`, K1 registry, **K3 sweep seal** | K4 retention CronJob pending |
+| **Core transactional kernel** | **9.0/10** | Crystallize→seal→commit, hash chains, mesh 409, reserve-before-dispatch, 4-tier CI, chaos, `verify-chain`, K1 registry, **K3 sweep seal**, **H1 append lock**, **K4 retention CronJob** | Phase C external evidence per governor |
 | **ModelGovernor** | **7.5/10** | `make demo-gold`, `compose-smoke-mg`, `mg-pilot-attestation` in CI, reconciler HA | No Phase C design-partner letter |
 | **Cybersecurity Governor** | **8.5/10** | L4 CI, `compose-smoke-cg` → `cg-pilot-attestation` in CI, mesh 409 demo | Thin wedges stay 6.0; no Phase C |
 | **Finance Governor** | **7.0/10** | L4 CI, AlgoFreeze + WireMatch demos, `fg-pilot-attestation` in CI | SubledgerSync, CreditGovern = connector SOW |
@@ -37,7 +37,7 @@
 
 | Governor | Code score | IL rubric (5 rows) | Gap to 9/10 |
 |----------|------------|-------------------|-------------|
-| **Kernel** | 8.5 | K1–K3 | K4 retention CronJob |
+| **Kernel** | 9.0 | K1–K4, H1 | Phase C per governor |
 | **MG** | 7.5 | **3/5** | Phase C FinOps design-partner |
 | **CG** | 8.5 | **4/5** | Phase C CISO letter |
 | **FG** | 7.0 | **3/5** | Phase C treasurer/CRO letter |

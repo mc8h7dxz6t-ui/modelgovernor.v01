@@ -201,6 +201,31 @@ def append_decision_event(
     exposure_delta: Decimal,
     metadata: dict[str, Any],
 ) -> int:
+    from spine_core.chain_advisory_lock import chain_append_lock
+    from spine_core.config import CHAIN_APPEND_LOCK_KEYS, GovernorDomain
+
+    with chain_append_lock(session, lock_key=CHAIN_APPEND_LOCK_KEYS[GovernorDomain.FINANCE]):
+        return _append_decision_event_locked(
+            session,
+            operation_id=operation_id,
+            crystal_id=crystal_id,
+            account_id=account_id,
+            event_type=event_type,
+            exposure_delta=exposure_delta,
+            metadata=metadata,
+        )
+
+
+def _append_decision_event_locked(
+    session: Session,
+    *,
+    operation_id: str,
+    crystal_id: str | None,
+    account_id: str,
+    event_type: str,
+    exposure_delta: Decimal,
+    metadata: dict[str, Any],
+) -> int:
     from .currency import quantize_money
 
     if not schema_supports_decision_seal(session):

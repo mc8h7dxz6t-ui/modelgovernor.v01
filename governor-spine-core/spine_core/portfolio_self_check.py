@@ -10,7 +10,7 @@ from typing import Any
 
 from spine_core.config import MATURITY_LABEL, GovernorDomain
 
-WAVE = "wave-1+3+k3"
+WAVE = "wave-1+3+k3+k4"
 
 GOVERNOR_SCORES: dict[str, dict[str, Any]] = {
     GovernorDomain.MODEL.value: {
@@ -36,9 +36,11 @@ GOVERNOR_SCORES: dict[str, dict[str, Any]] = {
     },
 }
 
-KERNEL_SCORE = 8.5
+KERNEL_SCORE = 9.0
 PORTFOLIO_SCORE = 7.5
 K3_SWEEP_SEAL = "shipped"
+K4_RETENTION_CRONJOB = "shipped"
+H1_APPEND_LOCK = "shipped"
 
 
 def _git_sha(repo_root: Path) -> str:
@@ -60,6 +62,8 @@ def build_portfolio_self_check(repo_root: Path | None = None) -> dict[str, Any]:
         "governors": GOVERNOR_SCORES,
         "k1_ledger_conformance": "spine_core.ledger_registry",
         "k3_sweep_seal": K3_SWEEP_SEAL,
+        "k4_retention_cronjob": K4_RETENTION_CRONJOB,
+        "h1_append_advisory_lock": H1_APPEND_LOCK,
         "note": "L5 Institutional Self-Check — not SOC 2 or third-party audit certification.",
     }
 

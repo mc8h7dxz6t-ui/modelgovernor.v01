@@ -1,0 +1,33 @@
+{{- if .Values.decisionRetention.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: fg-decision-retention
+  namespace: {{ include "fg.namespace" . }}
+spec:
+  schedule: {{ .Values.decisionRetention.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: retention
+              image: {{ .Values.image.sidecar }}
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              env:
+                - name: POSTGRES_USER
+                  value: {{ .Values.postgres.user | quote }}
+                - name: POSTGRES_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "fg.secretName" . }}
+                      key: postgres-password
+                - name: DATABASE_URL
+                  value: postgresql+psycopg://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@{{ include "fg.postgresBackendHost" . }}:{{ include "fg.postgresBackendPort" . }}/{{ .Values.postgres.database }}
+              command: ["python", "-m", "spine_core.retention_cli"]
+              args: ["--domain", "FINANCE"]
+{{- end }}
