@@ -27,3 +27,18 @@ spec:
     matchLabels:
       app: pgbouncer
 {{- end }}
+---
+{{- if and .Values.gateway.enabled .Values.gateway.pdb.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: gateway-pdb
+  namespace: {{ include "insurancegovernor.namespace" . }}
+  labels:
+    {{- include "insurancegovernor.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.gateway.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      app: gateway
+{{- end }}
