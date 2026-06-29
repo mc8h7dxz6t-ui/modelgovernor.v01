@@ -107,19 +107,7 @@ def head_hash(session: Session) -> str | None:
     return row[0] if row else None
 
 
-def _normalize_metadata(metadata: Any) -> dict[str, Any]:
-    if metadata is None:
-        return {}
-    if isinstance(metadata, dict):
-        return metadata
-    if isinstance(metadata, str):
-        try:
-            parsed = json.loads(metadata)
-        except json.JSONDecodeError:
-            return {}
-        if isinstance(parsed, dict):
-            return parsed
-    return {}
+from spine_core.metadata import normalize_metadata as _normalize_metadata
 
 
 def schema_supports_decision_seal(session: Session) -> bool:

@@ -77,6 +77,7 @@ All four governors have live CI (Wave 1+3). **Next:** shared kernel items that l
 |---|------|-------------|--------|
 | **K3** | Reconciler sweep hash-seal | Post-sweep events sealed on ledger chain; `unsealed_count == 0` after sweep | ✅ Shipped |
 | **K4** | Retention / partition CronJob | Reads `*_retention_policy` tables; Helm CronJob template | ✅ Shipped |
+| **M1** | Spine consolidation (thin shared modules) | `chain_checkpoint`, `metadata`, `commit_mesh`, `commit_helpers` in `spine_core`; governor shims | ✅ Shipped |
 
 **Verify K3:**
 

@@ -79,19 +79,7 @@ def schema_supports_ledger_seal(session: Session) -> bool:
     return False
 
 
-def _normalize_metadata(metadata: Any) -> dict[str, Any]:
-    if metadata is None:
-        return {}
-    if isinstance(metadata, dict):
-        return metadata
-    if isinstance(metadata, str):
-        try:
-            parsed = json.loads(metadata)
-        except json.JSONDecodeError:
-            return {}
-        if isinstance(parsed, dict):
-            return parsed
-    return {}
+from spine_core.metadata import normalize_metadata as _normalize_metadata
 
 
 def compute_row_hash(

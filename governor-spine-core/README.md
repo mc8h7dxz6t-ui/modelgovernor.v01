@@ -8,7 +8,7 @@ This package is the consolidation **contract** — not a replacement for per-gov
 
 | Layer | Score |
 |-------|-------|
-| Core transactional kernel | **8.5/10** |
+| Core transactional kernel | **9.0/10** |
 | ModelGovernor | **7.5/10** |
 | Cybersecurity Governor | **8.5/10** |
 | Finance Governor | **7.0/10** |
@@ -49,4 +49,4 @@ make compose-smoke-cg    # optional live CG
 - Kubernetes CronJob that `kubectl patch`es on `curl openai.com`
 - Global singleton mode controller
 
-Chain cryptography stays in each governor's `*_seal.py`; shared interface in `spine_core/ledger_contract.py` (K1). Verify via HTTP `verify-chain`.
+Chain cryptography stays in each governor's `*_seal.py`; shared modules in `spine_core/` (K1/M1). Verify via HTTP `verify-chain`.

@@ -62,51 +62,19 @@ class CommitResult:
     status: str
 
 
-def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+from spine_core.commit_helpers import ts_param as _ts_param, utcnow as _utcnow
+from spine_core.commit_mesh import mesh_block_reason
 
 
 def _money_param(value: Decimal) -> str | Decimal:
-    q = quantize_money(value)
-    return str(q)
-
-
-def _ts_param(session: Session, value: datetime) -> str | datetime:
-    if session.bind.dialect.name == "sqlite":
-        return value.isoformat()
-    return value
+    return str(quantize_money(value))
 
 
 def _check_mesh_block(session: Session, platform: str, facets: dict[str, Any]) -> None:
-    rows = session.execute(
-        text(
-            """
-            SELECT parent_platform, parent_facet_key, parent_facet_value
-            FROM crystal_mesh_rules
-            WHERE child_platform = :platform AND block_commit = TRUE AND enabled = TRUE
-            """
-        ),
-        {"platform": platform},
-    ).mappings().all()
-    for rule in rows:
-        parent = session.execute(
-            text(
-                """
-                SELECT facets FROM governance_crystals
-                WHERE platform = :pp AND terminal_state IS NULL
-                ORDER BY crystallized_at DESC LIMIT 1
-                """
-            ),
-            {"pp": rule["parent_platform"]},
-        ).first()
-        if not parent:
-            continue
-        pf = parent[0] if isinstance(parent[0], dict) else json.loads(parent[0])
-        if pf.get(rule["parent_facet_key"]) == rule["parent_facet_value"]:
-            get_counters().increment("crystal_mesh_block_total")
-            raise SurpriseCommitBlockedError(
-                f"mesh block: {rule['parent_platform']}.{rule['parent_facet_key']}={rule['parent_facet_value']}"
-            )
+    reason = mesh_block_reason(session, platform, facets)
+    if reason:
+        get_counters().increment("crystal_mesh_block_total")
+        raise SurpriseCommitBlockedError(reason)
 
 
 def crystallize_operation(
