@@ -95,6 +95,12 @@ def test_standard_risk_horizon_expires(spine_db):
             text("SELECT terminal_state FROM governance_crystals WHERE crystal_id = 'c-expire'")
         ).scalar_one()
         assert terminal == "EXPIRED"
+        from app.security_seal import verify_security_chain
+
+        result = verify_security_chain(session)
+        assert result.valid is True
+        assert result.unsealed_count == 0
+        assert result.sealed_count >= 1
 
 
 def test_should_strand_on_expiry_ccp_rule():

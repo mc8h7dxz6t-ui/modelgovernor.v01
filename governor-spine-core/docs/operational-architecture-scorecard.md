@@ -22,7 +22,7 @@
 
 | Layer | Score | What earns it | What caps the score |
 |-------|-------|---------------|---------------------|
-| **Core transactional kernel** | **8.5/10** | Crystallize→seal→commit, hash chains, mesh 409, reserve-before-dispatch, 4-tier CI, chaos, `verify-chain`, K1 registry | Four forked spines; K3 sweep hash-seal pending |
+| **Core transactional kernel** | **8.5/10** | Crystallize→seal→commit, hash chains, mesh 409, reserve-before-dispatch, 4-tier CI, chaos, `verify-chain`, K1 registry, **K3 sweep seal** | K4 retention CronJob pending |
 | **ModelGovernor** | **7.5/10** | `make demo-gold`, `compose-smoke-mg`, `mg-pilot-attestation` in CI, reconciler HA | No Phase C design-partner letter |
 | **Cybersecurity Governor** | **8.5/10** | L4 CI, `compose-smoke-cg` → `cg-pilot-attestation` in CI, mesh 409 demo | Thin wedges stay 6.0; no Phase C |
 | **Finance Governor** | **7.0/10** | L4 CI, AlgoFreeze + WireMatch demos, `fg-pilot-attestation` in CI | SubledgerSync, CreditGovern = connector SOW |
@@ -37,7 +37,7 @@
 
 | Governor | Code score | IL rubric (5 rows) | Gap to 9/10 |
 |----------|------------|-------------------|-------------|
-| **Kernel** | 8.5 | K1–K2 only | K3 reconciler sweep seal, K4 retention CronJob |
+| **Kernel** | 8.5 | K1–K3 | K4 retention CronJob |
 | **MG** | 7.5 | **3/5** | Phase C FinOps design-partner |
 | **CG** | 8.5 | **4/5** | Phase C CISO letter |
 | **FG** | 7.0 | **3/5** | Phase C treasurer/CRO letter |
@@ -131,6 +131,7 @@ Full ladder: [maturity-ladder.md](maturity-ladder.md)
 
 ```bash
 make plug && test -f artifacts/portfolio_self_check.json
+PYTHONPATH=governor-spine-core python3 -m pytest governor-spine-core/tests/test_sweep_seal.py governor-spine-core/tests/test_ledger_conformance.py -q
 make compose-smoke-cg && ATTESTATION_CI=1 make cg-pilot-attestation
 make compose-smoke-mg && ATTESTATION_CI=1 make mg-pilot-attestation
 make compose-smoke-fg && ATTESTATION_CI=1 make fg-pilot-attestation

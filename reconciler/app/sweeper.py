@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-import json
 from datetime import datetime, timezone
 from decimal import Decimal
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+
+from sidecar.app.ledger_events import append_sealed_ledger_event
 
 try:
     from sidecar.app.metrics import get_counters as _get_counters
@@ -54,7 +55,7 @@ def sweep_expired_reservations(session: Session, batch_size: int = 100) -> int:
                     "idempotency_key": row["idempotency_key"],
                 },
             )
-            _append_event(
+            append_sealed_ledger_event(
                 session,
                 idempotency_key=row["idempotency_key"],
                 user_id=row["user_id"],
@@ -112,7 +113,7 @@ def sweep_expired_reservations(session: Session, batch_size: int = 100) -> int:
                     "idempotency_key": row["idempotency_key"],
                 },
             )
-            _append_event(
+            append_sealed_ledger_event(
                 session,
                 idempotency_key=row["idempotency_key"],
                 user_id=row["user_id"],
@@ -145,37 +146,6 @@ def _has_open_attempts(session: Session, idempotency_key: str) -> bool:
         {"idempotency_key": idempotency_key},
     ).first()
     return row is not None
-
-
-def _append_event(
-    session: Session,
-    *,
-    idempotency_key: str,
-    user_id: str,
-    event_type: str,
-    amount_delta: Decimal,
-    metadata: dict,
-) -> None:
-    metadata_json = json.dumps(metadata, sort_keys=True)
-    metadata_value = ":metadata"
-    if session.bind.dialect.name == "postgresql":
-        metadata_value = "CAST(:metadata AS JSONB)"
-
-    session.execute(
-        text(
-            f"""
-            INSERT INTO ledger_events (idempotency_key, user_id, event_type, amount_delta, metadata)
-            VALUES (:idempotency_key, :user_id, :event_type, :amount_delta, {metadata_value})
-            """
-        ),
-        {
-            "idempotency_key": idempotency_key,
-            "user_id": user_id,
-            "event_type": event_type,
-            "amount_delta": _money(amount_delta),
-            "metadata": metadata_json,
-        },
-    )
 
 
 def _detect_duplicate_refund_events(session: Session, idempotency_key: str) -> None:

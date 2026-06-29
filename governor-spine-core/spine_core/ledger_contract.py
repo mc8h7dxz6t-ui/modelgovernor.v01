@@ -1,7 +1,7 @@
 """Shared ledger seal contract — interface only (phase K1 extraction).
 
-Governors implement sealing in their own ``*_seal.py`` modules. This contract documents
-the required behaviors for Industry Leading 9/10 kernel parity without duplicating SQLAlchemy writers.
+Governors implement sealing in their own ``*_seal.py`` modules. Reconciler sweeps
+must use sealed append helpers (K3 — ``spine_core.sweep_seal`` conformance).
 """
 
 from __future__ import annotations

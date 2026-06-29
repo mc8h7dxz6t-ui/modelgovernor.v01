@@ -75,14 +75,14 @@ All four governors have live CI (Wave 1+3). **Next:** shared kernel items that l
 
 | # | Item | Deliverable | Status |
 |---|------|-------------|--------|
-| **K3** | Reconciler sweep hash-seal | Post-sweep events sealed on ledger chain; `unsealed_count == 0` after sweep | ⏳ Next |
+| **K3** | Reconciler sweep hash-seal | Post-sweep events sealed on ledger chain; `unsealed_count == 0` after sweep | ✅ Shipped |
 | **K4** | Retention / partition CronJob | Reads `*_retention_policy` tables; Helm CronJob template | ⏳ Queued |
 
-**Verify K3 (target):**
+**Verify K3:**
 
 ```bash
 PYTHONPATH=governor-spine-core python3 -m pytest governor-spine-core/tests/test_sweep_seal.py -q
-make plug   # portfolio_self_check includes sweep seal row
+make plug   # portfolio_self_check includes k3_sweep_seal row
 ```
 
 **Verify K4 (target):**
@@ -166,7 +166,7 @@ Estimated **engineering-only** path to **8.5→9.0** on code: Phase A + B.
 |---|-------------|----------|
 | K1 | **Shared spine Python package** — extract `commit_ledger` / seal / verify interfaces (thin); keep governor-specific tables | Single patch for kernel bugs; acquirer story |
 | K2 | **`governor-spine-core` maturity artifact** — `make plug` emits `artifacts/portfolio_self_check.json` with scores + git SHA | Data room single file |
-| K3 | **Reconciler sweep hash-seal** (MG P2 gap) | Examiner “no unsealed sweeps” |
+| K3 | **Reconciler sweep hash-seal** (MG P2 gap) | Examiner “no unsealed sweeps” — `spine_core.sweep_seal` | ✅ Shipped |
 | K4 | **Retention / partition CronJob** reads `*_retention_policy` tables | Ops 9/10 credibility |
 
 **Verify:** `make plug` + `python -m spine_core.port_checks` + shared package unit tests.
