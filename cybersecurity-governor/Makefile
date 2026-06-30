@@ -132,7 +132,8 @@ cg-certification-l4-ci:
 	  cybersecurity-governor/tests/test_security_seal_failclosed.py \
 	  cybersecurity-governor/tests/test_incremental_chain_verify.py \
 	  cybersecurity-governor/tests/test_platform_registry_failclosed.py \
-	  cybersecurity-governor/tests/test_regulatory_export.py -q
+	  cybersecurity-governor/tests/test_regulatory_export.py \
+	  cybersecurity-governor/tests/test_concurrent_security_append.py -q
 	@$(MAKE) cg-helm-enterprise > /dev/null
 	@echo "cg-certification-l4-ci complete"
 

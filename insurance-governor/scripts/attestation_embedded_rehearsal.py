@@ -20,9 +20,13 @@ IG = ROOT / "insurance-governor"
 ARTIFACTS = ROOT / "artifacts" / "reliability" / "insurance-governor"
 SIDECAR = IG / "spine" / "sidecar"
 PLATFORMS = IG / "platforms"
+SPINE_CORE = ROOT / "governor-spine-core"
 
+sys.path.insert(0, str(SPINE_CORE))
 sys.path.insert(0, str(SIDECAR))
 sys.path.insert(0, str(PLATFORMS))
+
+from spine_core.chain_verify_assert import assert_chain_verified  # noqa: E402
 
 
 @contextmanager
@@ -124,8 +128,7 @@ def run_embedded_attestation() -> dict[str, Any]:
         def verify_chain() -> None:
             r = sidecar.get("/internal/claims/verify-chain", headers=headers)
             r.raise_for_status()
-            if not r.json().get("valid"):
-                raise RuntimeError(r.json())
+            assert_chain_verified(r.json(), context="ig embedded verify-chain")
 
         probes.append(_probe("verify_chain", verify_chain))
         probes.append(
