@@ -132,6 +132,12 @@ run_step "helm-K4-retention-MG" \
 run_step "helm-K4-retention-FG" \
   bash -c "helm template finance-governor/deploy/helm/finance-governor 2>/dev/null | grep -qi decision-retention"
 
+run_step "helm-K4-retention-IG" \
+  bash -c "helm template deploy/helm/insurancegovernor 2>/dev/null | grep -qi ledger-retention"
+
+run_step "helm-K4-retention-CG" \
+  bash -c "helm template deploy/helm/cybersecuritygovernor 2>/dev/null | grep -qi ledger-retention"
+
 # --- Write summary JSON ---
 {
   echo "{"

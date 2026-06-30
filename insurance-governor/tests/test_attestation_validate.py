@@ -29,5 +29,6 @@ def test_validate_accepts_live_shape():
         "probes_passed": 7,
         "artifact_sha256": "a" * 64,
         "probes": [{"name": "spine_ready", "status": "pass"}],
+        "environment": "customer-vpc-staging",
     }
     av.validate_cluster_attestation(live, min_passed=7)

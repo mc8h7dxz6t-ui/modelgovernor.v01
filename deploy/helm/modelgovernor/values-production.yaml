@@ -16,7 +16,7 @@ reconciler:
   replicas: 2
 
 postgres:
-  enabled: true
+  enabled: false  # use values-rds.yaml for managed Postgres in production
 
 redis:
   enabled: false
@@ -34,6 +34,7 @@ secrets:
 config:
   oidcEnabled: "true"
   gatewayOidcEnabled: "true"
+  oidcAllowInternalTokenFallback: "false"
   ledgerAnchorS3ObjectLockEnabled: "true"
 
 syntheticProbe:

@@ -61,7 +61,7 @@ def submit_payment(
         status=PaymentStatus.PENDING,
         crystal_id=crystal_id,
         reference=f"crystal:{crystal_id}",
-        rail=payment_rail_mode() if payment_rail_mode() != "stub" else "ach_stub",
+        rail=payment_rail_mode() if payment_rail_mode() != "sandbox" else "ach_sandbox",
     )
 
     try:

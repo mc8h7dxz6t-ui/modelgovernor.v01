@@ -2,6 +2,8 @@
 # Cybersecurity Governor pilot attestation — required: spine, egress_govern, identity_govern, verify-chain
 set -euo pipefail
 
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
 TOKEN="${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}"
 SIDECAR="${CG_SIDECAR_URL:-http://localhost:8121}"
 GATEWAY="${CG_GATEWAY_URL:-http://localhost:8120}"
@@ -62,7 +64,6 @@ if curl -sf http://localhost:8131/healthz >/dev/null 2>&1; then
   echo "OK  ContentGuard evaluate (optional)"
 fi
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 python3 cybersecurity-governor/scripts/attestation_runner.py
 

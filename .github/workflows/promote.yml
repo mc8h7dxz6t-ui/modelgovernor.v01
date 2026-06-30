@@ -142,6 +142,11 @@ jobs:
       - name: Render overlay
         run: kustomize build deploy/overlays/${{ inputs.environment }} > /tmp/rendered.yaml
 
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: v1.29.0
+
       - name: kubectl dry-run client validation
         run: kubectl apply --dry-run=client -f /tmp/rendered.yaml
 

@@ -865,6 +865,10 @@ jobs:
           make compose-smoke-cg
           ATTESTATION_CI=1 make cg-pilot-attestation
 
+      - name: Tear down CG stack
+        if: always()
+        run: docker compose -f cybersecurity-governor/docker-compose.yml down -v --remove-orphans 2>/dev/null || true
+
   compose-smoke-mg:
     name: MG live stack — compose-smoke-mg + pilot attestation
     runs-on: ubuntu-latest
@@ -876,6 +880,10 @@ jobs:
           chmod +x scripts/compose-smoke-mg.sh scripts/mg-pilot-attestation.sh scripts/mg_attestation_runner.py
           make compose-smoke-mg
           ATTESTATION_CI=1 make mg-pilot-attestation
+
+      - name: Tear down MG demo stack
+        if: always()
+        run: docker compose -f docker-compose.demo.yml down -v --remove-orphans 2>/dev/null || true
 
   compose-smoke-fg:
     name: FG live stack — compose-smoke-fg + pilot attestation
@@ -889,6 +897,10 @@ jobs:
           make compose-smoke-fg
           ATTESTATION_CI=1 make fg-pilot-attestation
 
+      - name: Tear down FG stack
+        if: always()
+        run: docker compose -f finance-governor/docker-compose.yml down -v --remove-orphans 2>/dev/null || true
+
   compose-smoke-ig:
     name: IG live stack — compose-smoke-ig + pilot attestation
     runs-on: ubuntu-latest
@@ -900,3 +912,8 @@ jobs:
           chmod +x scripts/compose-smoke-ig.sh insurance-governor/scripts/ig-pilot-attestation.sh
           make compose-smoke-ig
           ATTESTATION_CI=1 make ig-pilot-attestation
+
+      - name: Tear down IG stack
+        if: always()
+        run: |
+          docker compose -f insurance-governor/docker-compose.yml -f insurance-governor/docker-compose.wave3.yml down -v --remove-orphans 2>/dev/null || true

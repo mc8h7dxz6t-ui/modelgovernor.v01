@@ -38,7 +38,7 @@ serviceAccount:
     # eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/fg-sidecar-decision-anchor
 
 postgres:
-  enabled: true
+  enabled: false  # use values-rds.yaml for managed Postgres in production
   password: ""
 
 decisionChainVerify:

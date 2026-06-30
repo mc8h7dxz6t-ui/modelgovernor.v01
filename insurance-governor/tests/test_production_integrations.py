@@ -24,10 +24,10 @@ def test_payment_stub_rail_completes():
         payee_id="p1",
         status=PaymentStatus.PENDING,
     )
-    with mock.patch.dict(os.environ, {"PAYMENT_RAIL_MODE": "stub"}, clear=False):
+    with mock.patch.dict(os.environ, {"PAYMENT_RAIL_MODE": "sandbox"}, clear=False):
         result = dispatch_payment(instr)
     assert result.status == PaymentStatus.COMPLETED
-    assert result.rail == "ach_stub"
+    assert result.rail == "ach_sandbox"
 
 
 def test_payment_idempotency_memory_store():
@@ -71,5 +71,5 @@ def test_oracle_live_mode_calls_provider():
 
 
 def test_integration_mode_env_defaults():
-    assert payment_rail_mode() in ("stub", "fednow", "clearinghouse", "ach")
+    assert payment_rail_mode() in ("sandbox", "fednow", "clearinghouse", "ach")
     assert oracle_feed_mode() in ("mock", "live")
