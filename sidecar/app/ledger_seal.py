@@ -206,6 +206,10 @@ def _verify_ledger_rows(
     else:
         last_sealed_hash = GENESIS_HASH
 
+    dialect = session.bind.dialect.name
+    recorded_col = (
+        "recorded_at::text AS recorded_at" if dialect == "postgresql" else "recorded_at"
+    )
     where_clause = "WHERE event_id > :from_event_id" if from_event_id > 0 else ""
     rows = session.execute(
         text(
@@ -217,7 +221,7 @@ def _verify_ledger_rows(
                 event_type,
                 amount_delta,
                 metadata,
-                recorded_at,
+                {recorded_col},
                 prev_hash,
                 row_hash
             FROM {EVENTS_TABLE}

@@ -1,5 +1,8 @@
 name: Finance Governor CI
 
+env:
+  PYTHONPATH: ../governor-spine-core:spine/sidecar:tests:.
+
 on:
   push:
     paths:

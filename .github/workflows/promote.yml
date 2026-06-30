@@ -30,7 +30,7 @@ jobs:
 
       - name: Tier 1
         run: |
-          PYTHONPATH=. pytest \
+          PYTHONPATH=governor-spine-core:. pytest \
             tests/integration/test_ledger_hardening.py \
             tests/integration/test_sidecar_admin_observability.py \
             tests/integration/test_phase4_anomaly.py \
@@ -52,8 +52,8 @@ jobs:
           LOAD_WORKERS: 12
           LOAD_OPS_PER_WORKER: 8
         run: |
-          PYTHONPATH=. pytest tests/load/test_load_harness.py -q
-          PYTHONPATH=. python3 tests/load/test_load_harness.py
+          PYTHONPATH=governor-spine-core:. pytest tests/load/test_load_harness.py -q
+          PYTHONPATH=governor-spine-core:. python3 tests/load/test_load_harness.py
 
   tier2-postgres:
     name: Tier 2 Postgres gate
@@ -87,7 +87,7 @@ jobs:
         env:
           POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5432/mg_test
         run: |
-          PYTHONPATH=. pytest tests/integration/test_postgres_vigorous.py \
+          PYTHONPATH=governor-spine-core:. pytest tests/integration/test_postgres_vigorous.py \
             tests/integration/test_postgres_reliability.py \
             tests/integration/test_migration_invariants.py \
             tests/programs/finance_ops_finals/test_reconciler_leader_election.py -q
@@ -116,7 +116,7 @@ jobs:
         env:
           POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5435/mg_chaos
           TOXIPROXY_API: http://localhost:8474
-        run: PYTHONPATH=. pytest tests/chaos/test_toxiproxy_finance_ops.py -q
+        run: PYTHONPATH=governor-spine-core:. pytest tests/chaos/test_toxiproxy_finance_ops.py -q
 
       - name: Tear down chaos stack
         if: always()

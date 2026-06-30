@@ -29,13 +29,29 @@ docker compose -f docker-compose.yml -f docker-compose.wave3.yml up -d --build \
   ig-spatial-twin ig-subrogation-graph
 sleep 10
 
+wait_for_url() {
+  local url=$1
+  local retries=${2:-30}
+  for ((i=1; i<=retries; i++)); do
+    if curl -sf "$url" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 2
+  done
+  echo "timeout waiting for $url" >&2
+  return 1
+}
+
 echo "==> Gateway health (8100)"
+wait_for_url http://localhost:8100/readyz
 curl -sf http://localhost:8100/readyz
 
 echo "==> Sidecar health (8101)"
+wait_for_url http://localhost:8101/readyz
 curl -sf http://localhost:8101/readyz
 
 echo "==> ClaimGate health (8103)"
+wait_for_url http://localhost:8103/healthz
 curl -sf http://localhost:8103/healthz
 
 echo "==> governed commit"

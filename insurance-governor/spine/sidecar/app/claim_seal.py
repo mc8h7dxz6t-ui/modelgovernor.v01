@@ -184,16 +184,20 @@ def seal_claim_event(
 
 
 def _fetch_event_rows(session: Session, *, from_event_id: int | None = None) -> list[Any]:
+    dialect = session.bind.dialect.name
+    recorded_col = (
+        "recorded_at::text AS recorded_at" if dialect == "postgresql" else "recorded_at"
+    )
     if from_event_id is None:
         sql = f"""
             SELECT event_id, operation_id, crystal_id, account_id, event_type,
-                   reserve_delta, metadata, prev_hash, row_hash, recorded_at
+                   reserve_delta, metadata, prev_hash, row_hash, {recorded_col}
             FROM {EVENTS_TABLE} ORDER BY event_id ASC
         """
         return session.execute(text(sql)).mappings().all()
     sql = f"""
         SELECT event_id, operation_id, crystal_id, account_id, event_type,
-               reserve_delta, metadata, prev_hash, row_hash, recorded_at
+               reserve_delta, metadata, prev_hash, row_hash, {recorded_col}
         FROM {EVENTS_TABLE}
         WHERE event_id > :from_event_id
         ORDER BY event_id ASC
@@ -234,11 +238,7 @@ def _verify_rows(
             if first_break is None:
                 first_break = ClaimChainBreak(event_id=event_id, reason="prev_hash mismatch")
         meta = _normalize_metadata(row["metadata"])
-        recorded = row["recorded_at"]
-        if hasattr(recorded, "isoformat"):
-            recorded = recorded.isoformat()
-        else:
-            recorded = str(recorded)
+        recorded = str(row["recorded_at"])
         reserve_delta = str(quantize_money(Decimal(str(row["reserve_delta"]))))
         computed = compute_row_hash(
             event_id=event_id,

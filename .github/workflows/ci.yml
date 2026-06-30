@@ -29,7 +29,7 @@ jobs:
 
       - name: Tier 1 integration tests
         run: |
-          PYTHONPATH=. pytest \
+          PYTHONPATH=governor-spine-core:. pytest \
             tests/integration/test_ledger_hardening.py \
             tests/integration/test_sidecar_admin_observability.py \
             tests/integration/test_phase4_anomaly.py \
@@ -91,7 +91,7 @@ jobs:
       - name: Tier 2 Postgres vigorous tests
         env:
           POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5432/mg_test
-        run: PYTHONPATH=. pytest tests/integration/test_postgres_vigorous.py tests/integration/test_postgres_reliability.py tests/integration/test_migration_invariants.py tests/programs/finance_ops_finals/test_reconciler_leader_election.py -q
+        run: PYTHONPATH=governor-spine-core:. pytest tests/integration/test_postgres_vigorous.py tests/integration/test_postgres_reliability.py tests/integration/test_migration_invariants.py tests/programs/finance_ops_finals/test_reconciler_leader_election.py -q
 
   validate-manifests:
     name: Kustomize manifest validation
@@ -175,8 +175,8 @@ jobs:
           LOAD_WORKERS: 12
           LOAD_OPS_PER_WORKER: 8
         run: |
-          PYTHONPATH=. pytest tests/load/test_load_harness.py -q
-          PYTHONPATH=. python3 tests/load/test_load_harness.py
+          PYTHONPATH=governor-spine-core:. pytest tests/load/test_load_harness.py -q
+          PYTHONPATH=governor-spine-core:. python3 tests/load/test_load_harness.py
 
       - name: Validate zero invariant violations in report
         run: |
@@ -215,7 +215,7 @@ jobs:
         run: pip install pytest sqlalchemy psycopg[binary]
 
       - name: Verify invariant migration present
-        run: PYTHONPATH=. python3 -m pytest tests/integration/test_migration_invariants.py::test_invariant_migration_file_present -q
+        run: PYTHONPATH=governor-spine-core:. python3 -m pytest tests/integration/test_migration_invariants.py::test_invariant_migration_file_present -q
 
   finance-governor-test:
     name: Finance Governor — institutional++ gate
@@ -260,7 +260,7 @@ jobs:
           FG_TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5445/fg_test
         run: |
           cd finance-governor
-          python3 -m pytest tests/integration/ -q
+          PYTHONPATH=../governor-spine-core:spine/sidecar:tests:. python3 -m pytest tests/integration/ -q
 
       - name: Install Helm
         uses: azure/setup-helm@v4
@@ -310,7 +310,7 @@ jobs:
         env:
           POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5435/mg_chaos
           TOXIPROXY_API: http://localhost:8474
-        run: PYTHONPATH=. python3 -m pytest tests/chaos/test_toxiproxy_finance_ops.py -q
+        run: PYTHONPATH=governor-spine-core:. python3 -m pytest tests/chaos/test_toxiproxy_finance_ops.py -q
 
       - name: Tear down chaos stack
         if: always()
@@ -378,7 +378,7 @@ jobs:
         env:
           POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5432/ig_test
         run: |
-          PYTHONPATH=insurance-governor/spine/sidecar:insurance-governor/tests:insurance-governor python3 -m pytest \
+          PYTHONPATH=governor-spine-core:insurance-governor/spine/sidecar:insurance-governor/tests:insurance-governor python3 -m pytest \
             insurance-governor/tests/test_postgres_vigorous.py \
             insurance-governor/tests/test_postgres_reliability.py \
             insurance-governor/tests/test_migration_invariants.py \
@@ -396,7 +396,7 @@ jobs:
       - name: Verify IG migration bundle
         run: |
           pip install -r insurance-governor/spine/sidecar/requirements.txt pytest
-          PYTHONPATH=insurance-governor/spine/sidecar:insurance-governor/tests:insurance-governor \
+          PYTHONPATH=governor-spine-core:insurance-governor/spine/sidecar:insurance-governor/tests:insurance-governor \
             python3 -m pytest insurance-governor/tests/test_migration_invariants.py -q
 
   ig-test-tier3:
@@ -530,7 +530,7 @@ jobs:
         env:
           POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5436/ig_chaos
           TOXIPROXY_API: http://localhost:8475
-        run: PYTHONPATH=insurance-governor/spine/sidecar:insurance-governor/tests:insurance-governor python3 -m pytest insurance-governor/tests/chaos/test_toxiproxy_claim_ops.py -q
+        run: PYTHONPATH=governor-spine-core:insurance-governor/spine/sidecar:insurance-governor/tests:insurance-governor python3 -m pytest insurance-governor/tests/chaos/test_toxiproxy_claim_ops.py -q
 
       - name: Tear down chaos stack
         if: always()
@@ -551,10 +551,10 @@ jobs:
           pip install -r insurance-governor/platforms/requirements.txt
           pip install pytest httpx
       - name: Migration invariants (0009 bundle)
-        run: PYTHONPATH=insurance-governor/spine/sidecar pytest insurance-governor/tests/test_migration_invariants.py -q
+        run: PYTHONPATH=governor-spine-core:insurance-governor/spine/sidecar pytest insurance-governor/tests/test_migration_invariants.py -q
       - name: FNOL + write-back unit tests
         env:
-          PYTHONPATH: insurance-governor
+          PYTHONPATH: governor-spine-core:insurance-governor
         run: |
           pytest insurance-governor/tests/test_fnol_adapter.py \
             insurance-governor/tests/test_fnol_writeback.py \
@@ -646,7 +646,7 @@ jobs:
         env:
           POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5432/cg_test
         run: |
-          PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor python3 -m pytest \
+          PYTHONPATH=governor-spine-core:cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor python3 -m pytest \
             cybersecurity-governor/tests/test_postgres_vigorous.py \
             cybersecurity-governor/tests/test_postgres_reliability.py \
             cybersecurity-governor/tests/test_migration_invariants.py \
@@ -664,7 +664,7 @@ jobs:
       - name: Verify CG migration bundle
         run: |
           pip install -r cybersecurity-governor/spine/sidecar/requirements.txt pytest
-          PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor \
+          PYTHONPATH=governor-spine-core:cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor \
             python3 -m pytest cybersecurity-governor/tests/test_migration_invariants.py -q
 
   cg-test-tier3:
@@ -798,7 +798,7 @@ jobs:
         env:
           POSTGRES_TEST_URL: postgresql+psycopg://postgres:postgres@localhost:5436/cg_chaos
           TOXIPROXY_API: http://localhost:8475
-        run: PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor python3 -m pytest cybersecurity-governor/tests/chaos/test_toxiproxy_security_ops.py -q
+        run: PYTHONPATH=governor-spine-core:cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor python3 -m pytest cybersecurity-governor/tests/chaos/test_toxiproxy_security_ops.py -q
 
       - name: Tear down chaos stack
         if: always()
