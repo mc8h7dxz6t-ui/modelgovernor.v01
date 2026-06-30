@@ -84,6 +84,17 @@ assert port_alignment_failures() == []
 print('ports OK')
 "
 
+run_step "kernel-image-promotion-manifest" \
+  env PYTHONPATH=governor-spine-core python3 -c "
+from pathlib import Path
+from spine_core.image_promotion import manifest_conformance_failures
+assert manifest_conformance_failures(Path('.')) == []
+print('image promotion manifest OK')
+"
+
+run_step "image-promotion-dry-run" \
+  ./scripts/promote-images.sh mg --environment staging --dry-run
+
 # --- Spine-core unit tests ---
 run_step "spine-core-all-tests" \
   env PYTHONPATH=governor-spine-core python3 -m pytest governor-spine-core/tests/ -q --tb=no

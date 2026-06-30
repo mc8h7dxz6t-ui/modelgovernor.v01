@@ -313,6 +313,14 @@ plug salvage-verify:
 	chmod +x scripts/run-salvage-verification.sh
 	./scripts/run-salvage-verification.sh
 
+promote-images-dry-run:
+	chmod +x scripts/promote-images.sh
+	./scripts/promote-images.sh $(or $(GOV),mg) --environment $(or $(ENV),staging) --dry-run
+
+promote-images:
+	chmod +x scripts/promote-images.sh
+	./scripts/promote-images.sh $(or $(GOV),mg) --environment $(or $(ENV),staging) $(if $(PUSH),--push,)
+
 compose-smoke-cg:
 	chmod +x scripts/compose-smoke-cg.sh
 	./scripts/compose-smoke-cg.sh

@@ -40,6 +40,10 @@ config:
 syntheticProbe:
   enabled: true
 
+# Image tags: use promotion overlay from CI image-promotion workflow:
+#   helm upgrade ... -f values-production.yaml \
+#     -f artifacts/image-promotion/modelgovernor-production-images.yaml
+
 enterprise:
   istio:
     enabled: true
