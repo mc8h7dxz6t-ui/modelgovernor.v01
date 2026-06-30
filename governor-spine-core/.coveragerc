@@ -1,0 +1,7 @@
+[run]
+omit =
+    spine_core/portfolio_self_check.py
+    spine_core/retention_cli.py
+
+[report]
+fail_under = 80

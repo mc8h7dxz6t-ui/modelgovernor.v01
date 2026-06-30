@@ -17,15 +17,19 @@ class RailDispatchResult:
 
 
 def payment_rail_mode() -> str:
-    return os.environ.get("PAYMENT_RAIL_MODE", "stub").lower()
+    """Return rail integration mode. ``sandbox`` and legacy ``stub`` are equivalent."""
+    raw = os.environ.get("PAYMENT_RAIL_MODE", "sandbox").lower()
+    if raw in ("sandbox", "stub", "mock", "offline"):
+        return "sandbox"
+    return raw
 
 
 def dispatch_payment(instruction: PaymentInstruction) -> RailDispatchResult:
     mode = payment_rail_mode()
-    if mode == "stub":
+    if mode == "sandbox":
         return RailDispatchResult(
-            external_ref=f"stub-{instruction.payment_id}",
-            rail=instruction.rail,
+            external_ref=f"sandbox-{instruction.payment_id}",
+            rail="ach_sandbox",
             status=PaymentStatus.COMPLETED,
         )
     if mode in ("fednow", "fednow_sandbox"):

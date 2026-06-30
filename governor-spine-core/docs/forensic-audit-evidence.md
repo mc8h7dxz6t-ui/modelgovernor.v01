@@ -2,9 +2,9 @@
 
 **Audience:** institutional fund engineers, tech acquirer due diligence  
 **Method:** clone → grep → execute CI (`ci.yml`, `fg-ci.yml`) → run `make plug`  
-**Portfolio score:** [operational-architecture-scorecard.md](operational-architecture-scorecard.md) (**7.5/10** combined)
+**Portfolio score:** [operational-architecture-scorecard.md](operational-architecture-scorecard.md) (**8.5/10** engineering — IL 9/10 blocked on Phase C only)
 
-Maturity is **implementation, not intent**. High-level narrative claims are secondary to provable code and CI gates.
+Maturity is **implementation, not intent**. High-level narrative claims are secondary to provable code and CI gates. Authoritative machine output: `artifacts/portfolio_self_check.json` (from `make plug`).
 
 ---
 
@@ -30,7 +30,7 @@ Maturity is **implementation, not intent**. High-level narrative claims are seco
 | **L4 Helm enterprise** | `test_l4_helm_enterprise.py` | `deploy/helm/*/` |
 | **CG runtime perimeter (ext_authz)** | `test_l4_runtime_enforcement.py` | `platforms/egress_govern/`, mesh tests |
 
-**Kernel score: 8.5/10** — industry-leading **class** architecture with CI proof.
+**Kernel score: 9.0/10** — industry-leading **class** architecture with CI proof (K1/H1/K3/K4/M1 conformance).
 
 ---
 

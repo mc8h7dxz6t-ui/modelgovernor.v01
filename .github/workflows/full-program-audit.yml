@@ -1,0 +1,53 @@
+name: Full Program Audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "cursor/**"
+
+jobs:
+  full-program-audit:
+    name: Head-of-engineering gate (20+ checks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - uses: azure/setup-helm@v4
+
+      - name: Install portfolio test dependencies
+        run: |
+          pip install -r sidecar/requirements.txt -r reconciler/requirements.txt -r gateway/requirements.txt
+          pip install -r finance-governor/spine/sidecar/requirements.txt
+          pip install -r finance-governor/spine/reconciler/requirements.txt
+          pip install -r insurance-governor/spine/sidecar/requirements.txt
+          pip install -r insurance-governor/spine/reconciler/requirements.txt
+          pip install -r cybersecurity-governor/spine/sidecar/requirements.txt
+          pip install -r cybersecurity-governor/spine/reconciler/requirements.txt
+          pip install -r cybersecurity-governor/platforms/requirements.txt
+          pip install pytest pyyaml httpx hypothesis fakeredis
+          make -C finance-governor fg-test-deps
+          make -C cybersecurity-governor cg-test-deps
+
+      - name: Run full program audit
+        run: chmod +x scripts/run-full-program-audit.sh && ./scripts/run-full-program-audit.sh
+
+      - name: Spine-core coverage report
+        run: |
+          pip install pytest-cov
+          PYTHONPATH=governor-spine-core python3 -m pytest governor-spine-core/tests/ \
+            --cov=spine_core --cov-report=term-missing -q | tail -20
+
+      - name: Upload audit summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-program-audit
+          path: artifacts/full-program-audit/summary.json

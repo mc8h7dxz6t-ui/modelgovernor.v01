@@ -183,6 +183,17 @@ def _makefile_has_target(root: Path, target: str) -> bool:
     return False
 
 
+def _plug_includes_governor(root: Path, spec: GovernorSpec) -> bool:
+    salvage = _read_text(root / "scripts/run-salvage-verification.sh")
+    markers: dict[str, tuple[str, ...]] = {
+        "MODEL": ("MG_INTEGRATION_TESTS", "ModelGovernor integration"),
+        "FINANCE": ("fg-spine-test",),
+        "INSURANCE": ("ig-spine-test",),
+        "CYBER": ("cg-spine-test",),
+    }
+    return all(marker in salvage for marker in markers[spec.key])
+
+
 def evaluate_governor(repo_root: Path | None, spec: GovernorSpec) -> GovernorRubric:
     root = repo_root or Path(__file__).resolve().parents[2]
     ci_yml = _read_text(root / ".github/workflows/ci.yml")
@@ -201,7 +212,7 @@ def evaluate_governor(repo_root: Path | None, spec: GovernorSpec) -> GovernorRub
         )
     )
 
-    plug_ok = spec.in_plug
+    plug_ok = _plug_includes_governor(root, spec)
     rows.append(
         RubricRow(
             id=2,
