@@ -28,6 +28,7 @@ insurance-governor/tests/load/load/reports/
 # Runtime/demo artifacts
 artifacts/portfolio_self_check.json
 artifacts/full-program-audit/
+artifacts/image-promotion/
 artifacts/reliability/latest_invariant_report.json
 artifacts/reliability/insurance-governor/
 artifacts/reliability/insurance-governor/latest_attestation.json

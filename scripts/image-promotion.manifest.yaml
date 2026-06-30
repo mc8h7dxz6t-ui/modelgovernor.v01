@@ -1,0 +1,138 @@
+# Canonical container images for promotion — keep in sync with CI build-images jobs.
+version: 1
+
+governors:
+  modelgovernor:
+    helm_chart: deploy/helm/modelgovernor
+    helm_values_style: split  # images.<key>.repository + tag
+    build_context: .
+    images:
+      - key: sidecar
+        name: modelgovernor/sidecar
+        dockerfile: sidecar/Dockerfile
+      - key: reconciler
+        name: modelgovernor/reconciler
+        dockerfile: reconciler/Dockerfile
+      - key: gateway
+        name: modelgovernor/gateway
+        dockerfile: gateway/Dockerfile
+
+  finance-governor:
+    helm_chart: finance-governor/deploy/helm/finance-governor
+    helm_values_style: combined  # image.<key> as repo:tag
+    build_context: .
+    images:
+      - key: sidecar
+        name: finance-governor/sidecar
+        dockerfile: finance-governor/spine/sidecar/Dockerfile
+      - key: reconciler
+        name: finance-governor/reconciler
+        dockerfile: finance-governor/spine/reconciler/Dockerfile
+      - key: gateway
+        name: finance-governor/gateway
+        dockerfile: finance-governor/spine/gateway/Dockerfile
+      - key: wirematch
+        name: finance-governor/wirematch
+        dockerfile: finance-governor/platforms/wire_match/Dockerfile
+      - key: algofreeze
+        name: finance-governor/algofreeze
+        dockerfile: finance-governor/platforms/algofreeze/Dockerfile
+      - key: subledger
+        name: finance-governor/subledger
+        dockerfile: finance-governor/platforms/subledger_sync/Dockerfile
+      - key: assetledger
+        name: finance-governor/assetledger
+        dockerfile: finance-governor/platforms/asset_ledger/Dockerfile
+      - key: creditgovern
+        name: finance-governor/creditgovern
+        dockerfile: finance-governor/platforms/credit_govern/Dockerfile
+
+  insurance-governor:
+    helm_chart: deploy/helm/insurancegovernor
+    helm_values_style: split
+    build_context: .
+    images:
+      - key: sidecar
+        name: insurancegovernor/sidecar
+        dockerfile: insurance-governor/spine/sidecar/Dockerfile
+      - key: reconciler
+        name: insurancegovernor/reconciler
+        dockerfile: insurance-governor/spine/reconciler/Dockerfile
+      - key: gateway
+        name: insurancegovernor/gateway
+        dockerfile: insurance-governor/spine/gateway/Dockerfile
+      - key: claimGate
+        name: insurancegovernor/claim-gate
+        dockerfile: insurance-governor/platforms/claim_gate/Dockerfile
+      - key: bindAuthority
+        name: insurancegovernor/bind-authority
+        dockerfile: insurance-governor/platforms/bind_authority/Dockerfile
+      - key: parametricOracle
+        name: insurancegovernor/parametric-oracle
+        dockerfile: insurance-governor/platforms/parametric_oracle/Dockerfile
+      - key: zkClaimAudit
+        name: insurancegovernor/zk-claim-audit
+        dockerfile: insurance-governor/platforms/zk_claim_audit/Dockerfile
+      - key: spatialTwin
+        name: insurancegovernor/spatial-twin
+        dockerfile: insurance-governor/platforms/spatial_twin/Dockerfile
+      - key: batteryLiability
+        name: insurancegovernor/battery-liability
+        dockerfile: insurance-governor/platforms/battery_liability/Dockerfile
+      - key: subrogationGraph
+        name: insurancegovernor/subrogation-graph
+        dockerfile: insurance-governor/platforms/subrogation_graph/Dockerfile
+      - key: indemnityPayGate
+        name: insurancegovernor/indemnity-pay-gate
+        dockerfile: insurance-governor/platforms/indemnity_pay_gate/Dockerfile
+      - key: modelRiskFreeze
+        name: insurancegovernor/model-risk-freeze
+        dockerfile: insurance-governor/platforms/model_risk_freeze/Dockerfile
+      - key: underwritingGovern
+        name: insurancegovernor/underwriting-govern
+        dockerfile: insurance-governor/platforms/underwriting_govern/Dockerfile
+      - key: reserveReconcile
+        name: insurancegovernor/reserve-reconcile
+        dockerfile: insurance-governor/platforms/reserve_reconcile/Dockerfile
+
+  cybersecurity-governor:
+    helm_chart: deploy/helm/cybersecuritygovernor
+    helm_values_style: split
+    build_context: .
+    images:
+      - key: sidecar
+        name: cybersecuritygovernor/sidecar
+        dockerfile: cybersecurity-governor/spine/sidecar/Dockerfile
+      - key: reconciler
+        name: cybersecuritygovernor/reconciler
+        dockerfile: cybersecurity-governor/spine/reconciler/Dockerfile
+      - key: gateway
+        name: cybersecuritygovernor/gateway
+        dockerfile: cybersecurity-governor/spine/gateway/Dockerfile
+      - key: egressGovern
+        name: cybersecuritygovernor/egress-govern
+        dockerfile: cybersecurity-governor/platforms/egress_govern/Dockerfile
+      - key: identityGovern
+        name: cybersecuritygovernor/identity-govern
+        dockerfile: cybersecurity-governor/platforms/identity_govern/Dockerfile
+      - key: threatProxy
+        name: cybersecuritygovernor/threat-proxy
+        dockerfile: cybersecurity-governor/platforms/threat_proxy/Dockerfile
+      - key: incidentResponseGate
+        name: cybersecuritygovernor/incident-response-gate
+        dockerfile: cybersecurity-governor/platforms/incident_response_gate/Dockerfile
+      - key: postureReconcile
+        name: cybersecuritygovernor/posture-reconcile
+        dockerfile: cybersecurity-governor/platforms/posture_reconcile/Dockerfile
+      - key: complianceLogger
+        name: cybersecuritygovernor/compliance-logger
+        dockerfile: cybersecurity-governor/platforms/compliance_logger/Dockerfile
+      - key: witnessBridge
+        name: cybersecuritygovernor/witness-bridge
+        dockerfile: cybersecurity-governor/platforms/witness_bridge/Dockerfile
+      - key: lineageIngest
+        name: cybersecuritygovernor/lineage-ingest
+        dockerfile: cybersecurity-governor/platforms/lineage_ingest/Dockerfile
+      - key: contentGuard
+        name: cybersecuritygovernor/content-guard
+        dockerfile: cybersecurity-governor/platforms/content_guard/Dockerfile

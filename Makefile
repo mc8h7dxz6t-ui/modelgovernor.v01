@@ -18,7 +18,8 @@
 	egress-govern-demo cg-demo cg-security-demo cg-egress-wedge-demo posture-reconcile-demo content-guard-demo \
 	cg-certification cg-certification-strict cg-certification-l4 cg-certification-l4-ci \
 	cg-helm-enterprise cg-platform-conformance cg-load-test cg-examiner-evidence cg-pilot-attestation \
-	mg-certification-l4 mg-certification-l4-ci
+	mg-certification-l4 mg-certification-l4-ci \
+	promote-images promote-images-dry-run promote-images-scan
 
 demo-prereqs:
 	./scripts/install-demo-prereqs.sh --check-only
@@ -312,6 +313,18 @@ demo-all-platforms-proof:
 plug salvage-verify:
 	chmod +x scripts/run-salvage-verification.sh
 	./scripts/run-salvage-verification.sh
+
+promote-images-dry-run:
+	chmod +x scripts/promote-images.sh
+	./scripts/promote-images.sh $(or $(GOV),mg) --environment $(or $(ENV),staging) --dry-run
+
+promote-images-scan:
+	chmod +x scripts/promote-images.sh
+	./scripts/promote-images.sh $(or $(GOV),mg) --environment $(or $(ENV),staging) --scan --dry-run
+
+promote-images:
+	chmod +x scripts/promote-images.sh
+	./scripts/promote-images.sh $(or $(GOV),mg) --environment $(or $(ENV),staging) $(if $(PUSH),--push,)
 
 compose-smoke-cg:
 	chmod +x scripts/compose-smoke-cg.sh
