@@ -77,6 +77,17 @@ def test_iter_image_refs():
     assert refs[0] == "ghcr.io/example/modelgovernor/sidecar:sha-abc123"
 
 
+def test_iter_image_refs_all_governors():
+    plan = build_promotion_plan(
+        governor="all",
+        registry="ghcr.io/example",
+        git_sha="abc123",
+        environment="staging",
+    )
+    refs = iter_image_refs(plan)
+    assert len(refs) == 37
+
+
 def test_registry_image_lowercases():
     ref = registry_image("GHCR.io/Org", "ModelGovernor/Sidecar", "sha-abc")
     assert ref == "ghcr.io/org/modelgovernor/sidecar:sha-abc"
