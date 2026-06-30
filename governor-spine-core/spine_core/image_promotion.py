@@ -164,3 +164,11 @@ def write_promotion_artifacts(plan: dict[str, Any], out_dir: Path) -> dict[str, 
         overlay_path.write_text(overlay, encoding="utf-8")
         paths[f"helm-{gov_key}"] = str(overlay_path)
     return paths
+
+
+def iter_image_refs(plan: dict[str, Any]) -> list[str]:
+    refs: list[str] = []
+    for spec in plan.get("governors", {}).values():
+        for img in spec.get("images", []):
+            refs.append(img["immutable_ref"])
+    return refs

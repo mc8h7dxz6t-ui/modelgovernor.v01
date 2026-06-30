@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -34,6 +35,45 @@ def _run(cmd: list[str], *, dry_run: bool) -> None:
         subprocess.check_call(cmd, cwd=ROOT)
 
 
+def _image_digest(ref: str) -> str | None:
+    try:
+        raw = subprocess.check_output(
+            ["docker", "inspect", "--format", "{{index .RepoDigests 0}}", ref],
+            cwd=ROOT,
+            text=True,
+        ).strip()
+        if raw and "@" in raw:
+            return raw.split("@", 1)[1]
+        image_id = subprocess.check_output(
+            ["docker", "inspect", "--format", "{{.Id}}", ref],
+            cwd=ROOT,
+            text=True,
+        ).strip()
+        if image_id.startswith("sha256:"):
+            return image_id.split(":", 1)[1]
+        return image_id or None
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None
+
+
+def _scan_image(ref: str, *, severity: str) -> None:
+    if not shutil.which("trivy"):
+        raise RuntimeError("trivy not found in PATH — install before --scan")
+    _run(
+        [
+            "trivy",
+            "image",
+            "--severity",
+            severity,
+            "--ignore-unfixed",
+            "--exit-code",
+            "1",
+            ref,
+        ],
+        dry_run=False,
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Promote governor container images")
     parser.add_argument(
@@ -55,6 +95,12 @@ def main() -> int:
     )
     parser.add_argument("--git-sha", default=_git_sha())
     parser.add_argument("--push", action="store_true", help="Push images to registry (default: build only)")
+    parser.add_argument("--scan", action="store_true", help="Run Trivy scan (CRITICAL,HIGH) after each build")
+    parser.add_argument(
+        "--scan-severity",
+        default=os.environ.get("TRIVY_SEVERITY", "CRITICAL,HIGH"),
+        help="Trivy severity filter",
+    )
     parser.add_argument("--dry-run", action="store_true", help="Print plan only; no docker build")
     parser.add_argument(
         "--out-dir",
@@ -77,10 +123,10 @@ def main() -> int:
         environment=args.environment,
         repo_root=ROOT,
     )
-    paths = write_promotion_artifacts(plan, args.out_dir)
-    print(json.dumps({"artifacts": paths, "immutable_tag": plan["immutable_tag"]}, indent=2))
 
     if args.dry_run:
+        paths = write_promotion_artifacts(plan, args.out_dir)
+        print(json.dumps({"artifacts": paths, "immutable_tag": plan["immutable_tag"]}, indent=2))
         return 0
 
     for gov_key, spec in plan["governors"].items():
@@ -103,11 +149,18 @@ def main() -> int:
                 ],
                 dry_run=False,
             )
+            if args.scan:
+                _scan_image(immutable_ref, severity=args.scan_severity)
             if args.push:
                 _run(["docker", "push", immutable_ref], dry_run=False)
                 _run(["docker", "push", env_ref], dry_run=False)
+            img["digest"] = _image_digest(immutable_ref) or ""
         print(f"OK  promoted {gov_key} ({len(spec['images'])} images)", flush=True)
 
+    plan["scanned"] = args.scan
+    plan["pushed"] = args.push
+    paths = write_promotion_artifacts(plan, args.out_dir)
+    print(json.dumps({"artifacts": paths, "immutable_tag": plan["immutable_tag"], "pushed": args.push}, indent=2))
     return 0
 
 

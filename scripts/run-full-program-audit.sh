@@ -95,6 +95,9 @@ print('image promotion manifest OK')
 run_step "image-promotion-dry-run" \
   ./scripts/promote-images.sh mg --environment staging --dry-run
 
+run_step "image-promotion-scan-cli" \
+  python3 scripts/promote-images.py mg --dry-run --scan --scan-severity CRITICAL >/dev/null
+
 # --- Spine-core unit tests ---
 run_step "spine-core-all-tests" \
   env PYTHONPATH=governor-spine-core python3 -m pytest governor-spine-core/tests/ -q --tb=no

@@ -9,6 +9,7 @@ import pytest
 from spine_core.image_promotion import (
     build_promotion_plan,
     image_tags,
+    iter_image_refs,
     manifest_conformance_failures,
     registry_image,
     render_helm_values_overlay,
@@ -62,6 +63,18 @@ def test_write_promotion_artifacts(tmp_path: Path):
     paths = write_promotion_artifacts(plan, tmp_path)
     assert Path(paths["plan"]).is_file()
     assert Path(paths["helm-modelgovernor"]).is_file()
+
+
+def test_iter_image_refs():
+    plan = build_promotion_plan(
+        governor="mg",
+        registry="ghcr.io/example",
+        git_sha="abc123",
+        environment="staging",
+    )
+    refs = iter_image_refs(plan)
+    assert len(refs) == 3
+    assert refs[0] == "ghcr.io/example/modelgovernor/sidecar:sha-abc123"
 
 
 def test_registry_image_lowercases():
