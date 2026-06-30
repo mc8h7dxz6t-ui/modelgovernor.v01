@@ -77,6 +77,16 @@ helm template mg deploy/helm/modelgovernor --set secrets.create=true \
 echo "Step 9: Portfolio maturity artifact (K2)..."
 PYTHONPATH=governor-spine-core python3 -c "from spine_core.portfolio_self_check import write_portfolio_self_check; p=write_portfolio_self_check(); print('OK   wrote', p)"
 
+echo "Step 10: IL rubric path-to-9 evaluation..."
+PYTHONPATH=governor-spine-core python3 -c "
+from pathlib import Path
+from spine_core.il_rubric import evaluate_portfolio, ENGINEERING_CEILING
+r = evaluate_portfolio(Path('.'))
+print(f\"OK   portfolio engineering={r['portfolio_engineering_score']}/{ENGINEERING_CEILING} IL target=9.0\")
+for g, d in r['governors'].items():
+    print(f\"     {g}: eng={d['engineering_score']} rows={d['rubric_rows_green']} gaps={len(d['gaps_to_9'])}\")
+"
+
 echo "=========================================================================="
 echo "  MATURITY PROFILE: L5 Institutional Self-Check Certified"
 echo "  Portfolio readiness: governor-spine-core/docs/operational-architecture-scorecard.md"
