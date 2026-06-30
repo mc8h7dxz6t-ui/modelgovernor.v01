@@ -23,10 +23,13 @@ from spine_core.image_promotion import (  # noqa: E402
 
 
 def _git_sha() -> str:
+    env_sha = os.environ.get("GIT_SHA", "").strip()
+    if env_sha:
+        return env_sha
     try:
         return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     except (subprocess.CalledProcessError, FileNotFoundError):
-        return os.environ.get("GIT_SHA", "unknown")
+        return "unknown"
 
 
 def _run(cmd: list[str], *, dry_run: bool) -> None:

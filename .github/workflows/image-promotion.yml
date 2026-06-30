@@ -36,6 +36,10 @@ permissions:
   contents: read
   packages: write
 
+env:
+  PROMOTION_REF: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+  PROMOTION_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+
 jobs:
   preflight:
     name: Manifest + promotion plan
@@ -49,6 +53,8 @@ jobs:
       push: ${{ steps.plan.outputs.push }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PROMOTION_REF }}
 
       - uses: actions/setup-python@v5
         with:
@@ -75,12 +81,13 @@ jobs:
         env:
           IMAGE_REGISTRY: ghcr.io/${{ github.repository_owner }}
           PROMOTION_ENV: ${{ steps.inputs.outputs.environment }}
-          GIT_SHA: ${{ github.sha }}
+          GIT_SHA: ${{ env.PROMOTION_SHA }}
         run: |
           chmod +x scripts/promote-images.sh
           PYTHONPATH=governor-spine-core python3 -m pytest governor-spine-core/tests/test_image_promotion.py -q
           ./scripts/promote-images.sh "${{ steps.inputs.outputs.governor }}" \
             --environment "${{ steps.inputs.outputs.environment }}" \
+            --git-sha "${{ env.PROMOTION_SHA }}" \
             --dry-run
           IMMUTABLE=$(python3 -c "import json; print(json.load(open('artifacts/image-promotion/promotion-plan.json'))['immutable_tag'])")
           echo "immutable_tag=$IMMUTABLE" >> "$GITHUB_OUTPUT"
@@ -101,6 +108,8 @@ jobs:
     needs: preflight
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PROMOTION_REF }}
 
       - uses: actions/setup-python@v5
         with:
@@ -123,11 +132,11 @@ jobs:
         env:
           IMAGE_REGISTRY: ${{ needs.preflight.outputs.registry }}
           PROMOTION_ENV: ${{ needs.preflight.outputs.environment }}
-          GIT_SHA: ${{ github.sha }}
+          GIT_SHA: ${{ env.PROMOTION_SHA }}
           TRIVY_SEVERITY: CRITICAL,HIGH
         run: |
           chmod +x scripts/promote-images.sh
-          ARGS="--environment ${{ needs.preflight.outputs.environment }} --scan"
+          ARGS="--environment ${{ needs.preflight.outputs.environment }} --git-sha ${{ env.PROMOTION_SHA }} --scan"
           if [[ "${{ needs.preflight.outputs.push }}" == "true" ]]; then
             ARGS="$ARGS --push"
           fi
@@ -154,6 +163,8 @@ jobs:
     needs: preflight
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PROMOTION_REF }}
 
       - uses: azure/setup-helm@v4
 

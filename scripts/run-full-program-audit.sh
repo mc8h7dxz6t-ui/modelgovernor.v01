@@ -93,10 +93,13 @@ print('image promotion manifest OK')
 "
 
 run_step "image-promotion-dry-run" \
-  ./scripts/promote-images.sh mg --environment staging --dry-run
+  bash -c './scripts/promote-images.sh mg --environment staging --dry-run >/dev/null && echo dry-run OK'
 
 run_step "image-promotion-scan-cli" \
-  python3 scripts/promote-images.py mg --dry-run --scan --scan-severity CRITICAL >/dev/null
+  bash -c 'python3 scripts/promote-images.py mg --dry-run --scan --scan-severity CRITICAL >/dev/null && echo scan CLI OK'
+
+run_step "image-promotion-helm-verify-MG" \
+  bash -c 'helm template mg deploy/helm/modelgovernor -f deploy/helm/modelgovernor/values-production.yaml -f artifacts/image-promotion/modelgovernor-staging-images.yaml --set secrets.create=true | grep -q "image: ghcr.io" && echo helm overlay OK'
 
 # --- Spine-core unit tests ---
 run_step "spine-core-all-tests" \
