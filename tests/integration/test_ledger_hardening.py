@@ -542,7 +542,7 @@ def _create_test_engine(path: Path):
     return engine
 
 
-def _bootstrap_schema(engine) -> None:
+def _bootstrap_schema(engine, *, with_seal: bool = True) -> None:
     with engine.begin() as connection:
         connection.execute(
             text(
@@ -611,7 +611,15 @@ def _bootstrap_schema(engine) -> None:
                     event_type TEXT NOT NULL,
                     amount_delta NUMERIC(18, 6) NOT NULL,
                     metadata TEXT NOT NULL DEFAULT '{}',
-                    recorded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    recorded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"""
+                + (
+                    """,
+                    prev_hash CHAR(64),
+                    row_hash CHAR(64)"""
+                    if with_seal
+                    else ""
+                )
+                + """
                 )
                 """
             )

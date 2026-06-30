@@ -261,6 +261,23 @@ def evaluate_governor(repo_root: Path | None, spec: GovernorSpec) -> GovernorRub
     return GovernorRubric(governor=spec.key, rows=rows)
 
 
+def _kernel_score(root: Path) -> float:
+    from spine_core.append_lock import append_lock_conformance_failures
+    from spine_core.ledger_registry import conformance_failures
+    from spine_core.m1_conformance import m1_conformance_failures
+    from spine_core.retention_cronjob import retention_cronjob_conformance_failures
+    from spine_core.sweep_seal import sweep_conformance_failures
+
+    checks = (
+        conformance_failures(root),
+        sweep_conformance_failures(root),
+        append_lock_conformance_failures(root),
+        retention_cronjob_conformance_failures(root),
+        m1_conformance_failures(root),
+    )
+    return 9.0 if not any(checks) else 8.5
+
+
 def evaluate_portfolio(repo_root: Path | None = None) -> dict[str, Any]:
     root = repo_root or Path(__file__).resolve().parents[2]
     governors: dict[str, Any] = {}
@@ -285,7 +302,7 @@ def evaluate_portfolio(repo_root: Path | None = None) -> dict[str, Any]:
         eng_scores.append(rubric.engineering_score)
         il_scores.append(rubric.il_score)
 
-    kernel_score = 9.0
+    kernel_score = _kernel_score(root)
     portfolio_engineering = round(sum(eng_scores) / len(eng_scores), 1) if eng_scores else L5_BASE
     portfolio_il = round(min(il_scores), 1) if any(s < IL_TARGET for s in il_scores) else IL_TARGET
     if portfolio_il < IL_TARGET:
@@ -303,7 +320,7 @@ def evaluate_portfolio(repo_root: Path | None = None) -> dict[str, Any]:
             "engineering_complete": portfolio_engineering >= ENGINEERING_CEILING,
             "il_requires": "Phase C external evidence per governor (row 5)",
             "blockers": [
-                g
+                f"{g}: {gap}"
                 for g, data in governors.items()
                 if data.get("il_score", 0) < IL_TARGET
                 for gap in data.get("gaps_to_9", [])

@@ -8,15 +8,29 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from spine_core.config import MATURITY_LABEL, GovernorDomain
-from spine_core.il_rubric import ENGINEERING_CEILING, IL_TARGET, evaluate_portfolio
+from spine_core.config import MATURITY_LABEL
+from spine_core.il_rubric import ENGINEERING_CEILING, IL_TARGET, _kernel_score, evaluate_portfolio
 
 WAVE = "wave-1+3+k3+k4+m1+il-rubric"
 
-K3_SWEEP_SEAL = "shipped"
-K4_RETENTION_CRONJOB = "shipped"
-H1_APPEND_LOCK = "shipped"
-M1_SPINE_CONSOLIDATION = "shipped"
+
+def _kernel_conformance_labels(root: Path) -> dict[str, str]:
+    from spine_core.append_lock import append_lock_conformance_failures
+    from spine_core.ledger_registry import conformance_failures
+    from spine_core.m1_conformance import m1_conformance_failures
+    from spine_core.retention_cronjob import retention_cronjob_conformance_failures
+    from spine_core.sweep_seal import sweep_conformance_failures
+
+    def _label(failures: list[str]) -> str:
+        return "shipped" if not failures else "gap"
+
+    return {
+        "k1_ledger_conformance": _label(conformance_failures(root)),
+        "k3_sweep_seal": _label(sweep_conformance_failures(root)),
+        "h1_append_advisory_lock": _label(append_lock_conformance_failures(root)),
+        "k4_retention_cronjob": _label(retention_cronjob_conformance_failures(root)),
+        "m1_spine_consolidation": _label(m1_conformance_failures(root)),
+    }
 
 
 def _git_sha(repo_root: Path) -> str:
@@ -29,6 +43,7 @@ def _git_sha(repo_root: Path) -> str:
 def build_portfolio_self_check(repo_root: Path | None = None) -> dict[str, Any]:
     root = repo_root or Path(__file__).resolve().parents[2]
     rubric = evaluate_portfolio(root)
+    kernel_labels = _kernel_conformance_labels(root)
     governors_out: dict[str, Any] = {}
     for domain_key, data in rubric["governors"].items():
         governors_out[domain_key] = {
@@ -56,11 +71,12 @@ def build_portfolio_self_check(repo_root: Path | None = None) -> dict[str, Any]:
         "engineering_ceiling": ENGINEERING_CEILING,
         "governors": governors_out,
         "path_to_9": rubric["path_to_9"],
-        "k1_ledger_conformance": "spine_core.ledger_registry",
-        "k3_sweep_seal": K3_SWEEP_SEAL,
-        "k4_retention_cronjob": K4_RETENTION_CRONJOB,
-        "h1_append_advisory_lock": H1_APPEND_LOCK,
-        "m1_spine_consolidation": M1_SPINE_CONSOLIDATION,
+        "k1_ledger_conformance": kernel_labels["k1_ledger_conformance"],
+        "k3_sweep_seal": kernel_labels["k3_sweep_seal"],
+        "k4_retention_cronjob": kernel_labels["k4_retention_cronjob"],
+        "h1_append_advisory_lock": kernel_labels["h1_append_advisory_lock"],
+        "m1_spine_consolidation": kernel_labels["m1_spine_consolidation"],
+        "kernel_score_verified": _kernel_score(root) == rubric["kernel_score"],
         "note": "L5 Institutional Self-Check — IL 9/10 requires Phase C external evidence per governor.",
     }
 

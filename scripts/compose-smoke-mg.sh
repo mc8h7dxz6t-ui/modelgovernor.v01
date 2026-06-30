@@ -43,6 +43,6 @@ curl -sf -X POST "http://localhost:8080/governed/dispatch" \
 
 echo "==> verify-chain"
 curl -sf "http://localhost:8081/internal/ledger/verify-chain" -H "x-internal-token: $TOKEN" \
-  | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get('valid') is True, d"
+  | python3 "$ROOT/scripts/chain_verify_assert.py"
 
 echo "compose-smoke-mg OK"
