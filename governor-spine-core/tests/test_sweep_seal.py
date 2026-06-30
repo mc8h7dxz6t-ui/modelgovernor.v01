@@ -39,9 +39,6 @@ def test_mg_sweeper_seals_ledger_events(tmp_path) -> None:
 
     engine = _create_test_engine(tmp_path / "mg-sweep-seal.sqlite3")
     _bootstrap_schema(engine)
-    with engine.begin() as connection:
-        connection.execute(text("ALTER TABLE ledger_events ADD COLUMN prev_hash CHAR(64)"))
-        connection.execute(text("ALTER TABLE ledger_events ADD COLUMN row_hash CHAR(64)"))
     _seed_wallet_and_model(engine, user_id="user-1")
 
     with Session(engine) as session:

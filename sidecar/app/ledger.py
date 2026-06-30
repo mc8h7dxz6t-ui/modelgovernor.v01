@@ -82,7 +82,7 @@ def reserve_operation(session: Session, settings: Settings, request: ReserveRequ
         )
 
     now = _utcnow()
-    _assert_circuit_closed(request.model)
+    _assert_circuit_closed(request.model, settings)
     identity = (
         attribution.identity_from_reserve(request)
         if attribution and attribution.schema_supports_attribution(session)
@@ -894,15 +894,16 @@ def _release_inflight_guardrail(user_id: str) -> None:
         pass
 
 
-def _assert_circuit_closed(provider_key: str) -> None:
-    try:
-        from .circuit_breaker import CircuitOpenError, get_circuit_breaker
+def _assert_circuit_closed(provider_key: str, settings: Settings | None = None) -> None:
+    from .circuit_breaker import CircuitOpenError, ProviderCircuitBreaker, get_circuit_breaker
 
-        get_circuit_breaker().assert_closed(provider_key)
+    breaker = ProviderCircuitBreaker(settings) if settings is not None else get_circuit_breaker()
+    try:
+        breaker.assert_closed(provider_key)
     except CircuitOpenError:
         raise PolicyStateError(f"provider circuit open for {provider_key}") from None
-    except Exception:
-        pass
+    except Exception as exc:
+        raise PolicyStateError(f"circuit breaker unavailable for {provider_key}") from exc
 
 
 def _record_provider_failure(provider_name: str) -> None:

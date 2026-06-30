@@ -86,7 +86,8 @@ ig-certification-l4-ci:
 	  insurance-governor/tests/test_platform_registry_failclosed.py \
 	  insurance-governor/tests/test_regulatory_export.py \
 	  insurance-governor/tests/test_fnol_sandbox_integration.py \
-	  insurance-governor/tests/test_spatial_subro_http.py -q
+	  insurance-governor/tests/test_spatial_subro_http.py \
+	  insurance-governor/tests/test_concurrent_claim_append.py -q
 	@$(MAKE) ig-helm-enterprise > /dev/null
 	@echo "ig-certification-l4-ci complete"
 

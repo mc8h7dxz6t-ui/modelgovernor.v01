@@ -284,6 +284,7 @@ mg-certification-l4-ci:
 	@echo "==> MG L4 Gold CI gate"
 	PYTHONPATH=governor-spine-core:. python3 -m pytest tests/test_l4_certification.py \
 	  tests/integration/test_property_ledger.py \
+	  tests/test_concurrent_ledger_append.py \
 	  tests/programs/finance_ops_finals/test_reconciler_leader_election.py \
 	  tests/programs/finance_ops_finals/test_finance_ops_finals.py -q
 	helm template mg deploy/helm/modelgovernor --set secrets.create=true \

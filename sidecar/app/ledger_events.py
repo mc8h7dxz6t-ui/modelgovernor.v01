@@ -91,7 +91,7 @@ def _seal_last_event(
     from .metrics import get_counters
 
     if not ledger_seal.schema_supports_ledger_seal(session):
-        return
+        raise RuntimeError("ledger_events seal columns unavailable — cannot append unsealed events")
 
     dialect = session.bind.dialect.name
     recorded_expr = "recorded_at::text" if dialect == "postgresql" else "recorded_at"

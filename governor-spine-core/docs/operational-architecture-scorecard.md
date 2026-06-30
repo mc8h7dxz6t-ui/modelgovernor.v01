@@ -2,7 +2,7 @@
 
 **Principle:** In professional software engineering, **maturity is defined by implementation, not intent.** An architecture concept can be brilliant on paper; this document scores what the repository **actually ships** against enterprise engineering benchmarks.
 
-**Assessment basis:** Wave 0–3 + Wave 1 re-ship on `main` — four-governor L4 CI, `make plug`, live compose-smoke + pilot attestation CI (CG/MG/FG/IG), K1 `ledger_registry`, K2 `portfolio_self_check.json`.
+**Assessment basis:** Wave 0–3 + kernel K1–K4/H1/M1 + **IL rubric engine** (`spine_core.il_rubric`) — scores computed from repo evidence, not hand-waved.
 
 ---
 
@@ -11,40 +11,49 @@
 ```
 [ IDEAL GOLD STANDARD ] ══════════════════════════════════════════► 10/10
 
-[ YOUR REPOSITORY IMPLEMENTATION STATE ]
-• Core Transaction Kernel (institutional spine) ──► 8.5/10  Highly robust logical design
-• ModelGovernor AI Spend Platform              ──► 7.5/10  demo-gold + compose-smoke CI
-• Cybersecurity Governor                       ──► 8.5/10  L4 + live pilot attestation CI
-• Finance Governor                             ──► 7.0/10  L4 + pilot attestation CI
-• Insurance Governor                           ──► 8.0/10  ClaimGate hero + FNOL/FedNow sandbox CI
-• Combined Portfolio Readiness                 ──► 7.5/10  Credible source-code asset
+[ ENGINEERING CEILING — Phase A+B complete, Phase C pending ]
+• Core Transaction Kernel                      ──► 9.0/10  K1–K4, H1, M1
+• ModelGovernor AI Spend Platform              ──► 8.5/10  4/5 IL rubric rows
+• Cybersecurity Governor                       ──► 8.5/10  4/5 IL rubric rows
+• Finance Governor                             ──► 8.5/10  AlgoFreeze+WireMatch hero CI
+• Insurance Governor                           ──► 8.5/10  ClaimGate + FNOL/FedNow CI
+• Combined Portfolio (engineering)             ──► 8.5/10  IL 9/0 blocked on Phase C only
 ```
 
-| Layer | Score | What earns it | What caps the score |
-|-------|-------|---------------|---------------------|
-| **Core transactional kernel** | **9.0/10** | K1–K4, H1, **M1 shared spine modules** (checkpoint, mesh, metadata) | Phase C external evidence per governor |
-| **ModelGovernor** | **7.5/10** | `make demo-gold`, `compose-smoke-mg`, `mg-pilot-attestation` in CI, reconciler HA | No Phase C design-partner letter |
-| **Cybersecurity Governor** | **8.5/10** | L4 CI, `compose-smoke-cg` → `cg-pilot-attestation` in CI, mesh 409 demo | Thin wedges stay 6.0; no Phase C |
-| **Finance Governor** | **7.0/10** | L4 CI, AlgoFreeze + WireMatch demos, `fg-pilot-attestation` in CI | SubledgerSync, CreditGovern = connector SOW |
-| **Insurance Governor** | **8.0/10** | ClaimGate hero, FNOL/FedNow sandbox CI, SpatialTwin/SubrogationGraph **7.5** mock envelopes | IL 9/10 needs Phase C carrier letter |
-| **Portfolio total** | **7.5/10** | Pre-hardened IP, honest attestation, live CI on all four governors | Not IL 9/10 — no governor has Phase C |
+| Layer | Engineering | IL claim | What earns engineering 8.5 | Gap to IL 9/10 |
+|-------|-------------|----------|---------------------------|----------------|
+| **Kernel** | **9.0** | 9.0 code | K1–K4, H1, M1 shared spine | — |
+| **ModelGovernor** | **8.5** | 8.5 | L4 + plug + live CI + demo-gold hero | Phase C FinOps design-partner |
+| **Cybersecurity Governor** | **8.5** | 8.5 | L4 + live CI + egress wedge attestation | Phase C CISO VPC letter |
+| **Finance Governor** | **8.5** | 8.5 | L4 + hero integration tests + compose-smoke wedges | Phase C treasurer/CRO letter |
+| **Insurance Governor** | **8.5** | 8.5 | L4 + FNOL/FedNow sandbox + live CI | Phase C carrier letter |
+| **Portfolio** | **8.5** | **8.5** | `make plug` + IL rubric evaluation | **Row 5 per governor** |
 
-**Verdict:** Highly capable **source-code asset** and **control-plane scaffold** — not a completed corporate software business.
+**Verdict:** Engineering path to **8.5/10 is complete** across the portfolio. **IL 9/10** requires Phase C external evidence only — see [artifacts/reliability/README.md](../../artifacts/reliability/README.md).
 
 ---
 
-## IL rubric status (per governor)
+## IL rubric — five dimensions (path to 9/10)
 
-| Governor | Code score | IL rubric (5 rows) | Gap to 9/10 |
-|----------|------------|-------------------|-------------|
-| **Kernel** | 9.0 | K1–K4, H1, M1 | Phase C per governor |
-| **MG** | 7.5 | **3/5** | Phase C FinOps design-partner |
-| **CG** | 8.5 | **4/5** | Phase C CISO letter |
-| **FG** | 7.0 | **3/5** | Phase C treasurer/CRO letter |
-| **IG** | 8.0 | **4/5** | Phase C carrier design-partner |
-| **Portfolio** | 7.5 | Not IL | No governor has row 5 |
+Computed by `PYTHONPATH=governor-spine-core python3 -c "from spine_core.il_rubric import evaluate_portfolio; ..."` and emitted in `artifacts/portfolio_self_check.json` after `make plug`.
 
-**Do not say:** “Industry Leading platform” or “SOC2 certified” without Phase C external evidence per [maturity-ladder.md](maturity-ladder.md).
+| # | Row | Maps to |
+|---|-----|---------|
+| 1 | L4 engineering | **Robustness** — `*-certification-l4-ci` |
+| 2 | L5 self-check | **Execution** — `make plug` |
+| 3 | Live stack proof | **Reliability** — compose-smoke + pilot attestation in CI |
+| 4 | Hero wedge depth | **Architecture** — demo + attestation probes |
+| 5 | Phase C evidence | **Code/external** — `cluster_attestation.json` validated |
+
+| Governor | Rows green | Engineering | Dimensions (arch/code/exec/robust/reliable) | Phase C blocker |
+|----------|------------|-------------|---------------------------------------------|-----------------|
+| **MG** | **4/5** | 8.5 | 9 / 7 / 9 / 9 / 9 | FinOps design-partner VPC |
+| **CG** | **4/5** | 8.5 | 9 / 7 / 9 / 9 / 9 | CISO VPC letter |
+| **FG** | **4/5** | 8.5 | 9 / 7 / 9 / 9 / 9 | Treasurer/CRO letter |
+| **IG** | **4/5** | 8.5 | 9 / 7 / 9 / 9 / 9 | Carrier design-partner |
+| **Portfolio** | — | **8.5** | min(kernel, governors) | All four row-5 artifacts |
+
+**Do not say:** “Industry Leading 9/10” or “SOC2 certified” until Phase C validates per governor.
 
 ---
 

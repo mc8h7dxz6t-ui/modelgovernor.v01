@@ -19,7 +19,7 @@
 | **Today** | 7.5 | 7.0 | **8.5** | **8.0** | **7.5** |
 | **After Wave 0** (items 1–4) | 7.5 | 7.0 | **8.5** | 6.5 | **7.0** |
 | **After Wave 1+3** (live CI all governors + K1/K2) | 7.5 | 7.0 | **8.5** | **8.0** | **7.5** |
-| **After Phase A+B** | 8.5 | 8.5 | 8.5 | 8.0 | **8.5** |
+| **After Phase A+B** (IL rubric engine + FG hero CI) | **8.5** | **8.5** | **8.5** | **8.5** | **8.5** |
 | **IL 9/10** (+ Phase C each) | 9.0 | 9.0 | 9.0 | 9.0 | **9.0** |
 | **EV 10/10** (+ company) | 10 | 10 | 10 | 10 | **10** |
 
@@ -168,7 +168,8 @@ Estimated **engineering-only** path to **8.5→9.0** on code: Phase A + B.
 | K1 | **Shared spine Python package** — extract `commit_ledger` / seal / verify interfaces (thin); keep governor-specific tables | Single patch for kernel bugs; acquirer story |
 | K2 | **`governor-spine-core` maturity artifact** — `make plug` emits `artifacts/portfolio_self_check.json` with scores + git SHA | Data room single file |
 | K3 | **Reconciler sweep hash-seal** (MG P2 gap) | Examiner “no unsealed sweeps” — `spine_core.sweep_seal` | ✅ Shipped |
-| K4 | **Retention / partition CronJob** reads `*_retention_policy` tables | Ops 9/10 credibility |
+| K4 | **Retention / partition CronJob** reads `*_retention_policy` tables | Ops 9/10 credibility | ✅ Shipped |
+| M1 | **Spine consolidation** — shared checkpoint, mesh, metadata modules | Single patch surface for CCP boilerplate | ✅ Shipped |
 
 **Verify:** `make plug` + `python -m spine_core.port_checks` + shared package unit tests.
 

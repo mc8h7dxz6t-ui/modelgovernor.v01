@@ -12,6 +12,12 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
+SPINE_CORE = ROOT / "governor-spine-core"
+if str(SPINE_CORE) not in sys.path:
+    sys.path.insert(0, str(SPINE_CORE))
+
+from spine_core.chain_verify_assert import assert_chain_verified  # noqa: E402
+
 ARTIFACTS = ROOT / "artifacts" / "reliability" / "finance-governor"
 
 
@@ -73,11 +79,56 @@ def run_attestation() -> dict[str, Any]:
 
     def verify_chain() -> None:
         result = _get(f"{sidecar}/internal/decisions/verify-chain", headers)
-        if not result.get("valid"):
-            raise RuntimeError(f"chain invalid: {result}")
+        assert_chain_verified(result, context="fg verify-chain")
 
     probes.append(_probe("verify_chain", verify_chain))
     probes.append(_probe("anchor_head", lambda: _post(f"{sidecar}/internal/decisions/anchor-head", {}, headers)))
+
+    algofreeze = _env("FG_ALGOFREEZE_URL", "http://localhost:8094")
+    wirematch = _env("FG_WIREMATCH_URL", "http://localhost:8093")
+
+    def algofreeze_version_mismatch_freeze() -> None:
+        import urllib.error
+
+        req = urllib.request.Request(
+            f"{algofreeze}/orders",
+            data=json.dumps({"order_id": "attest-freeze", "runtime_sha": "wrong-sha"}).encode(),
+            headers={"content-type": "application/json"},
+            method="POST",
+        )
+        try:
+            urllib.request.urlopen(req, timeout=10)
+        except urllib.error.HTTPError as exc:
+            if exc.code != 403:
+                raise RuntimeError(f"expected 403 freeze, got {exc.code}") from exc
+        else:
+            raise RuntimeError("expected VERSION_MISMATCH 403")
+
+    def wirematch_beneficiary_held() -> None:
+        result = _post(
+            f"{wirematch}/wire/evaluate",
+            {
+                "wire_id": "attest-held",
+                "beneficiary_name": "Wrong Beneficiary LLC",
+                "beneficiary_account": "US99BAD",
+                "reference": "attest",
+                "amount": "7800000.00",
+            },
+        )
+        if result.get("decision") != "HELD":
+            raise RuntimeError(f"expected HELD, got {result}")
+
+    try:
+        _get(f"{algofreeze}/healthz")
+        probes.append(_probe("algofreeze_version_mismatch_freeze", algofreeze_version_mismatch_freeze))
+    except Exception:
+        probes.append({"name": "algofreeze_version_mismatch_freeze", "status": "skip", "reason": "platform_not_running"})
+
+    try:
+        _get(f"{wirematch}/healthz")
+        probes.append(_probe("wirematch_beneficiary_held", wirematch_beneficiary_held))
+    except Exception:
+        probes.append({"name": "wirematch_beneficiary_held", "status": "skip", "reason": "platform_not_running"})
 
     passed = sum(1 for p in probes if p["status"] == "pass")
     report = {

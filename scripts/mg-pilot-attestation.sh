@@ -24,7 +24,7 @@ curl -sf -X POST "$GATEWAY/governed/dispatch" \
 echo "OK  governed dispatch"
 
 VERIFY="$(curl -sf -H "x-internal-token: $TOKEN" "$SIDECAR/internal/ledger/verify-chain")"
-echo "$VERIFY" | python3 -c "import json,sys; d=json.load(sys.stdin); assert d.get('valid') is True, d"
+echo "$VERIFY" | python3 "$ROOT/scripts/chain_verify_assert.py"
 echo "OK  ledger chain verified"
 
 ANCHOR="$(curl -sf -X POST -H "x-internal-token: $TOKEN" "$SIDECAR/internal/ledger/anchor-head")"

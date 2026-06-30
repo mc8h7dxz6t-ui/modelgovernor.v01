@@ -93,6 +93,7 @@ def compute_row_hash(
     recorded_at: str,
     prev_hash: str,
 ) -> str:
+    metadata = _normalize_metadata(metadata)
     payload = json.dumps(
         {
             "event_id": event_id,
@@ -289,7 +290,7 @@ def _verify_ledger_rows(
         head = row_hash
 
     return _LedgerVerifyState(
-        valid=first_break is None,
+        valid=first_break is None and unsealed_count == 0,
         sealed_count=sealed_count,
         unsealed_count=unsealed_count,
         head_hash=head,
@@ -328,7 +329,7 @@ def verify_ledger_chain(
     if incremental and checkpoints_enabled:
         checkpoint = load_checkpoint(verify_session, CHECKPOINT_TABLE)
         if checkpoint and current_head and checkpoint.verified_head_hash == current_head:
-            if total_events == checkpoint.total_events:
+            if total_events == checkpoint.total_events and checkpoint.sealed_count == total_events:
                 return LedgerChainVerificationResult(
                     valid=True,
                     sealed_count=checkpoint.sealed_count,
@@ -344,7 +345,7 @@ def verify_ledger_chain(
                 from_event_id=checkpoint.last_verified_event_id,
                 prior_sealed=checkpoint.sealed_count,
             )
-            if tail_result.valid and tail_result.head_hash:
+            if tail_result.valid and tail_result.head_hash and tail_result.unsealed_count == 0:
                 _persist_checkpoint(
                     session,
                     VerifyCheckpoint(
@@ -373,7 +374,7 @@ def verify_ledger_chain(
         first_break=full.first_break,
         incremental=False,
     )
-    if result.valid and incremental and checkpoints_enabled and result.head_hash:
+    if result.valid and incremental and checkpoints_enabled and result.head_hash and result.unsealed_count == 0:
         _persist_checkpoint(
             session,
             VerifyCheckpoint(

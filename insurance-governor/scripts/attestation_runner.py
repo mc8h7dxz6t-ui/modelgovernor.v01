@@ -13,6 +13,12 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
+SPINE_CORE = ROOT / "governor-spine-core"
+if str(SPINE_CORE) not in sys.path:
+    sys.path.insert(0, str(SPINE_CORE))
+
+from spine_core.chain_verify_assert import assert_chain_verified  # noqa: E402
+
 ARTIFACTS = ROOT / "artifacts" / "reliability" / "insurance-governor"
 
 
@@ -75,8 +81,7 @@ def run_attestation() -> dict[str, Any]:
 
     def verify_chain() -> None:
         result = _get(f"{sidecar}/internal/claims/verify-chain", headers)
-        if not result.get("valid"):
-            raise RuntimeError(f"chain invalid: {result}")
+        assert_chain_verified(result, context="ig verify-chain")
 
     probes.append(_probe("verify_chain", verify_chain))
     probes.append(_probe("anchor_head", lambda: _post(f"{sidecar}/internal/claims/anchor-head", {}, headers)))

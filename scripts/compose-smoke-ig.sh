@@ -62,7 +62,7 @@ curl -sf -X POST http://localhost:8100/governed/commit \
 
 echo "==> verify-chain"
 curl -sf -H "x-internal-token: $TOKEN" http://localhost:8101/internal/claims/verify-chain \
-  | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get('valid') is True, d"
+  | python3 "$ROOT/scripts/chain_verify_assert.py"
 
 echo "==> FNOL Guidewire webhook (live PAS writeback)"
 FNOL_GW=$(curl -sf -X POST http://localhost:8103/claim/fnol/webhook \

@@ -114,6 +114,15 @@ run_step "CG-L4-certification-ci" make -C cybersecurity-governor cg-certificatio
 run_step "CG-property-security-chain" make -C cybersecurity-governor cg-property-test
 
 # --- Portfolio plug (L5 self-check) ---
+run_step "portfolio-il-rubric" \
+  env PYTHONPATH=governor-spine-core python3 -c "
+from pathlib import Path
+from spine_core.il_rubric import evaluate_portfolio, ENGINEERING_CEILING
+r = evaluate_portfolio(Path('.'))
+assert r['portfolio_engineering_score'] >= 7.0
+print(f'IL rubric OK engineering={r[\"portfolio_engineering_score\"]}/{ENGINEERING_CEILING}')
+"
+
 run_step "portfolio-plug-artifact" make plug
 
 # --- Helm K4 retention ---

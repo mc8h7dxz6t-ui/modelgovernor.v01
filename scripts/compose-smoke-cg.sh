@@ -27,6 +27,6 @@ curl -sf -X POST http://localhost:8120/governed/commit \
 
 echo "==> verify-chain"
 curl -sf -H "x-internal-token: $TOKEN" http://localhost:8121/internal/security/verify-chain \
-  | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get('valid') is True, d"
+  | python3 "$ROOT/scripts/chain_verify_assert.py"
 
 echo "compose-smoke-cg OK"
