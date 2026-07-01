@@ -1,0 +1,15 @@
+name: identity_govern
+display_name: IdentityGovern
+default_policy_id: identity-high-us
+default_risk_tier: high
+port: 8124
+required_facet_keys:
+  - principal
+  - workload_sa
+  - identity_decision
+commit_decisions:
+  - VERIFIED
+invariant_counters:
+  - identity_principal_mismatch_total
+  - identity_stale_role_total
+  - identity_verified_total

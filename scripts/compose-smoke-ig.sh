@@ -25,13 +25,9 @@ curl -sf http://localhost:8190/v1/payments -X POST -H 'content-type: application
 }
 
 cd "$IG"
-echo "==> Starting IG spine + ClaimGate..."
+echo "==> Starting IG stack (spine + ClaimGate + demo wedges)..."
 docker compose -f docker-compose.yml -f docker-compose.wave3.yml up -d --build \
-  ig-postgres ig-redis ig-sidecar ig-reconciler ig-gateway ig-claim-gate
-sleep 5
-
-echo "==> Starting IG demo wedges..."
-docker compose -f docker-compose.yml -f docker-compose.wave3.yml up -d --build \
+  ig-postgres ig-redis ig-sidecar ig-reconciler ig-gateway ig-claim-gate \
   ig-spatial-twin ig-subrogation-graph
 
 echo "==> Gateway health (8100)"

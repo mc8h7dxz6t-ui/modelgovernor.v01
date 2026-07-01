@@ -15,10 +15,11 @@ curl -sf "$SIDECAR/readyz" >/dev/null
 curl -sf "$GATEWAY/readyz" -H "x-internal-token: $TOKEN" >/dev/null
 echo "OK  spine ready"
 
+OP_ID="pilot-fg-$(date +%s)"
 RESULT=$(curl -sf -X POST "$GATEWAY/governed/commit" \
   -H "x-internal-token: $TOKEN" \
   -H 'content-type: application/json' \
-  -d '{"platform":"wire_match","operation_id":"pilot-fg-1","facets":{"amount":"100.00","currency":"USD"},"policy_id":"wire-critical-us","reserved_exposure":"50","committed_exposure":"50"}')
+  -d "{\"platform\":\"wire_match\",\"operation_id\":\"$OP_ID\",\"facets\":{\"amount\":\"100.00\",\"currency\":\"USD\"},\"policy_id\":\"wire-critical-us\",\"reserved_exposure\":\"50\",\"committed_exposure\":\"50\"}")
 echo "$RESULT" | python3 -c "import json,sys; d=json.load(sys.stdin); assert d.get('crystal_id'), d"
 echo "OK  governed commit"
 

@@ -8,27 +8,38 @@ source "$ROOT/scripts/compose-smoke-lib.sh"
 cd "$ROOT/finance-governor"
 
 TOKEN="${FG_INTERNAL_TOKENS:-dev-fg-spine-token-change-me}"
+# spine = gateway/sidecar smoke only; wedges = AlgoFreeze/WireMatch (after pilot attestation)
+PHASE="${FG_COMPOSE_SMOKE_PHASE:-all}"
 
-echo "==> Starting FG stack (spine + hero platforms)..."
-docker compose up -d --build \
-  fg-postgres fg-redis fg-sidecar fg-reconciler fg-gateway fg-wirematch fg-algofreeze
+if [[ "$PHASE" == "wedges" ]]; then
+  echo "==> FG wedge smoke (stack already up from spine phase)..."
+else
+  echo "==> Starting FG stack (spine + hero platforms)..."
+  docker compose up -d --build \
+    fg-postgres fg-redis fg-sidecar fg-reconciler fg-gateway fg-wirematch fg-algofreeze
 
-echo "==> Gateway health (8090)"
-wait_for_url http://localhost:8090/readyz
+  echo "==> Gateway health (8090)"
+  wait_for_url http://localhost:8090/readyz
 
-echo "==> Sidecar health (8091)"
-wait_for_url http://localhost:8091/healthz
+  echo "==> Sidecar health (8091)"
+  wait_for_url http://localhost:8091/healthz
 
-echo "==> governed commit"
-curl -sf -X POST http://localhost:8090/governed/commit \
-  -H "x-internal-token: $TOKEN" \
-  -H 'content-type: application/json' \
-  -d '{"platform":"wire_match","operation_id":"smoke-fg-1","facets":{"amount":"100.00"},"policy_id":"wire-critical-us","reserved_exposure":"50","committed_exposure":"50"}' \
-  >/dev/null
+  echo "==> governed commit"
+  curl -sf -X POST http://localhost:8090/governed/commit \
+    -H "x-internal-token: $TOKEN" \
+    -H 'content-type: application/json' \
+    -d '{"platform":"wire_match","operation_id":"smoke-fg-1","facets":{"amount":"100.00"},"policy_id":"wire-critical-us","reserved_exposure":"50","committed_exposure":"50"}' \
+    >/dev/null
 
-echo "==> verify-chain"
-curl -sf -H "x-internal-token: $TOKEN" http://localhost:8091/internal/decisions/verify-chain \
-  | python3 "$ROOT/scripts/chain_verify_assert.py"
+  echo "==> verify-chain"
+  curl -sf -H "x-internal-token: $TOKEN" http://localhost:8091/internal/decisions/verify-chain \
+    | python3 "$ROOT/scripts/chain_verify_assert.py"
+
+  if [[ "$PHASE" == "spine" ]]; then
+    echo "compose-smoke-fg OK (spine phase)"
+    exit 0
+  fi
+fi
 
 echo "==> AlgoFreeze health + version mismatch freeze (8094)"
 wait_for_url http://localhost:8094/healthz
@@ -45,5 +56,10 @@ curl -sf -X POST http://localhost:8093/wire/evaluate \
   -H 'content-type: application/json' \
   -d '{"wire_id":"smoke-wm-1","beneficiary_name":"Wrong Corp","beneficiary_account":"US99","reference":"x","amount":"7800000.00"}' \
   | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get('decision')=='HELD', d"
+
+if [[ "$PHASE" == "wedges" ]]; then
+  echo "compose-smoke-fg OK (wedges phase)"
+  exit 0
+fi
 
 echo "compose-smoke-fg OK"

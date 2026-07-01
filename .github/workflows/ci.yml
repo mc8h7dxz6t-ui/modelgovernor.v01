@@ -894,8 +894,9 @@ jobs:
       - name: FG compose smoke + pilot attestation (8090–8092)
         run: |
           chmod +x scripts/compose-smoke-fg.sh finance-governor/scripts/fg-pilot-attestation.sh finance-governor/scripts/fg_attestation_runner.py
-          make compose-smoke-fg
+          FG_COMPOSE_SMOKE_PHASE=spine make compose-smoke-fg
           ATTESTATION_CI=1 make fg-pilot-attestation
+          FG_COMPOSE_SMOKE_PHASE=wedges make compose-smoke-fg
 
       - name: Tear down FG stack
         if: always()
