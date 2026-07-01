@@ -11,7 +11,9 @@ TOKEN="${IG_INTERNAL_TOKENS:-dev-ig-spine-token-change-me}"
 cleanup() {
   kill "${FEDNOW_PID:-}" "${PAS_PID:-}" 2>/dev/null || true
 }
-trap cleanup EXIT
+if [[ "${IG_COMPOSE_SMOKE_KEEP_MOCKS:-}" != "1" ]]; then
+  trap cleanup EXIT
+fi
 
 echo "==> Starting PAS + FedNow sandbox mocks..."
 python3 "$IG/scripts/mock_fednow_sandbox.py" &
@@ -82,3 +84,6 @@ chmod +x "$ROOT/insurance-governor/scripts/subrogation-graph-demo.sh"
 SUBROGATION_GRAPH_URL=http://localhost:8109 "$ROOT/insurance-governor/scripts/subrogation-graph-demo.sh"
 
 echo "compose-smoke-ig OK"
+if [[ "${IG_COMPOSE_SMOKE_KEEP_MOCKS:-}" == "1" ]]; then
+  trap - EXIT
+fi

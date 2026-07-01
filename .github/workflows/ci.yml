@@ -911,8 +911,10 @@ jobs:
       - name: IG compose smoke + sandbox FNOL/rail + pilot attestation
         run: |
           chmod +x scripts/compose-smoke-ig.sh insurance-governor/scripts/ig-pilot-attestation.sh
-          make compose-smoke-ig
+          IG_COMPOSE_SMOKE_KEEP_MOCKS=1 make compose-smoke-ig
           ATTESTATION_CI=1 make ig-pilot-attestation
+          pkill -f mock_fednow_sandbox.py 2>/dev/null || true
+          pkill -f mock_pas_writeback_sandbox.py 2>/dev/null || true
 
       - name: Tear down IG stack
         if: always()
