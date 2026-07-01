@@ -16,7 +16,7 @@ reconciler:
   replicas: 2
 
 postgres:
-  enabled: true
+  enabled: false  # use values-rds.yaml for managed Postgres in production
 
 redis:
   enabled: false
@@ -34,10 +34,15 @@ secrets:
 config:
   oidcEnabled: "true"
   gatewayOidcEnabled: "true"
+  oidcAllowInternalTokenFallback: "false"
   ledgerAnchorS3ObjectLockEnabled: "true"
 
 syntheticProbe:
   enabled: true
+
+# Image tags: use promotion overlay from CI image-promotion workflow:
+#   helm upgrade ... -f values-production.yaml \
+#     -f artifacts/image-promotion/modelgovernor-production-images.yaml
 
 enterprise:
   istio:

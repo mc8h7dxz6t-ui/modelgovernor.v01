@@ -60,19 +60,7 @@ class SecurityChainVerificationResult:
         return payload
 
 
-def _normalize_metadata(metadata: Any) -> dict[str, Any]:
-    if metadata is None:
-        return {}
-    if isinstance(metadata, dict):
-        return metadata
-    if isinstance(metadata, str):
-        try:
-            parsed = json.loads(metadata)
-        except json.JSONDecodeError:
-            return {}
-        if isinstance(parsed, dict):
-            return parsed
-    return {}
+from spine_core.metadata import normalize_metadata as _normalize_metadata
 
 
 def compute_row_hash(
@@ -108,7 +96,17 @@ def compute_row_hash(
 def head_hash(session: Session) -> str | None:
     if not schema_supports_security_seal(session):
         return None
-    row = session.execute(text(f"SELECT row_hash FROM {EVENTS_TABLE} ORDER BY event_id DESC LIMIT 1")).first()
+    row = session.execute(
+        text(
+            f"""
+            SELECT row_hash FROM {EVENTS_TABLE}
+            WHERE row_hash IS NOT NULL AND row_hash != :genesis
+            ORDER BY event_id DESC
+            LIMIT 1
+            """
+        ),
+        {"genesis": GENESIS_HASH},
+    ).first()
     return row[0] if row else None
 
 
@@ -131,17 +129,75 @@ def schema_supports_security_seal(session: Session) -> bool:
     return False
 
 
+def seal_security_event(
+    session: Session,
+    *,
+    event_id: int,
+    operation_id: str,
+    crystal_id: str | None,
+    account_id: str,
+    event_type: str,
+    reserve_delta: str,
+    metadata: dict[str, Any],
+    recorded_at: str,
+) -> tuple[str, str]:
+    from .currency import quantize_money
+    from decimal import Decimal
+
+    prev_hash = (
+        session.execute(
+            text(
+                f"""
+                SELECT row_hash FROM {EVENTS_TABLE}
+                WHERE row_hash IS NOT NULL AND row_hash != :genesis AND event_id < :eid
+                ORDER BY event_id DESC
+                LIMIT 1
+                """
+            ),
+            {"genesis": GENESIS_HASH, "eid": event_id},
+        ).scalar_one_or_none()
+        or GENESIS_HASH
+    )
+    amount = str(quantize_money(Decimal(reserve_delta)))
+    row_hash = compute_row_hash(
+        event_id=event_id,
+        operation_id=operation_id,
+        crystal_id=crystal_id,
+        account_id=account_id,
+        event_type=event_type,
+        reserve_delta=amount,
+        metadata=metadata,
+        prev_hash=prev_hash,
+        recorded_at=recorded_at,
+    )
+    session.execute(
+        text(
+            f"""
+            UPDATE {EVENTS_TABLE}
+            SET prev_hash = :prev_hash, row_hash = :row_hash
+            WHERE event_id = :event_id
+            """
+        ),
+        {"prev_hash": prev_hash, "row_hash": row_hash, "event_id": event_id},
+    )
+    return prev_hash, row_hash
+
+
 def _fetch_event_rows(session: Session, *, from_event_id: int | None = None) -> list[Any]:
+    dialect = session.bind.dialect.name
+    recorded_col = (
+        "recorded_at::text AS recorded_at" if dialect == "postgresql" else "recorded_at"
+    )
     if from_event_id is None:
         sql = f"""
             SELECT event_id, operation_id, crystal_id, account_id, event_type,
-                   reserve_delta, metadata, prev_hash, row_hash, recorded_at
+                   reserve_delta, metadata, prev_hash, row_hash, {recorded_col}
             FROM {EVENTS_TABLE} ORDER BY event_id ASC
         """
         return session.execute(text(sql)).mappings().all()
     sql = f"""
         SELECT event_id, operation_id, crystal_id, account_id, event_type,
-               reserve_delta, metadata, prev_hash, row_hash, recorded_at
+               reserve_delta, metadata, prev_hash, row_hash, {recorded_col}
         FROM {EVENTS_TABLE}
         WHERE event_id > :from_event_id
         ORDER BY event_id ASC
@@ -182,11 +238,7 @@ def _verify_rows(
             if first_break is None:
                 first_break = SecurityChainBreak(event_id=event_id, reason="prev_hash mismatch")
         meta = _normalize_metadata(row["metadata"])
-        recorded = row["recorded_at"]
-        if hasattr(recorded, "isoformat"):
-            recorded = recorded.isoformat()
-        else:
-            recorded = str(recorded)
+        recorded = str(row["recorded_at"])
         reserve_delta = str(quantize_money(Decimal(str(row["reserve_delta"]))))
         computed = compute_row_hash(
             event_id=event_id,

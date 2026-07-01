@@ -62,7 +62,7 @@ echo "  Sales point: one governance gateway, every LLM supplier — unified ledg
 
 step "4/12  Tamper-evident ledger — hash-chain verification"
 VERIFY=$(curl -fsS "http://localhost:8081/internal/ledger/verify-chain" -H "x-internal-token: $TOKEN" || true)
-if echo "$VERIFY" | grep -q '"valid"'; then
+if echo "$VERIFY" | python3 "$REPO_ROOT/scripts/chain_verify_assert.py" 2>/dev/null; then
   echo "$VERIFY" | python3 -m json.tool 2>/dev/null || echo "$VERIFY"
   echo "  Sales point: SHA-256 hash chain + hourly CronJob + S3 Object Lock anchor (production)"
 else

@@ -65,6 +65,7 @@ def test_decision_chain_detects_tamper(client, spine_db):
         session.commit()
 
     verify = client.get("/internal/decisions/verify-chain", headers=HEADERS)
+    assert verify.status_code == 422
     body = verify.json()
-    assert body["valid"] is False
-    assert body["first_break"] is not None
+    assert body["detail"]["valid"] is False
+    assert body["detail"]["first_break"] is not None

@@ -51,7 +51,7 @@ Financial institutions lose millions annually to preventable failures — human 
 |----------|---------|
 | [spine.md](spine.md) | **Finance Governor spine** — own control plane (gateway/sidecar/reconciler) |
 | [crystal-commit-protocol.md](crystal-commit-protocol.md) | **Unique IP** — Crystal Commit Protocol (CCP) |
-| [desirability.md](desirability.md) | **Why buyers want it** — ROI, personas, GTM, bundle ACV |
+| [desirability.md](desirability.md) | **Why buyers want it** — ROI narratives, personas, GTM, technical bundles |
 | [competitive-landscape.md](competitive-landscape.md) | **Who competes** — per-platform map and tech edge honesty |
 | [institutional-gold-standard.md](institutional-gold-standard.md) | **Industry++ reliability** — SLOs, invariants, testing, regulatory mapping |
 | [platform-model.md](platform-model.md) | Standalone vs spine-connected deployment |

@@ -16,10 +16,10 @@
 
 | Tier | MG | FG | CG | IG | Portfolio |
 |------|----|----|----|----|-----------|
-| **Today** | 7.0 | ~7.0 | ~7.5 | ~6.5 | **6.5** |
+| **Today** | 7.5 | 7.0 | **8.5** | **8.0** | **7.5** |
 | **After Wave 0** (items 1–4) | 7.5 | 7.0 | **8.5** | 6.5 | **7.0** |
-| **After Wave 3** (IG live CI + sandbox) | 7.5 | 7.0 | **8.5** | **8.0** | **7.5** |
-| **After Phase A+B** | 8.5 | 8.5 | 8.5 | 8.0 | **8.5** |
+| **After Wave 1+3** (live CI all governors + K1/K2) | 7.5 | 7.0 | **8.5** | **8.0** | **7.5** |
+| **After Phase A+B** (IL rubric engine + FG hero CI) | **8.5** | **8.5** | **8.5** | **8.5** | **8.5** |
 | **IL 9/10** (+ Phase C each) | 9.0 | 9.0 | 9.0 | 9.0 | **9.0** |
 | **EV 10/10** (+ company) | 10 | 10 | 10 | 10 | **10** |
 
@@ -47,11 +47,56 @@ make mg-certification-l4-ci
 python3 -c "from spine_core.ledger_contract import LedgerSealer; print('K1 OK')"
 ```
 
-**Wave 1 (next):** `compose-smoke-mg`, `mg-pilot-attestation`, `fg-pilot-attestation`, extract seal impl behind `ledger_contract`.
+**Wave 1 (shipped):** `compose-smoke-mg/fg`, `mg/fg-pilot-attestation`, `cg-pilot-attestation` in CI, K1 `ledger_registry`, K2 `portfolio_self_check.json`.
+
+| # | Item | Governor | Deliverable | Status |
+|---|------|----------|-------------|--------|
+| **1** | CG pilot attestation in CI | **CG** | `compose-smoke-cg` → `cg-pilot-attestation` (`ATTESTATION_CI`) | ✅ Shipped |
+| **2** | MG compose smoke + pilot | **MG** | `compose-smoke-mg` + `mg-pilot-attestation` + CI | ✅ Shipped |
+| **3** | FG pilot attestation | **FG** | `compose-smoke-fg` + `fg-pilot-attestation` + CI | ✅ Shipped |
+| **4** | K1 seal conformance | **Kernel** | `spine_core/ledger_registry.py` + tests | ✅ Shipped |
+| **5** | K2 portfolio artifact | **Kernel** | `make plug` → `artifacts/portfolio_self_check.json` | ✅ Shipped |
+
+**Verify Wave 1:**
+
+```bash
+make compose-smoke-mg && ATTESTATION_CI=1 make mg-pilot-attestation
+make compose-smoke-fg && ATTESTATION_CI=1 make fg-pilot-attestation
+make compose-smoke-cg && ATTESTATION_CI=1 make cg-pilot-attestation
+make plug && test -f artifacts/portfolio_self_check.json
+PYTHONPATH=governor-spine-core python3 -m pytest governor-spine-core/tests/test_ledger_conformance.py -q
+```
 
 ---
 
-## Wave 3 — Insurance Governor (IG 6.5 → 8.0 code)
+## Next engineering — Kernel K3/K4 (Wave 2)
+
+All four governors have live CI (Wave 1+3). **Next:** shared kernel items that lift spine from **8.5 → 9.0** code.
+
+| # | Item | Deliverable | Status |
+|---|------|-------------|--------|
+| **K3** | Reconciler sweep hash-seal | Post-sweep events sealed on ledger chain; `unsealed_count == 0` after sweep | ✅ Shipped |
+| **K4** | Retention / partition CronJob | Reads `*_retention_policy` tables; Helm CronJob template | ✅ Shipped |
+| **M1** | Spine consolidation (thin shared modules) | `chain_checkpoint`, `metadata`, `commit_mesh`, `commit_helpers` in `spine_core`; governor shims | ✅ Shipped |
+
+**Verify K3:**
+
+```bash
+PYTHONPATH=governor-spine-core python3 -m pytest governor-spine-core/tests/test_sweep_seal.py -q
+make plug   # portfolio_self_check includes k3_sweep_seal row
+```
+
+**Verify K4 (target):**
+
+```bash
+helm template deploy/helm/modelgovernor | grep -i retention
+```
+
+Phase C (design-partner letters) runs **in parallel** per governor — human gate, not blocked on K3/K4.
+
+---
+
+## Wave 3 — Insurance Governor (IG → 8.0 code) ✅
 
 Longest wedge path; hero = **ClaimGate + IG spine** (not 11 platforms).
 
@@ -72,7 +117,7 @@ PYTHONPATH=insurance-governor python3 -m pytest insurance-governor/tests/test_fn
 make ig-certification-l4-ci   # includes sandbox integration tests
 ```
 
-**Not claimed at 9/10:** SpatialTwin / subrogation wedges stay **6.0** without carrier SOW. IL 9/10 still requires Phase C design-partner evidence.
+**Not claimed at 9/10:** SpatialTwin / SubrogationGraph are **7.5 governed evidence envelopes** with mock vendor connectors — production LiDAR/desk APIs remain carrier SOW. IL 9/10 for IG still requires ClaimGate hero + Phase C design-partner evidence.
 
 ---
 
@@ -122,8 +167,9 @@ Estimated **engineering-only** path to **8.5→9.0** on code: Phase A + B.
 |---|-------------|----------|
 | K1 | **Shared spine Python package** — extract `commit_ledger` / seal / verify interfaces (thin); keep governor-specific tables | Single patch for kernel bugs; acquirer story |
 | K2 | **`governor-spine-core` maturity artifact** — `make plug` emits `artifacts/portfolio_self_check.json` with scores + git SHA | Data room single file |
-| K3 | **Reconciler sweep hash-seal** (MG P2 gap) | Examiner “no unsealed sweeps” |
-| K4 | **Retention / partition CronJob** reads `*_retention_policy` tables | Ops 9/10 credibility |
+| K3 | **Reconciler sweep hash-seal** (MG P2 gap) | Examiner “no unsealed sweeps” — `spine_core.sweep_seal` | ✅ Shipped |
+| K4 | **Retention / partition CronJob** reads `*_retention_policy` tables | Ops 9/10 credibility | ✅ Shipped |
+| M1 | **Spine consolidation** — shared checkpoint, mesh, metadata modules | Single patch surface for CCP boilerplate | ✅ Shipped |
 
 **Verify:** `make plug` + `python -m spine_core.port_checks` + shared package unit tests.
 
@@ -226,7 +272,7 @@ make cg-pilot-attestation
 
 ---
 
-## Insurance Governor (~6.5 → 9.0) — longest wedge path
+## Insurance Governor (8.0 → 9.0) — Phase C remaining
 
 ### Current strengths
 - L4 CI, ClaimGate depth, `ig-full-rehearsal`, mesh rules, 11 platforms in tree.
@@ -239,11 +285,11 @@ make cg-pilot-attestation
 | **A2** | `ig-pilot-attestation.sh` — FNOL ingest → reserve → commit → verify-chain | Parity with CG |
 | **A3** | One **sandbox** FNOL integration (Snapsheet or Guidewire mock server) — not just shape normalizer | Integration test in CI |
 | **A4** | FedNow **sandbox** in CI (not manual `ig-rail-smoke` only) | Payment rail proof |
-| **B1** | SpatialTwin / subrogation — keep **6.0** unless carrier SOW | Honest scoring |
+| **B1** | SpatialTwin / SubrogationGraph — **7.5** governed evidence envelope + mock vendor feed + demo/CI | Honest secondary wedges |
 | **C1** | Carrier design-partner (MGA or Tier-2) + signed PoC letter | External evidence |
 
-### Hero wedge at 9/10
-**ClaimGate + IG spine** — not 11 platforms. Price spine + ClaimGate; wedges are add-ons.
+**Hero wedge at 9/10**
+**ClaimGate + IG spine** — not 11 platforms. Lead with spine + ClaimGate; wedges are add-ons.
 
 ```bash
 make ig-certification-l4-ci
@@ -298,13 +344,13 @@ flowchart LR
 | Governor | Today | After Phase A+B (code) | After Phase C (IL claim) |
 |----------|-------|------------------------|--------------------------|
 | Kernel | 8.5 | **9.0** (with K1–K4) | 9.0 |
-| MG | 7.0 | **8.5** | **9.0** |
-| FG | ~7.0 | **8.5** | **9.0** |
-| CG | ~7.5 | **8.5** | **9.0** |
-| IG | ~6.5 | **8.0** | **9.0** |
-| **Portfolio** | 6.5 | **8.5** | **9.0** |
+| MG | 7.5 | **8.5** | **9.0** |
+| FG | 7.0 | **8.5** | **9.0** |
+| CG | 8.5 | **8.5** | **9.0** |
+| IG | 8.0 | **8.0** | **9.0** |
+| **Portfolio** | 7.5 | **8.5** | **9.0** |
 
-Phase A+B alone gets **8.5 portfolio** — credible **pre-IP sale at premium**.  
+Phase A+B alone gets **8.5 portfolio** — credible engineering ceiling.  
 **9.0 Industry Leading** per governor requires **Phase C** external evidence per [maturity-ladder.md](maturity-ladder.md).
 
 ---
@@ -325,7 +371,7 @@ Phase A+B alone gets **8.5 portfolio** — credible **pre-IP sale at premium**.
 
 ```bash
 # Portfolio
-make plug && test -f artifacts/portfolio_self_check.json   # K2 (future)
+make plug && test -f artifacts/portfolio_self_check.json   # K2
 
 # Per governor L4
 make mg-certification-l4-ci   # A2 MG

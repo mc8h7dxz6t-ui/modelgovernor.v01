@@ -2,6 +2,8 @@
 # Cybersecurity Governor pilot attestation — required: spine, egress_govern, identity_govern, verify-chain
 set -euo pipefail
 
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
 TOKEN="${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}"
 SIDECAR="${CG_SIDECAR_URL:-http://localhost:8121}"
 GATEWAY="${CG_GATEWAY_URL:-http://localhost:8120}"
@@ -34,7 +36,7 @@ curl -sf -X POST "$GATEWAY/governed/commit" \
 echo "OK  governed egress commit"
 
 VERIFY="$(curl -sf -H "x-internal-token: $TOKEN" "$SIDECAR/internal/security/verify-chain")"
-echo "$VERIFY" | python3 -c "import json,sys; d=json.load(sys.stdin); assert d.get('valid') is True, d"
+echo "$VERIFY" | python3 "$ROOT/scripts/chain_verify_assert.py"
 echo "OK  security chain verified"
 
 ANCHOR="$(curl -sf -X POST -H "x-internal-token: $TOKEN" "$SIDECAR/internal/security/anchor-head")"
@@ -62,9 +64,11 @@ if curl -sf http://localhost:8131/healthz >/dev/null 2>&1; then
   echo "OK  ContentGuard evaluate (optional)"
 fi
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 python3 cybersecurity-governor/scripts/attestation_runner.py
-make cg-certification
-python3 cybersecurity-governor/scripts/generate_design_partner_attestation.py
+
+if [[ "${ATTESTATION_CI:-}" != "1" ]]; then
+  make cg-certification
+  python3 cybersecurity-governor/scripts/generate_design_partner_attestation.py
+fi
 echo "==> Pilot attestation complete"

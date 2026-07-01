@@ -22,13 +22,13 @@ cg-stack-down:
 	docker compose down
 
 cg-spine-test:
-	cd .. && PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor python3 -m pytest \
+	cd .. && PYTHONPATH=governor-spine-core:cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor python3 -m pytest \
 	  cybersecurity-governor/tests/ -q \
 	  --ignore=cybersecurity-governor/tests/chaos \
 	  --ignore=cybersecurity-governor/tests/load
 
 cg-property-test:
-	cd .. && PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor python3 -m pytest \
+	cd .. && PYTHONPATH=governor-spine-core:cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor python3 -m pytest \
 	  cybersecurity-governor/tests/test_property_security_chain.py -q
 
 cg-spine-smoke:
@@ -94,7 +94,7 @@ cg-egress-wedge-demo:
 	cd .. && cybersecurity-governor/scripts/cg-egress-wedge-demo.sh
 
 cg-load-test:
-	cd .. && PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor python3 -m pytest cybersecurity-governor/tests/load/test_cg_load_harness.py -q
+	cd .. && PYTHONPATH=governor-spine-core:cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor python3 -m pytest cybersecurity-governor/tests/load/test_cg_load_harness.py -q
 
 cg-certification:
 	cd .. && python3 cybersecurity-governor/scripts/generate_invariant_report.py
@@ -123,7 +123,7 @@ cg-helm-enterprise:
 
 cg-certification-l4-ci:
 	@echo "==> L4 Gold CI gate (artifact presence + runtime enforcement + deploy kit)"
-	cd .. && PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor python3 -m pytest \
+	cd .. && PYTHONPATH=governor-spine-core:cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor python3 -m pytest \
 	  cybersecurity-governor/tests/test_l4_helm_enterprise.py \
 	  cybersecurity-governor/tests/test_l4_artifacts_present.py \
 	  cybersecurity-governor/tests/test_l4_runtime_enforcement.py \
@@ -132,7 +132,8 @@ cg-certification-l4-ci:
 	  cybersecurity-governor/tests/test_security_seal_failclosed.py \
 	  cybersecurity-governor/tests/test_incremental_chain_verify.py \
 	  cybersecurity-governor/tests/test_platform_registry_failclosed.py \
-	  cybersecurity-governor/tests/test_regulatory_export.py -q
+	  cybersecurity-governor/tests/test_regulatory_export.py \
+	  cybersecurity-governor/tests/test_concurrent_security_append.py -q
 	@$(MAKE) cg-helm-enterprise > /dev/null
 	@echo "cg-certification-l4-ci complete"
 
@@ -142,7 +143,7 @@ cg-certification-l4:
 	@echo "==> L4 Helm enterprise render"
 	@$(MAKE) cg-helm-enterprise > /dev/null
 	@echo "==> L4 Helm enterprise + runtime tests"
-	cd .. && PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor python3 -m pytest \
+	cd .. && PYTHONPATH=governor-spine-core:cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor python3 -m pytest \
 	  cybersecurity-governor/tests/test_l4_helm_enterprise.py \
 	  cybersecurity-governor/tests/test_l4_artifacts_present.py \
 	  cybersecurity-governor/tests/test_l4_runtime_enforcement.py -q
@@ -150,7 +151,7 @@ cg-certification-l4:
 	@echo "cg-certification-l4 complete (L4 Gold)"
 
 cg-platform-conformance:
-	cd .. && PYTHONPATH=cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor python3 -m pytest \
+	cd .. && PYTHONPATH=governor-spine-core:cybersecurity-governor/spine/sidecar:cybersecurity-governor/tests:cybersecurity-governor python3 -m pytest \
 	  cybersecurity-governor/tests/test_platform_sdk.py \
 	  cybersecurity-governor/tests/test_platform_invariant_counters.py \
 	  cybersecurity-governor/tests/test_cyber_platforms.py \
@@ -159,7 +160,7 @@ cg-platform-conformance:
 cg-chaos-test:
 	cd .. && POSTGRES_TEST_URL=postgresql+psycopg://postgres:postgres@localhost:5436/cg_chaos \
 	  TOXIPROXY_API=http://localhost:8475 \
-	  PYTHONPATH=cybersecurity-governor/spine/sidecar \
+	  PYTHONPATH=governor-spine-core:cybersecurity-governor/spine/sidecar \
 	  python3 -m pytest cybersecurity-governor/tests/chaos/test_toxiproxy_security_ops.py -q
 
 cg-ha-up:

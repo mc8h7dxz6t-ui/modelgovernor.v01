@@ -68,3 +68,11 @@ DOMAIN_REGISTRY: dict[GovernorDomain, TableSchemaConfig] = {
 }
 
 MATURITY_LABEL = "L5 Institutional Self-Check Certified"
+
+# Distinct from reconciler leader keys — one chain lock per governor domain.
+CHAIN_APPEND_LOCK_KEYS: dict[GovernorDomain, int] = {
+    GovernorDomain.MODEL: 0x4D474F565F434841,  # MGOV_CHA
+    GovernorDomain.FINANCE: 0x46475F434841,  # FG_CHA
+    GovernorDomain.INSURANCE: 0x49475F434841,  # IG_CHA
+    GovernorDomain.CYBER: 0x43475F434841,  # CG_CHA
+}

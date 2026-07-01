@@ -1,0 +1,33 @@
+{{- if .Values.ledgerRetention.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ledger-retention
+  namespace: {{ include "modelgovernor.namespace" . }}
+  labels:
+    {{- include "modelgovernor.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  schedule: {{ .Values.ledgerRetention.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: retention
+              image: {{ .Values.images.sidecar.repository }}:{{ .Values.images.sidecar.tag }}
+              imagePullPolicy: {{ .Values.images.sidecar.pullPolicy }}
+              env:
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "modelgovernor.secretName" . }}
+                      key: database-url-direct
+              command: ["python", "-m", "spine_core.retention_cli"]
+              args: ["--domain", "MODEL"]
+{{- end }}

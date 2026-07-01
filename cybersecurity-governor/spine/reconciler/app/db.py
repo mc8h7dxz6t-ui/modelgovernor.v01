@@ -31,5 +31,8 @@ def get_db_session() -> Session:
     session = _SessionLocal()
     try:
         yield session
+    except Exception:
+        session.rollback()
+        raise
     finally:
         session.close()

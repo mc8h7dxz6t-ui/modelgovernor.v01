@@ -7,14 +7,7 @@ import secrets
 from dataclasses import dataclass
 from typing import Any
 
-
-@dataclass(frozen=True)
-class ClaimCommitment:
-    commitment_id: str
-    claim_id: str
-    commitment_hash: str
-    salt: str
-    fact_count: int
+from platforms.common.persistence.commitment_types import ClaimCommitment
 
 
 @dataclass(frozen=True)

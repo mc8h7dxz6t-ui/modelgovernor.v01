@@ -79,19 +79,7 @@ def schema_supports_ledger_seal(session: Session) -> bool:
     return False
 
 
-def _normalize_metadata(metadata: Any) -> dict[str, Any]:
-    if metadata is None:
-        return {}
-    if isinstance(metadata, dict):
-        return metadata
-    if isinstance(metadata, str):
-        try:
-            parsed = json.loads(metadata)
-        except json.JSONDecodeError:
-            return {}
-        if isinstance(parsed, dict):
-            return parsed
-    return {}
+from spine_core.metadata import normalize_metadata as _normalize_metadata
 
 
 def compute_row_hash(
@@ -105,6 +93,7 @@ def compute_row_hash(
     recorded_at: str,
     prev_hash: str,
 ) -> str:
+    metadata = _normalize_metadata(metadata)
     payload = json.dumps(
         {
             "event_id": event_id,
@@ -133,16 +122,20 @@ def seal_ledger_event(
     metadata: dict[str, Any],
     recorded_at: str,
 ) -> tuple[str, str]:
-    prev_hash = session.execute(
-        text(
-            """
-            SELECT row_hash FROM ledger_events
-            WHERE row_hash IS NOT NULL
-            ORDER BY event_id DESC
-            LIMIT 1
-            """
-        )
-    ).scalar_one_or_none() or GENESIS_HASH
+    prev_hash = (
+        session.execute(
+            text(
+                f"""
+                SELECT row_hash FROM {EVENTS_TABLE}
+                WHERE row_hash IS NOT NULL AND row_hash != :genesis AND event_id < :eid
+                ORDER BY event_id DESC
+                LIMIT 1
+                """
+            ),
+            {"genesis": GENESIS_HASH, "eid": event_id},
+        ).scalar_one_or_none()
+        or GENESIS_HASH
+    )
 
     row_hash = compute_row_hash(
         event_id=event_id,
@@ -171,7 +164,15 @@ def head_hash(session: Session) -> str | None:
     if not schema_supports_ledger_seal(session):
         return None
     row = session.execute(
-        text(f"SELECT row_hash FROM {EVENTS_TABLE} WHERE row_hash IS NOT NULL ORDER BY event_id DESC LIMIT 1")
+        text(
+            f"""
+            SELECT row_hash FROM {EVENTS_TABLE}
+            WHERE row_hash IS NOT NULL AND row_hash != :genesis
+            ORDER BY event_id DESC
+            LIMIT 1
+            """
+        ),
+        {"genesis": GENESIS_HASH},
     ).first()
     return row[0] if row else None
 
@@ -206,6 +207,10 @@ def _verify_ledger_rows(
     else:
         last_sealed_hash = GENESIS_HASH
 
+    dialect = session.bind.dialect.name
+    recorded_col = (
+        "recorded_at::text AS recorded_at" if dialect == "postgresql" else "recorded_at"
+    )
     where_clause = "WHERE event_id > :from_event_id" if from_event_id > 0 else ""
     rows = session.execute(
         text(
@@ -217,7 +222,7 @@ def _verify_ledger_rows(
                 event_type,
                 amount_delta,
                 metadata,
-                recorded_at,
+                {recorded_col},
                 prev_hash,
                 row_hash
             FROM {EVENTS_TABLE}
@@ -285,7 +290,7 @@ def _verify_ledger_rows(
         head = row_hash
 
     return _LedgerVerifyState(
-        valid=first_break is None,
+        valid=first_break is None and unsealed_count == 0,
         sealed_count=sealed_count,
         unsealed_count=unsealed_count,
         head_hash=head,
@@ -304,11 +309,12 @@ def verify_ledger_chain(
 
     if not schema_supports_ledger_seal(verify_session):
         return LedgerChainVerificationResult(
-            valid=True,
+            valid=False,
             sealed_count=0,
             unsealed_count=0,
             total_events=0,
             head_hash=None,
+            first_break=LedgerChainBreak(event_id=0, reason="seal_schema_unavailable"),
         )
 
     total_events = count_events(verify_session, EVENTS_TABLE)
@@ -323,7 +329,7 @@ def verify_ledger_chain(
     if incremental and checkpoints_enabled:
         checkpoint = load_checkpoint(verify_session, CHECKPOINT_TABLE)
         if checkpoint and current_head and checkpoint.verified_head_hash == current_head:
-            if total_events == checkpoint.total_events:
+            if total_events == checkpoint.total_events and checkpoint.sealed_count == total_events:
                 return LedgerChainVerificationResult(
                     valid=True,
                     sealed_count=checkpoint.sealed_count,
@@ -339,7 +345,7 @@ def verify_ledger_chain(
                 from_event_id=checkpoint.last_verified_event_id,
                 prior_sealed=checkpoint.sealed_count,
             )
-            if tail_result.valid and tail_result.head_hash:
+            if tail_result.valid and tail_result.head_hash and tail_result.unsealed_count == 0:
                 _persist_checkpoint(
                     session,
                     VerifyCheckpoint(
@@ -368,7 +374,7 @@ def verify_ledger_chain(
         first_break=full.first_break,
         incremental=False,
     )
-    if result.valid and incremental and checkpoints_enabled and result.head_hash:
+    if result.valid and incremental and checkpoints_enabled and result.head_hash and result.unsealed_count == 0:
         _persist_checkpoint(
             session,
             VerifyCheckpoint(

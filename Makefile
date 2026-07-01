@@ -1,7 +1,9 @@
 .PHONY: demo-up demo-down demo-reset demo-smoke demo-drift-lock demo-status demo-ledger demo-events \
 	demo-gold-up demo-gold demo-gold-reliability demo-gold-down demo-gold-reset demo-gold-diagnose \
 	demo-all demo-all-platforms demo-all-platforms-live demo-all-platforms-manifests demo-all-platforms-proof \
-	demo-prereqs demo-prereqs-install proof-test load-test plug salvage-verify compose-smoke-cg compose-smoke-ig \
+	demo-prereqs demo-prereqs-install proof-test load-test plug salvage-verify \
+	compose-smoke-cg compose-smoke-mg compose-smoke-fg compose-smoke-ig \
+	mg-pilot-attestation fg-pilot-attestation \
 	fg-spine-up fg-stack-up fg-spine-down fg-stack-down fg-spine-test fg-spine-smoke \
 	crystal-demo algofreeze-demo wirematch-demo fg-certification \
 	fg-demo-up fg-demo-down fg-demo-gold fg-integration-test fg-load-smoke \
@@ -16,7 +18,8 @@
 	egress-govern-demo cg-demo cg-security-demo cg-egress-wedge-demo posture-reconcile-demo content-guard-demo \
 	cg-certification cg-certification-strict cg-certification-l4 cg-certification-l4-ci \
 	cg-helm-enterprise cg-platform-conformance cg-load-test cg-examiner-evidence cg-pilot-attestation \
-	mg-certification-l4 mg-certification-l4-ci
+	mg-certification-l4 mg-certification-l4-ci \
+	promote-images promote-images-dry-run promote-images-scan
 
 demo-prereqs:
 	./scripts/install-demo-prereqs.sh --check-only
@@ -280,8 +283,9 @@ cg-test-deps:
 
 mg-certification-l4-ci:
 	@echo "==> MG L4 Gold CI gate"
-	python3 -m pytest tests/test_l4_certification.py \
+	PYTHONPATH=governor-spine-core:. python3 -m pytest tests/test_l4_certification.py \
 	  tests/integration/test_property_ledger.py \
+	  tests/test_concurrent_ledger_append.py \
 	  tests/programs/finance_ops_finals/test_reconciler_leader_election.py \
 	  tests/programs/finance_ops_finals/test_finance_ops_finals.py -q
 	helm template mg deploy/helm/modelgovernor --set secrets.create=true \
@@ -310,10 +314,37 @@ plug salvage-verify:
 	chmod +x scripts/run-salvage-verification.sh
 	./scripts/run-salvage-verification.sh
 
+promote-images-dry-run:
+	chmod +x scripts/promote-images.sh
+	./scripts/promote-images.sh $(or $(GOV),mg) --environment $(or $(ENV),staging) --dry-run
+
+promote-images-scan:
+	chmod +x scripts/promote-images.sh
+	./scripts/promote-images.sh $(or $(GOV),mg) --environment $(or $(ENV),staging) --scan --dry-run
+
+promote-images:
+	chmod +x scripts/promote-images.sh
+	./scripts/promote-images.sh $(or $(GOV),mg) --environment $(or $(ENV),staging) $(if $(PUSH),--push,)
+
 compose-smoke-cg:
 	chmod +x scripts/compose-smoke-cg.sh
 	./scripts/compose-smoke-cg.sh
 
+compose-smoke-mg:
+	chmod +x scripts/compose-smoke-mg.sh
+	./scripts/compose-smoke-mg.sh
+
+compose-smoke-fg:
+	chmod +x scripts/compose-smoke-fg.sh
+	./scripts/compose-smoke-fg.sh
+
 compose-smoke-ig:
 	chmod +x scripts/compose-smoke-ig.sh
 	./scripts/compose-smoke-ig.sh
+
+mg-pilot-attestation:
+	chmod +x scripts/mg-pilot-attestation.sh scripts/mg_attestation_runner.py
+	./scripts/mg-pilot-attestation.sh
+
+fg-pilot-attestation:
+	$(MAKE) -C finance-governor fg-pilot-attestation

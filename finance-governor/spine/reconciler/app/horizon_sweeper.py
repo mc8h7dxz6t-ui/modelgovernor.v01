@@ -114,8 +114,8 @@ def sweep_expired_horizons(session: Session, batch_size: int = 100) -> int:
                 crystal_id=row["crystal_id"],
                 account_id=row["account_id"],
                 event_type="HORIZON_EXPIRED",
-                exposure_delta=Decimal("0"),
-                metadata={"reason": "horizon_sweep", "refunded": str(reserved)},
+                exposure_delta=Decimal(str(reserved)),
+                metadata={"reason": "horizon_sweep"},
             )
             if get_counters:
                 get_counters().increment("reconciler_expired_total")

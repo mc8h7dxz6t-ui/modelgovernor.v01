@@ -18,6 +18,7 @@ def verify_chain(_: AuthContext = Depends(require_internal_auth)) -> dict:
         result = verify_decision_chain(write_session, incremental=True, read_session=read_session)
         if not result.valid:
             get_counters().increment("ledger_chain_verification_failed_total")
+            raise HTTPException(status_code=422, detail=result.to_dict())
         return result.to_dict()
 
 

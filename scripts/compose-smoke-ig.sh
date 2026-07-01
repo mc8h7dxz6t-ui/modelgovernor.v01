@@ -4,12 +4,16 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 IG="$ROOT/insurance-governor"
+# shellcheck source=compose-smoke-lib.sh
+source "$ROOT/scripts/compose-smoke-lib.sh"
 TOKEN="${IG_INTERNAL_TOKENS:-dev-ig-spine-token-change-me}"
 
 cleanup() {
   kill "${FEDNOW_PID:-}" "${PAS_PID:-}" 2>/dev/null || true
 }
-trap cleanup EXIT
+if [[ "${IG_COMPOSE_SMOKE_KEEP_MOCKS:-}" != "1" ]]; then
+  trap cleanup EXIT
+fi
 
 echo "==> Starting PAS + FedNow sandbox mocks..."
 python3 "$IG/scripts/mock_fednow_sandbox.py" &
@@ -23,18 +27,21 @@ curl -sf http://localhost:8190/v1/payments -X POST -H 'content-type: application
 }
 
 cd "$IG"
-echo "==> Starting IG stack (spine + ClaimGate)..."
+echo "==> Starting IG stack (spine + ClaimGate + demo wedges)..."
 docker compose -f docker-compose.yml -f docker-compose.wave3.yml up -d --build \
-  ig-postgres ig-redis ig-sidecar ig-reconciler ig-gateway ig-claim-gate
-sleep 10
+  ig-postgres ig-redis ig-sidecar ig-reconciler ig-gateway ig-claim-gate \
+  ig-spatial-twin ig-subrogation-graph
 
 echo "==> Gateway health (8100)"
+wait_for_url http://localhost:8100/readyz
 curl -sf http://localhost:8100/readyz
 
 echo "==> Sidecar health (8101)"
+wait_for_url http://localhost:8101/readyz
 curl -sf http://localhost:8101/readyz
 
 echo "==> ClaimGate health (8103)"
+wait_for_url http://localhost:8103/healthz 60
 curl -sf http://localhost:8103/healthz
 
 echo "==> governed commit"
@@ -45,7 +52,7 @@ curl -sf -X POST http://localhost:8100/governed/commit \
 
 echo "==> verify-chain"
 curl -sf -H "x-internal-token: $TOKEN" http://localhost:8101/internal/claims/verify-chain \
-  | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get('valid') is True, d"
+  | python3 "$ROOT/scripts/chain_verify_assert.py"
 
 echo "==> FNOL Guidewire webhook (live PAS writeback)"
 FNOL_GW=$(curl -sf -X POST http://localhost:8103/claim/fnol/webhook \
@@ -68,4 +75,15 @@ RAIL=$(curl -sf -X POST http://localhost:8103/claim/evaluate \
   -d '{"claim_id":"smoke-rail-1","payout_amount":"100.00","policy_number":"POL-AUTO-001","idempotency_key":"smoke-rail-1","payee_id":"sandbox-payee"}')
 echo "$RAIL" | python3 -c "import json,sys; d=json.load(sys.stdin); assert d.get('payment_status')=='COMPLETED', d; assert str(d.get('payment_id','')).startswith('pay_') or d.get('payment_id'), d"
 
+echo "==> SpatialTwin demo wedge"
+chmod +x "$ROOT/insurance-governor/scripts/spatial-twin-demo.sh"
+SPATIAL_TWIN_URL=http://localhost:8107 "$ROOT/insurance-governor/scripts/spatial-twin-demo.sh"
+
+echo "==> SubrogationGraph demo wedge"
+chmod +x "$ROOT/insurance-governor/scripts/subrogation-graph-demo.sh"
+SUBROGATION_GRAPH_URL=http://localhost:8109 "$ROOT/insurance-governor/scripts/subrogation-graph-demo.sh"
+
 echo "compose-smoke-ig OK"
+if [[ "${IG_COMPOSE_SMOKE_KEEP_MOCKS:-}" == "1" ]]; then
+  trap - EXIT
+fi

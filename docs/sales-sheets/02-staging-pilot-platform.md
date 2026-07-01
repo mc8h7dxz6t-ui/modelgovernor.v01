@@ -14,8 +14,7 @@ Kubernetes deployment for **60–90 day pilots** inside the buyer's VPC. Connect
 | **Target buyer** | Platform engineering, FinOps, AI COE with K8s mandate |
 | **Sales motion** | Paid POC after demo; success criteria → production contract |
 | **Time to live** | 1–2 weeks (cluster + secrets + IdP optional) |
-| **Suggested ACV (list)** | **$120K–$250K / year** (pilot) · **$40K–$80K** one-time implement |
-| **Pre-revenue asset worth** | **$400K–$800K** |
+| **Maturity tier** | **L4 pilot** — live provider path in buyer VPC |
 
 ---
 
@@ -134,20 +133,14 @@ kustomize build deploy/overlays/staging | kubectl apply --dry-run=client -f -
 
 ### Suggested pilot SOW (12 weeks)
 
+### Pilot success criteria
+
 | Phase | Weeks | Deliverable |
 |---|---|---|
 | Deploy | 1–2 | Staging overlay in buyer VPC |
 | Integrate | 3–6 | 1–3 apps on `POST /governed/dispatch` |
 | Observe | 7–10 | SLO dashboard, drift drills |
 | Decision | 11–12 | Production proposal (Platform C) |
-
-### Pricing guidance (pre-revenue list)
-
-| Line item | Range |
-|---|---|
-| Annual platform license (pilot tier) | $120K–$250K |
-| Implementation / PS | $40K–$80K one-time |
-| Support (business hours) | 15–20% of license |
 
 ### What's not included (upsell to C or D)
 
@@ -158,15 +151,14 @@ kustomize build deploy/overlays/staging | kubectl apply --dry-run=client -f -
 
 ---
 
-## Pre-revenue worth
+## Maturity proof
 
-| Component | Estimate |
+| Component | Verified by |
 |---|---|
-| Staging Kustomize + Helm values | $80K–$140K |
-| Live provider router (3 providers) | $120K–$200K |
-| ESO integration templates | $40K–$70K |
-| Pilot runbooks + test coverage | $80K–$150K |
-| **Total asset worth** | **$400K–$800K** |
+| Staging Kustomize + Helm values | `deploy/overlays/staging/` |
+| Live provider router (3 providers) | `PROVIDER_MODE=live` smoke |
+| ESO integration templates | ExternalSecrets manifests |
+| Pilot runbooks + test coverage | `make mg-certification-l4-ci` |
 
 ---
 

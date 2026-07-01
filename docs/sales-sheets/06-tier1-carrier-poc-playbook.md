@@ -215,13 +215,15 @@ R = Responsible · A = Accountable · C = Consulted · I = Informed
 
 ---
 
-## Conversion pricing (illustrative post-PoC)
+## Conversion paths (post-PoC)
 
-| Path | Year 1 | Notes |
-|------|--------|-------|
-| Design-partner `DP` | £45K–£90K | Staging, single entity, attestation included |
-| Production `SUB-VPC` | £180K–£320K | Spine + ClaimGate + 1 wedge |
-| Perpetual `PERP-VPC` | £350K–£550K | + 15% Yr2 maintenance |
+| Path | Scope | Notes |
+|------|-------|-------|
+| Design-partner `DP` | Staging, single entity, attestation included | 12-month pilot |
+| Production `SUB-VPC` | Spine + ClaimGate + 1 wedge | Buyer VPC |
+| Perpetual `PERP-VPC` | Full IP grant + maintenance SOW | Acquirer path |
+
+*Commercial terms scoped outside repo.*
 
 ---
 

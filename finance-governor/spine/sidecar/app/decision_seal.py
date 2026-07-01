@@ -62,6 +62,9 @@ class DecisionChainVerificationResult:
         return payload
 
 
+from spine_core.metadata import normalize_metadata as _normalize_metadata
+
+
 def compute_row_hash(
     *,
     event_id: int,
@@ -74,6 +77,7 @@ def compute_row_hash(
     prev_hash: str,
     recorded_at: str,
 ) -> str:
+    metadata = _normalize_metadata(metadata)
     body = json.dumps(
         {
             "event_id": event_id,
@@ -105,21 +109,6 @@ def head_hash(session: Session) -> str | None:
         {"genesis": GENESIS_HASH},
     ).first()
     return row[0] if row else None
-
-
-def _normalize_metadata(metadata: Any) -> dict[str, Any]:
-    if metadata is None:
-        return {}
-    if isinstance(metadata, dict):
-        return metadata
-    if isinstance(metadata, str):
-        try:
-            parsed = json.loads(metadata)
-        except json.JSONDecodeError:
-            return {}
-        if isinstance(parsed, dict):
-            return parsed
-    return {}
 
 
 def schema_supports_decision_seal(session: Session) -> bool:
@@ -192,6 +181,31 @@ def seal_decision_event(
 
 
 def append_decision_event(
+    session: Session,
+    *,
+    operation_id: str,
+    crystal_id: str | None,
+    account_id: str,
+    event_type: str,
+    exposure_delta: Decimal,
+    metadata: dict[str, Any],
+) -> int:
+    from spine_core.chain_advisory_lock import chain_append_lock
+    from spine_core.config import CHAIN_APPEND_LOCK_KEYS, GovernorDomain
+
+    with chain_append_lock(session, lock_key=CHAIN_APPEND_LOCK_KEYS[GovernorDomain.FINANCE]):
+        return _append_decision_event_locked(
+            session,
+            operation_id=operation_id,
+            crystal_id=crystal_id,
+            account_id=account_id,
+            event_type=event_type,
+            exposure_delta=exposure_delta,
+            metadata=metadata,
+        )
+
+
+def _append_decision_event_locked(
     session: Session,
     *,
     operation_id: str,
@@ -292,7 +306,7 @@ def verify_decision_chain(
     if incremental and checkpoints_enabled:
         checkpoint = load_checkpoint(verify_session, CHECKPOINT_TABLE)
         if checkpoint and current_head and checkpoint.verified_head_hash == current_head:
-            if total_events == checkpoint.total_events:
+            if total_events == checkpoint.total_events and checkpoint.sealed_count == total_events:
                 return DecisionChainVerificationResult(
                     valid=True,
                     sealed_count=checkpoint.sealed_count,
@@ -308,7 +322,7 @@ def verify_decision_chain(
                 from_event_id=checkpoint.last_verified_event_id,
                 prior_sealed=checkpoint.sealed_count,
             )
-            if tail_result.valid and tail_result.head_hash:
+            if tail_result.valid and tail_result.head_hash and tail_result.unsealed_count == 0:
                 _persist_checkpoint(
                     session,
                     VerifyCheckpoint(
@@ -337,7 +351,7 @@ def verify_decision_chain(
         first_break=full.first_break,
         incremental=False,
     )
-    if result.valid and incremental and checkpoints_enabled and result.head_hash:
+    if result.valid and incremental and checkpoints_enabled and result.head_hash and result.unsealed_count == 0:
         _persist_checkpoint(
             session,
             VerifyCheckpoint(
@@ -467,7 +481,7 @@ def _verify_decision_rows(
         head = row_hash
 
     return _DecisionVerifyState(
-        valid=first_break is None,
+        valid=first_break is None and unsealed_count == 0,
         sealed_count=sealed_count,
         unsealed_count=unsealed_count,
         head_hash=head,

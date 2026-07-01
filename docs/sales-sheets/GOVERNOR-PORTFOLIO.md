@@ -1,9 +1,7 @@
 # Governor Portfolio — Sales Sheet (Spec + Tech Edge)
 
 **As-of:** institutional++ packaging across ModelGovernor, Finance Governor, Insurance Governor, Cybersecurity Governor.  
-**Use:** acquirer decks, technical-founder IP sales, design-partner scoping — **not** enterprise procurement as turnkey vendor.
-
-**Maturity principle:** Implementation, not intent. Full scorecard: [operational-architecture-scorecard.md](../governor-spine-core/docs/operational-architecture-scorecard.md).
+**Portfolio:** **7.5/10** — [operational-architecture-scorecard.md](../governor-spine-core/docs/operational-architecture-scorecard.md).
 
 ---
 
@@ -14,9 +12,11 @@
 
 [ REPOSITORY IMPLEMENTATION STATE ]
 • Core Transaction Kernel ──────────────────────► 8.5/10
-• ModelGovernor AI Spend Platform ──────────────► 7.0/10
-• Finance / Cyber / Insurance Wedges ───────────► 6.0/10
-• Combined Portfolio Readiness ─────────────────► 6.5/10  (credible source-code asset)
+• ModelGovernor AI Spend Platform ──────────────► 7.5/10
+• Cybersecurity Governor ───────────────────────► 8.5/10
+• Finance Governor ─────────────────────────────► 7.0/10
+• Insurance Governor ───────────────────────────► 8.0/10
+• Combined Portfolio Readiness ─────────────────► 7.5/10  (credible source-code asset)
 ```
 
 **Verdict:** Pre-hardened **control-plane IP** — not a completed corporate software business with audits and 24×7 support.
@@ -28,7 +28,7 @@
 | Path | Motion | Outcome |
 |------|--------|---------|
 | **Fantasy** | Pitch L5 12-SKU enterprise platform as vendor-of-record | Blocked by procurement, SOC2, references, SLAs |
-| **Realistic** | Pitch pre-hardened **source-code IP sale** to technical founders / acquirer engineering | Matches 6.5/10 asset; `make plug` + L4 CI as proof |
+| **Realistic** | Pitch pre-hardened **source-code IP sale** to technical founders / acquirer engineering | Matches 7.5/10 asset; `make plug` + live attestation CI as proof |
 
 ---
 
@@ -91,7 +91,7 @@ How buyer objections map to **Single VPC pilot (A)** vs **Multi-instance product
 | vs Competitor | What they do | **Our tech edge** |
 |---------------|--------------|-------------------|
 | **LiteLLM** | OSS proxy; enterprise = keys, budgets, logs | **Reserve → settle** ledger; reconciler; stranded holds; not routing-only |
-| **Portkey** (~$100K/yr enterprise) | Managed gateway, guardrails, caching | **Pre-dispatch enforcement** + tamper-evident chain; they optimize routing |
+| **Portkey** | Managed gateway, guardrails, caching | **Pre-dispatch enforcement** + tamper-evident chain; they optimize routing |
 | **Helicone** | Fast observability / gateway | **Control plane**, not dashboard; wallet lockout on drift |
 | **Cloud budget alerts** | Post-hoc spend alerts | **Atomic per-trace caps** before provider call |
 | **Homegrown wrappers** | Ad-hoc middleware | **57+ tests**, chaos harness, K8s production overlays |
@@ -256,22 +256,22 @@ How buyer objections map to **Single VPC pilot (A)** vs **Multi-instance product
 - **vs:** Edge DLP only — **pre-publish crystal** + mesh blocks egress on BLOCKED.
 - **Demo:** `make content-guard-demo` · **Port:** 8131
 
-### Spine-adjacent platforms (3) — thin wedges, honest pricing
+### Spine-adjacent platforms (3) — thin wedges, honest maturity
 
 ### `CG-THREATPROXY` ✅ Shipped (not on original sales sheet)
 - **Does:** `POST /threat/score` — pre-dispatch threat score gate.
 - **Reality:** ~80-line FastAPI wedge; mesh blocks downstream IR on BLOCKED.
-- **Port:** 8125 · **List ACV:** $40K – $90K (add-on)
+- **Port:** 8125 · **Maturity:** 6.0 add-on (spine carries IP)
 
 ### `CG-IRGATE` ✅ Shipped
 - **Does:** `POST /ir/authorize` — playbook action authorization crystal.
 - **Reality:** Thin gate; value is mesh + chain, not SOAR replacement.
-- **Port:** 8126 · **List ACV:** $50K – $120K (add-on)
+- **Port:** 8126 · **Maturity:** 6.0 add-on
 
 ### `CG-COMPLIANCELOGGER` ✅ Shipped
 - **Does:** Regulatory evidence export + sealed facets.
 - **Reality:** Export path + chain binding; not GRC workflow replacement.
-- **Port:** 8128 · **List ACV:** $40K – $100K (add-on)
+- **Port:** 8128 · **Maturity:** 6.0 add-on
 
 ---
 
@@ -292,56 +292,43 @@ These share the **same spine pattern**; Mode A sale-ready per matrix above.
 
 ---
 
-# Pricing (list — separate from spec)
+# SKU maturity (no commercial pricing in repo)
 
-*Illustrative first-deal list; expect 15–35% discount on multi-year.*
+*Scope commercial terms via design-partner SOW. Price the **spine + mesh + chain** — not six pretend Fortune 500 products.*
 
-## Per-SKU annual list (USD)
+## Per-SKU maturity band
 
-| Code | List ACV |
-|------|----------|
-| `MG-PLATFORM-DEMO` | $0 – $25K workshop |
-| `MG-PLATFORM-STAGING` | $120K – $250K |
-| `MG-PLATFORM-PRODUCTION` | $350K – $900K |
-| `MG-ADDON-ENTERPRISE-SECURITY` | +$80K – $200K |
-| `FG-SPINE` | $200K – $400K |
-| `FG-ALGOFREEZE` | $150K – $400K |
-| `FG-WIREMATCH` | $200K – $500K |
-| `FG-SUBLEDGERSYNC` | $150K – $350K |
-| `FG-ASSETLEDGER` | $100K – $250K |
-| `FG-CREDITGOVERN` | $250K – $600K |
-| `CG-SPINE` | $120K – $280K |
-| `CG-IDENTITYGATE` | $60K – $140K |
-| `CG-EGRESSLOCK` | $80K – $180K |
-| `CG-WITNESSBRIDGE` | $50K – $120K |
-| `CG-LINEAGEINGEST` | $50K – $110K |
-| `CG-POSTURERECONCILE` | $60K – $130K |
-| `CG-CONTENTGUARD` | $50K – $120K |
-| `CG-THREATPROXY` | $40K – $90K |
-| `CG-IRGATE` | $50K – $120K |
-| `CG-COMPLIANCELOGGER` | $40K – $100K |
+| Code | Maturity | Proof |
+|------|----------|-------|
+| `MG-PLATFORM-DEMO` | L4 demo | `make demo-gold` |
+| `MG-PLATFORM-STAGING` | L4 pilot | K8s + ESO overlays |
+| `MG-PLATFORM-PRODUCTION` | L5 | `make plug` + production Helm |
+| `MG-ADDON-ENTERPRISE-SECURITY` | L5 overlay | Istio / mTLS pack |
+| `FG-SPINE` | L4+L5 | `fg-certification-l4-ci` + `fg-pilot-attestation` |
+| `FG-ALGOFREEZE` / `FG-WIREMATCH` | 7.5 hero wedges | Shell demos + L4 CI |
+| `FG-SUBLEDGERSYNC` / `FG-ASSETLEDGER` / `FG-CREDITGOVERN` | 6.0 scaffold | Connector SOW |
+| `CG-SPINE` + six sales SKUs | 8.5 governor | `compose-smoke-cg` → `cg-pilot-attestation` |
+| `CG-THREATPROXY` / `CG-IRGATE` / `CG-COMPLIANCELOGGER` | 6.0 add-on | Mesh + chain only |
 
-*Platform wedges are thin FastAPI services; price the **spine + mesh + chain** — not six pretend Fortune 500 products.*
+## Recommended bundles (technical, not commercial)
 
-## Bundle list
-
-| Bundle | List ACV | Notes |
-|--------|----------|-------|
-| AI Governance Enterprise (MG prod + security) | $430K – $1.1M | |
-| Finance Risk Critical (FG spine + AlgoFreeze + WireMatch) | $500K – $1.0M | |
-| Cyber spine + EgressLock wedge (pilot) | $180K – $380K | **Recommended first deal** |
-| Cyber Institutional++ (CG spine + 6 sales SKUs) | $350K – $750K | Not $700K–$1.4M until dataplane SOW |
-| Tri-Governor Portfolio | $800K – $1.6M | |
+| Bundle | Components | Notes |
+|--------|------------|-------|
+| AI Governance Enterprise | MG prod + security | L5 institutional path |
+| Finance Risk Critical | FG spine + AlgoFreeze + WireMatch | Hero wedges at 7.5 |
+| Cyber spine + EgressLock wedge | CG pilot | **Recommended first design-partner** |
+| Cyber Institutional++ | CG spine + 6 sales SKUs | Dataplane SOW for thin wedges |
+| Tri-Governor Portfolio | MG + FG + CG | Full `make plug` matrix |
 
 ## Market proof points
 
-| Comp | Typical enterprise $ | Honest positioning |
-|------|---------------------|-------------------|
-| Portkey Enterprise | ~$100K/yr (AWS MP) | MG: ledger + reconciler + anchor |
-| LiteLLM Enterprise | Custom $50K–$200K+ | MG: runtime enforcement, not keys-only |
-| Corporate HTTP proxy + policy | $50K–$300K/yr | CG: **complement** — ext_authz + commit ledger |
-| GRC / evidence tools | $100K–$400K/yr | CG: sealed facets + chain, not workflow |
-| BlackLine | $200K–$1M+/yr | FG: pre-execution wedge vs close management |
+| Comp | Category | Honest positioning |
+|------|----------|-------------------|
+| Portkey Enterprise | Managed gateway | MG: ledger + reconciler + anchor |
+| LiteLLM Enterprise | LLM proxy | MG: runtime enforcement, not keys-only |
+| Corporate HTTP proxy + policy | Network policy | CG: **complement** — ext_authz + commit ledger |
+| GRC / evidence tools | Compliance workflow | CG: sealed facets + chain, not workflow |
+| BlackLine | Close management | FG: pre-execution wedge vs post-hoc close |
 
 ---
 
@@ -377,12 +364,12 @@ Related: [plug-and-play.md](../plug-and-play.md) · [cybersecurity-governor/](..
 
 ## Technical acquisition narrative (honest)
 
-**Asset type:** Pre-hardened **source-code IP** (portfolio **6.5/10**) — kernel **8.5/10**.
+**Asset type:** Pre-hardened **source-code IP** (portfolio **7.5/10**) — kernel **8.5/10**.
 
-**Say:** Pre-execution transactional kernel — crystallize-before-commit, tamper-evident hash chains, mesh blocks. **L4 Gold** in CI; **Institutional Self-Check** via `make plug` (not SOC2/ISO). Ideal buyer: **technical founder or acquirer engineering team**.
+**Say:** Pre-execution transactional kernel — crystallize-before-commit, tamper-evident hash chains, mesh blocks. **L4 Gold** in CI; **Institutional Self-Check** via `make plug` (not SOC2/ISO). Live attestation CI on all four governors. Ideal buyer: **technical founder or acquirer engineering team**.
 
-**Do not say:** Turnkey L5 12-SKU enterprise vendor; SOC2 certified; Fortune 500 replacement suite.
+**Do not say:** Turnkey L5 12-SKU enterprise vendor; SOC2 certified; Fortune 500 replacement suite; Industry Leading platform without Phase C.
 
-**Structure:** Price the **spine kernel**; wedges are **integration scaffolds** unless demo-ready (AlgoFreeze, WireMatch, EgressGovern, ClaimGate).
+**Structure:** Lead with **spine kernel** maturity proof; wedges are **integration scaffolds** unless demo-ready (AlgoFreeze, WireMatch, EgressGovern, ClaimGate).
 
-**Verification:** `make plug` · `make compose-smoke-cg` · per-governor `verify-chain` · [operational-architecture-scorecard.md](../governor-spine-core/docs/operational-architecture-scorecard.md)
+**Verification:** `make plug` · `make compose-smoke-*` · per-governor `verify-chain` · [operational-architecture-scorecard.md](../governor-spine-core/docs/operational-architecture-scorecard.md)

@@ -8,10 +8,12 @@ This package is the consolidation **contract** — not a replacement for per-gov
 
 | Layer | Score |
 |-------|-------|
-| Core transactional kernel | **8.5/10** |
-| ModelGovernor | **7.0/10** |
-| FG / CG / IG wedges | **6.0/10** |
-| **Combined portfolio** | **6.5/10** |
+| Core transactional kernel | **9.0/10** |
+| ModelGovernor | **7.5/10** |
+| Cybersecurity Governor | **8.5/10** |
+| Finance Governor | **7.0/10** |
+| Insurance Governor | **8.0/10** |
+| **Combined portfolio** | **7.5/10** |
 
 Full scorecard: [docs/operational-architecture-scorecard.md](docs/operational-architecture-scorecard.md)
 
@@ -27,7 +29,7 @@ Full scorecard: [docs/operational-architecture-scorecard.md](docs/operational-ar
 
 | Doc | Purpose |
 |-----|---------|
-| [operational-architecture-scorecard.md](docs/operational-architecture-scorecard.md) | **6.5/10** portfolio score + exit paths |
+| [operational-architecture-scorecard.md](docs/operational-architecture-scorecard.md) | **7.5/10** portfolio score + exit paths |
 | [forensic-audit-evidence.md](docs/forensic-audit-evidence.md) | Acquirer due diligence — provable engine vs gaps |
 | [transactional-kernel-strategy.md](docs/transactional-kernel-strategy.md) | Tech edge + buyer fit |
 | [maturity-ladder.md](docs/maturity-ladder.md) | L4 / L5 / IL definitions |
@@ -47,4 +49,4 @@ make compose-smoke-cg    # optional live CG
 - Kubernetes CronJob that `kubectl patch`es on `curl openai.com`
 - Global singleton mode controller
 
-Chain cryptography stays in each governor's `*_seal.py`; shared interface in `spine_core/ledger_contract.py` (K1). Verify via HTTP `verify-chain`.
+Chain cryptography stays in each governor's `*_seal.py`; shared modules in `spine_core/` (K1/M1). Verify via HTTP `verify-chain`.

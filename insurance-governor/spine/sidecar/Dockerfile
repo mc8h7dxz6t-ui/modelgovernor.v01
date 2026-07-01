@@ -3,8 +3,9 @@ WORKDIR /app/insurance-governor
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 COPY insurance-governor/spine/sidecar/requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
+COPY governor-spine-core /app/governor-spine-core
 COPY insurance-governor /app/insurance-governor
-ENV PYTHONPATH=/app/insurance-governor/spine/sidecar:/app/insurance-governor
+ENV PYTHONPATH=/app/governor-spine-core:/app/insurance-governor/spine/sidecar:/app/insurance-governor
 WORKDIR /app/insurance-governor/spine/sidecar
 RUN useradd --create-home --uid 1000 igsidecar
 USER igsidecar

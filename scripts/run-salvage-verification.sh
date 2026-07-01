@@ -67,17 +67,31 @@ make -C insurance-governor ig-spine-test
 
 echo "Step 7: ModelGovernor integration suite (Tier 1 parity — failures stop build)..."
 pip install -q -r sidecar/requirements.txt -r reconciler/requirements.txt -r gateway/requirements.txt pytest hypothesis fakeredis 2>/dev/null || true
-PYTHONPATH=. python3 -m pytest "${MG_INTEGRATION_TESTS[@]}" -q
+PYTHONPATH=governor-spine-core:. python3 -m pytest "${MG_INTEGRATION_TESTS[@]}" -q
 
 echo "Step 8: Helm deploy kit render (CG + MG)..."
 make -C cybersecurity-governor cg-helm-enterprise > /dev/null
 helm template mg deploy/helm/modelgovernor --set secrets.create=true \
   --set secrets.postgresPassword=postgres > /dev/null
 
+echo "Step 9: Portfolio maturity artifact (K2)..."
+PYTHONPATH=governor-spine-core python3 -c "from spine_core.portfolio_self_check import write_portfolio_self_check; p=write_portfolio_self_check(); print('OK   wrote', p)"
+
+echo "Step 10: IL rubric path-to-9 evaluation..."
+PYTHONPATH=governor-spine-core python3 -c "
+from pathlib import Path
+from spine_core.il_rubric import evaluate_portfolio, ENGINEERING_CEILING
+r = evaluate_portfolio(Path('.'))
+print(f\"OK   portfolio engineering={r['portfolio_engineering_score']}/{ENGINEERING_CEILING} IL target=9.0\")
+for g, d in r['governors'].items():
+    print(f\"     {g}: eng={d['engineering_score']} rows={d['rubric_rows_green']} gaps={len(d['gaps_to_9'])}\")
+"
+
 echo "=========================================================================="
 echo "  MATURITY PROFILE: L5 Institutional Self-Check Certified"
 echo "  Portfolio readiness: governor-spine-core/docs/operational-architecture-scorecard.md"
+echo "  Artifact: artifacts/portfolio_self_check.json"
 echo "  This run: four-governor pytest matrices + port alignment + Helm render."
 echo "  This is NOT SOC 2, ISO 27001, NHS DTAC, or third-party audit certification."
-echo "  Optional live gate: make compose-smoke-cg (requires Docker)"
+echo "  Optional live gates: make compose-smoke-cg|mg|fg|ig (requires Docker)"
 echo "=========================================================================="

@@ -82,7 +82,7 @@ def reserve_operation(session: Session, settings: Settings, request: ReserveRequ
         )
 
     now = _utcnow()
-    _assert_circuit_closed(request.model)
+    _assert_circuit_closed(request.model, settings)
     identity = (
         attribution.identity_from_reserve(request)
         if attribution and attribution.schema_supports_attribution(session)
@@ -820,83 +820,16 @@ def _append_event(
     amount_delta: Decimal,
     metadata: dict,
 ) -> None:
-    metadata_json = json.dumps(metadata, sort_keys=True)
-    metadata_value = ":metadata"
-    if session.bind.dialect.name == "postgresql":
-        metadata_value = "CAST(:metadata AS JSONB)"
+    from .ledger_events import append_sealed_ledger_event
 
-    session.execute(
-        text(
-            f"""
-            INSERT INTO ledger_events (idempotency_key, user_id, event_type, amount_delta, metadata)
-            VALUES (:idempotency_key, :user_id, :event_type, :amount_delta, {metadata_value})
-            """
-        ),
-        {
-            "idempotency_key": idempotency_key,
-            "user_id": user_id,
-            "event_type": event_type,
-            "amount_delta": _money(amount_delta),
-            "metadata": metadata_json,
-        },
-    )
-    _maybe_seal_event(
+    append_sealed_ledger_event(
         session,
         idempotency_key=idempotency_key,
         user_id=user_id,
         event_type=event_type,
-        amount_delta=_money(amount_delta),
+        amount_delta=amount_delta,
         metadata=metadata,
     )
-
-
-def _maybe_seal_event(
-    session: Session,
-    *,
-    idempotency_key: str,
-    user_id: str,
-    event_type: str,
-    amount_delta: Decimal,
-    metadata: dict,
-) -> None:
-    from . import ledger_seal
-    from .metrics import get_counters
-
-    if not ledger_seal.schema_supports_ledger_seal(session):
-        return
-
-    dialect = session.bind.dialect.name
-    recorded_expr = "recorded_at::text" if dialect == "postgresql" else "recorded_at"
-
-    try:
-        row = session.execute(
-            text(
-                f"""
-                SELECT event_id, {recorded_expr} AS recorded_at
-                FROM ledger_events
-                WHERE idempotency_key = :idempotency_key
-                ORDER BY event_id DESC
-                LIMIT 1
-                """
-            ),
-            {"idempotency_key": idempotency_key},
-        ).mappings().first()
-        if not row:
-            return
-        ledger_seal.seal_ledger_event(
-            session,
-            event_id=int(row["event_id"]),
-            idempotency_key=idempotency_key,
-            user_id=user_id,
-            event_type=event_type,
-            amount_delta=str(amount_delta),
-            metadata=metadata,
-            recorded_at=str(row["recorded_at"]),
-        )
-        get_counters().increment("ledger_event_sealed_total")
-    except Exception as exc:
-        get_counters().increment("ledger_event_seal_failed_total")
-        logger.warning("ledger event seal failed idempotency_key=%s: %s", idempotency_key, exc)
 
 
 def _fingerprint_reserve_request(request: ReserveRequest) -> str:
@@ -961,15 +894,16 @@ def _release_inflight_guardrail(user_id: str) -> None:
         pass
 
 
-def _assert_circuit_closed(provider_key: str) -> None:
-    try:
-        from .circuit_breaker import CircuitOpenError, get_circuit_breaker
+def _assert_circuit_closed(provider_key: str, settings: Settings | None = None) -> None:
+    from .circuit_breaker import CircuitOpenError, ProviderCircuitBreaker, get_circuit_breaker
 
-        get_circuit_breaker().assert_closed(provider_key)
+    breaker = ProviderCircuitBreaker(settings) if settings is not None else get_circuit_breaker()
+    try:
+        breaker.assert_closed(provider_key)
     except CircuitOpenError:
         raise PolicyStateError(f"provider circuit open for {provider_key}") from None
-    except Exception:
-        pass
+    except Exception as exc:
+        raise PolicyStateError(f"circuit breaker unavailable for {provider_key}") from exc
 
 
 def _record_provider_failure(provider_name: str) -> None:

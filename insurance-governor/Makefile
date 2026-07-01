@@ -1,4 +1,4 @@
-.PHONY: ig-spine-up ig-spine-down ig-stack-up ig-stack-down ig-spine-test ig-spine-smoke claim-gate-demo ig-demo ig-certification ig-certification-strict ig-certification-l4 ig-certification-l4-ci ig-helm-enterprise ig-platform-conformance ig-load-test ig-chaos-test ig-ha-up ig-ha-down ig-pilot-attestation ig-cluster-attestation ig-rail-smoke ig-design-partner-package ig-claim-gate-load ig-full-rehearsal ig-embedded-rehearsal ig-examiner-evidence bind-authority-demo parametric-oracle-demo
+.PHONY: ig-spine-up ig-spine-down ig-stack-up ig-stack-down ig-spine-test ig-spine-smoke claim-gate-demo ig-demo ig-certification ig-certification-strict ig-certification-l4 ig-certification-l4-ci ig-helm-enterprise ig-platform-conformance ig-load-test ig-chaos-test ig-ha-up ig-ha-down ig-pilot-attestation ig-cluster-attestation ig-rail-smoke ig-design-partner-package ig-claim-gate-load ig-full-rehearsal ig-embedded-rehearsal ig-examiner-evidence bind-authority-demo parametric-oracle-demo spatial-twin-demo subrogation-graph-demo
 
 ig-spine-up:
 	docker compose -f docker-compose.spine.yml up -d --build
@@ -13,7 +13,7 @@ ig-stack-down:
 	docker compose down
 
 ig-spine-test:
-	cd .. && PYTHONPATH=insurance-governor/spine/sidecar:insurance-governor/tests:insurance-governor python3 -m pytest \
+	cd .. && PYTHONPATH=governor-spine-core:insurance-governor/spine/sidecar:insurance-governor/tests:insurance-governor python3 -m pytest \
 	  insurance-governor/tests/ -q \
 	  --ignore=insurance-governor/tests/chaos \
 	  --ignore=insurance-governor/tests/load \
@@ -47,7 +47,7 @@ claim-gate-demo:
 ig-demo: ig-spine-smoke claim-gate-demo
 
 ig-load-test:
-	cd .. && PYTHONPATH=insurance-governor/spine/sidecar:insurance-governor/tests:insurance-governor python3 -m pytest insurance-governor/tests/load/test_ig_load_harness.py -q
+	cd .. && PYTHONPATH=governor-spine-core:insurance-governor/spine/sidecar:insurance-governor/tests:insurance-governor python3 -m pytest insurance-governor/tests/load/test_ig_load_harness.py -q
 
 ig-certification:
 	cd .. && python3 insurance-governor/scripts/generate_invariant_report.py
@@ -76,7 +76,7 @@ ig-helm-enterprise:
 
 ig-certification-l4-ci:
 	@echo "==> L4 Gold CI gate (reliability + enterprise manifests)"
-	cd .. && PYTHONPATH=insurance-governor/spine/sidecar:insurance-governor/tests:insurance-governor python3 -m pytest \
+	cd .. && PYTHONPATH=governor-spine-core:insurance-governor/spine/sidecar:insurance-governor/tests:insurance-governor python3 -m pytest \
 	  insurance-governor/tests/test_l4_helm_enterprise.py \
 	  insurance-governor/tests/test_l4_certification.py \
 	  insurance-governor/tests/test_horizon_sweeper.py \
@@ -85,7 +85,9 @@ ig-certification-l4-ci:
 	  insurance-governor/tests/test_incremental_chain_verify.py \
 	  insurance-governor/tests/test_platform_registry_failclosed.py \
 	  insurance-governor/tests/test_regulatory_export.py \
-	  insurance-governor/tests/test_fnol_sandbox_integration.py -q
+	  insurance-governor/tests/test_fnol_sandbox_integration.py \
+	  insurance-governor/tests/test_spatial_subro_http.py \
+	  insurance-governor/tests/test_concurrent_claim_append.py -q
 	@$(MAKE) ig-helm-enterprise > /dev/null
 	@echo "ig-certification-l4-ci complete"
 
@@ -95,14 +97,14 @@ ig-certification-l4:
 	@echo "==> L4 Helm enterprise render"
 	@$(MAKE) ig-helm-enterprise > /dev/null
 	@echo "==> L4 Helm enterprise tests"
-	cd .. && PYTHONPATH=insurance-governor/spine/sidecar python3 -m pytest \
+	cd .. && PYTHONPATH=governor-spine-core:insurance-governor/spine/sidecar python3 -m pytest \
 	  insurance-governor/tests/test_l4_helm_enterprise.py \
 	  insurance-governor/tests/test_l4_certification.py -q
 	@$(MAKE) ig-examiner-evidence
 	@echo "ig-certification-l4 complete (L4 Gold)"
 
 ig-platform-conformance:
-	cd .. && PYTHONPATH=insurance-governor/spine/sidecar python3 -m pytest \
+	cd .. && PYTHONPATH=governor-spine-core:insurance-governor/spine/sidecar python3 -m pytest \
 	  insurance-governor/tests/test_platform_sdk.py \
 	  insurance-governor/tests/test_platform_invariant_counters.py \
 	  insurance-governor/tests/test_headline_wedges.py \
@@ -111,7 +113,7 @@ ig-platform-conformance:
 ig-chaos-test:
 	cd .. && POSTGRES_TEST_URL=postgresql+psycopg://postgres:postgres@localhost:5436/ig_chaos \
 	  TOXIPROXY_API=http://localhost:8475 \
-	  PYTHONPATH=insurance-governor/spine/sidecar \
+	  PYTHONPATH=governor-spine-core:insurance-governor/spine/sidecar \
 	  python3 -m pytest insurance-governor/tests/chaos/test_toxiproxy_claim_ops.py -q
 
 ig-ha-up:
@@ -160,3 +162,11 @@ bind-authority-demo:
 
 parametric-oracle-demo:
 	curl -sf http://localhost:8105/healthz
+
+spatial-twin-demo:
+	chmod +x scripts/spatial-twin-demo.sh
+	./scripts/spatial-twin-demo.sh
+
+subrogation-graph-demo:
+	chmod +x scripts/subrogation-graph-demo.sh
+	./scripts/subrogation-graph-demo.sh

@@ -47,7 +47,7 @@ That's it. The script walks through every enterprise talking point live.
 | [docs/sales-demo.md](docs/sales-demo.md) | Talk track + troubleshooting |
 | [docs/capability-matrix.md](docs/capability-matrix.md) | RFP / security questionnaire |
 | [docs/plug-and-play.md](docs/plug-and-play.md) | Demo → staging → production |
-| [docs/sales-sheets/](docs/sales-sheets/) | **Full spec + pricing + pre-revenue valuation per platform** |
+| [docs/sales-sheets/](docs/sales-sheets/) | **Full spec + maturity tiers per platform** |
 | [docs/institutional-reliability.md](docs/institutional-reliability.md) | Architecture deep dive |
 
 ## Teardown

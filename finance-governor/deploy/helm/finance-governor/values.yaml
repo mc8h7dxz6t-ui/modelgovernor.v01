@@ -92,6 +92,10 @@ decisionChainAnchor:
   enabled: true
   schedule: "15 * * * *"
 
+decisionRetention:
+  enabled: true
+  schedule: "0 3 * * *"
+
 governanceCanary:
   enabled: true
   schedule: "*/10 * * * *"

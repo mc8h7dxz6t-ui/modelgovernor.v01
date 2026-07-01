@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from platforms.zk_claim_audit.proof_gate import ClaimCommitment
+from .commitment_types import ClaimCommitment
 
 from .db import platform_connection, platform_db_enabled
 

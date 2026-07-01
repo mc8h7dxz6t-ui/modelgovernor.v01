@@ -1,0 +1,211 @@
+name: Image Promotion
+
+on:
+  workflow_dispatch:
+    inputs:
+      governor:
+        description: Governor images to promote
+        required: true
+        default: mg
+        type: choice
+        options:
+          - mg
+          - fg
+          - ig
+          - cg
+          - all
+      environment:
+        description: Promotion environment tag prefix
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+      push:
+        description: Push images to GHCR after Trivy scan passes
+        required: true
+        default: false
+        type: boolean
+  workflow_run:
+    workflows: ["Full Program Audit"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  PROMOTION_REF: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+  PROMOTION_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+
+jobs:
+  preflight:
+    name: Manifest + promotion plan
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      registry: ${{ steps.plan.outputs.registry }}
+      immutable_tag: ${{ steps.plan.outputs.immutable_tag }}
+      governor: ${{ steps.plan.outputs.governor }}
+      environment: ${{ steps.plan.outputs.environment }}
+      push: ${{ steps.plan.outputs.push }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PROMOTION_REF }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PyYAML
+        run: pip install pyyaml
+
+      - name: Resolve promotion inputs
+        id: inputs
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "governor=${{ inputs.governor }}" >> "$GITHUB_OUTPUT"
+            echo "environment=${{ inputs.environment }}" >> "$GITHUB_OUTPUT"
+            echo "push=${{ inputs.push }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "governor=mg" >> "$GITHUB_OUTPUT"
+            echo "environment=staging" >> "$GITHUB_OUTPUT"
+            echo "push=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validate manifest and emit plan
+        id: plan
+        env:
+          IMAGE_REGISTRY: ghcr.io/${{ github.repository_owner }}
+          PROMOTION_ENV: ${{ steps.inputs.outputs.environment }}
+          GIT_SHA: ${{ env.PROMOTION_SHA }}
+        run: |
+          chmod +x scripts/promote-images.sh
+          PYTHONPATH=governor-spine-core python3 -m pytest governor-spine-core/tests/test_image_promotion.py -q
+          ./scripts/promote-images.sh "${{ steps.inputs.outputs.governor }}" \
+            --environment "${{ steps.inputs.outputs.environment }}" \
+            --git-sha "${{ env.PROMOTION_SHA }}" \
+            --dry-run
+          IMMUTABLE=$(python3 -c "import json; print(json.load(open('artifacts/image-promotion/promotion-plan.json'))['immutable_tag'])")
+          echo "immutable_tag=$IMMUTABLE" >> "$GITHUB_OUTPUT"
+          echo "registry=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+          echo "governor=${{ steps.inputs.outputs.governor }}" >> "$GITHUB_OUTPUT"
+          echo "environment=${{ steps.inputs.outputs.environment }}" >> "$GITHUB_OUTPUT"
+          echo "push=${{ steps.inputs.outputs.push }}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload promotion plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-promotion-plan
+          path: artifacts/image-promotion/
+
+  promote:
+    name: Build, scan, push
+    runs-on: ubuntu-latest
+    needs: preflight
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PROMOTION_REF }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PyYAML
+        run: pip install pyyaml
+
+      - name: Install Trivy
+        uses: aquasecurity/setup-trivy@v2
+
+      - uses: docker/login-action@v3
+        if: needs.preflight.outputs.push == 'true'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build, Trivy scan, and push
+        env:
+          IMAGE_REGISTRY: ${{ needs.preflight.outputs.registry }}
+          PROMOTION_ENV: ${{ needs.preflight.outputs.environment }}
+          GIT_SHA: ${{ env.PROMOTION_SHA }}
+          TRIVY_SEVERITY: CRITICAL,HIGH
+        run: |
+          chmod +x scripts/promote-images.sh
+          ARGS="--environment ${{ needs.preflight.outputs.environment }} --git-sha ${{ env.PROMOTION_SHA }} --scan"
+          if [[ "${{ needs.preflight.outputs.push }}" == "true" ]]; then
+            ARGS="$ARGS --push"
+          fi
+          ./scripts/promote-images.sh "${{ needs.preflight.outputs.governor }}" $ARGS
+
+      - name: Upload promotion record
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-promotion-record
+          path: artifacts/image-promotion/
+
+      - name: Promotion summary
+        run: |
+          echo "## Image promotion" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Governor: \`${{ needs.preflight.outputs.governor }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Environment: \`${{ needs.preflight.outputs.environment }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Immutable tag: \`${{ needs.preflight.outputs.immutable_tag }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Pushed: \`${{ needs.preflight.outputs.push }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Trivy: CRITICAL,HIGH (ignore-unfixed)" >> "$GITHUB_STEP_SUMMARY"
+
+  helm-verify:
+    name: Helm render with promoted tags
+    runs-on: ubuntu-latest
+    needs: preflight
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PROMOTION_REF }}
+
+      - uses: azure/setup-helm@v4
+
+      - name: Download promotion plan
+        uses: actions/download-artifact@v4
+        with:
+          name: image-promotion-plan
+          path: artifacts/image-promotion
+
+      - name: Render MG chart with promotion overlay
+        if: needs.preflight.outputs.governor == 'mg' || needs.preflight.outputs.governor == 'all'
+        run: |
+          helm template mg deploy/helm/modelgovernor \
+            -f deploy/helm/modelgovernor/values-production.yaml \
+            -f artifacts/image-promotion/modelgovernor-${{ needs.preflight.outputs.environment }}-images.yaml \
+            --set secrets.create=true \
+            | grep -E "image: ghcr.io" | head -5
+
+      - name: Render FG chart with promotion overlay
+        if: needs.preflight.outputs.governor == 'fg' || needs.preflight.outputs.governor == 'all'
+        run: |
+          helm template fg finance-governor/deploy/helm/finance-governor \
+            -f finance-governor/deploy/helm/finance-governor/values-production.yaml \
+            -f artifacts/image-promotion/finance-governor-${{ needs.preflight.outputs.environment }}-images.yaml \
+            --set secrets.create=true \
+            | grep -E "image: ghcr.io" | head -5
+
+      - name: Render IG chart with promotion overlay
+        if: needs.preflight.outputs.governor == 'ig' || needs.preflight.outputs.governor == 'all'
+        run: |
+          helm template ig deploy/helm/insurancegovernor \
+            -f deploy/helm/insurancegovernor/values-production.yaml \
+            -f artifacts/image-promotion/insurance-governor-${{ needs.preflight.outputs.environment }}-images.yaml \
+            --set secrets.create=true \
+            | grep -E "image: ghcr.io" | head -5
+
+      - name: Render CG chart with promotion overlay
+        if: needs.preflight.outputs.governor == 'cg' || needs.preflight.outputs.governor == 'all'
+        run: |
+          helm template cg deploy/helm/cybersecuritygovernor \
+            -f deploy/helm/cybersecuritygovernor/values-production.yaml \
+            -f artifacts/image-promotion/cybersecurity-governor-${{ needs.preflight.outputs.environment }}-images.yaml \
+            --set secrets.create=true \
+            | grep -E "image: ghcr.io" | head -5

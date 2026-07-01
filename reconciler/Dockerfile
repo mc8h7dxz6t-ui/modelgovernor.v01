@@ -1,14 +1,15 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app
+    PYTHONPATH=/app/governor-spine-core:/app
 
 COPY reconciler/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
+COPY governor-spine-core /app/governor-spine-core
 COPY reconciler/app ./app
 COPY sidecar/app ./sidecar/app
 

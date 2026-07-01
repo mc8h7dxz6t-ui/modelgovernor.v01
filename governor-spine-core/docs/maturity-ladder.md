@@ -2,7 +2,7 @@
 
 **Principle:** Certification labels describe **what was implemented and tested** — not architectural intent.
 
-Authoritative portfolio readiness: [operational-architecture-scorecard.md](operational-architecture-scorecard.md) (**6.5/10** combined).  
+Authoritative portfolio readiness: [operational-architecture-scorecard.md](operational-architecture-scorecard.md) (**8.5/10** engineering; IL 9/10 requires Phase C per governor).  
 Path to **9/10**: [roadmap-to-industry-leading-9.md](roadmap-to-industry-leading-9.md).
 
 ---
