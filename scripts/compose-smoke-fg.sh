@@ -33,7 +33,7 @@ curl -sf -H "x-internal-token: $TOKEN" http://localhost:8091/internal/decisions/
 echo "==> AlgoFreeze health + version mismatch freeze (8094)"
 wait_for_url http://localhost:8094/healthz
 curl -sf http://localhost:8094/healthz
-HTTP_CODE=$(curl -sf -o /dev/null -w "%{http_code}" -X POST http://localhost:8094/orders \
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:8094/orders \
   -H 'content-type: application/json' \
   -d '{"order_id":"smoke-af-1","runtime_sha":"wrong-deploy-sha"}')
 test "$HTTP_CODE" = "403"
