@@ -591,7 +591,9 @@ def _bootstrap_sqlite(engine) -> None:
                 event_type TEXT NOT NULL,
                 amount_delta NUMERIC(18,6) NOT NULL,
                 metadata TEXT NOT NULL DEFAULT '{}',
-                recorded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                recorded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                prev_hash CHAR(64),
+                row_hash CHAR(64)
             )
             """
         ))

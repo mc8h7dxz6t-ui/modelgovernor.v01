@@ -26,7 +26,6 @@ jobs:
         run: |
           pip install -r sidecar/requirements.txt -r reconciler/requirements.txt -r gateway/requirements.txt
           pip install -r finance-governor/spine/sidecar/requirements.txt
-          pip install -r finance-governor/spine/reconciler/requirements.txt
           pip install -r insurance-governor/spine/sidecar/requirements.txt
           pip install -r insurance-governor/spine/reconciler/requirements.txt
           pip install -r cybersecurity-governor/spine/sidecar/requirements.txt

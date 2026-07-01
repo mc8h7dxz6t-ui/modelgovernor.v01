@@ -3,19 +3,21 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=compose-smoke-lib.sh
+source "$ROOT/scripts/compose-smoke-lib.sh"
 cd "$ROOT/finance-governor"
 
 TOKEN="${FG_INTERNAL_TOKENS:-dev-fg-spine-token-change-me}"
 
-echo "==> Starting FG stack..."
-docker compose up -d --build
-sleep 8
+echo "==> Starting FG stack (spine + hero platforms)..."
+docker compose up -d --build \
+  fg-postgres fg-redis fg-sidecar fg-reconciler fg-gateway fg-wirematch fg-algofreeze
 
 echo "==> Gateway health (8090)"
-curl -sf http://localhost:8090/readyz -H "x-internal-token: $TOKEN"
+wait_for_url http://localhost:8090/readyz
 
 echo "==> Sidecar health (8091)"
-curl -sf http://localhost:8091/healthz
+wait_for_url http://localhost:8091/healthz
 
 echo "==> governed commit"
 curl -sf -X POST http://localhost:8090/governed/commit \
@@ -29,12 +31,15 @@ curl -sf -H "x-internal-token: $TOKEN" http://localhost:8091/internal/decisions/
   | python3 "$ROOT/scripts/chain_verify_assert.py"
 
 echo "==> AlgoFreeze health + version mismatch freeze (8094)"
+wait_for_url http://localhost:8094/healthz
 curl -sf http://localhost:8094/healthz
-curl -sf -o /dev/null -w "%{http_code}" -X POST http://localhost:8094/orders \
+HTTP_CODE=$(curl -sf -o /dev/null -w "%{http_code}" -X POST http://localhost:8094/orders \
   -H 'content-type: application/json' \
-  -d '{"order_id":"smoke-af-1","runtime_sha":"wrong-deploy-sha"}' | grep -q 403
+  -d '{"order_id":"smoke-af-1","runtime_sha":"wrong-deploy-sha"}')
+test "$HTTP_CODE" = "403"
 
 echo "==> WireMatch beneficiary mismatch HELD (8093)"
+wait_for_url http://localhost:8093/healthz
 curl -sf http://localhost:8093/healthz
 curl -sf -X POST http://localhost:8093/wire/evaluate \
   -H 'content-type: application/json' \

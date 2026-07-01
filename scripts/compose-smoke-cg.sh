@@ -3,22 +3,28 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=compose-smoke-lib.sh
+source "$ROOT/scripts/compose-smoke-lib.sh"
 cd "$ROOT/cybersecurity-governor"
 
-echo "==> Starting CG stack..."
-docker compose up -d --build
-sleep 8
+TOKEN="${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}"
+
+echo "==> Starting CG stack (spine + egress + identity)..."
+docker compose up -d --build \
+  cg-postgres cg-redis cg-sidecar cg-reconciler cg-gateway cg-egress-govern cg-identity-govern
 
 echo "==> Gateway health (8120)"
-curl -sf http://localhost:8120/readyz
+wait_for_url http://localhost:8120/readyz
 
 echo "==> Sidecar health (8121)"
-curl -sf http://localhost:8121/readyz
+wait_for_url http://localhost:8121/readyz
 
 echo "==> EgressGovern health (8123)"
-curl -sf http://localhost:8123/healthz
+wait_for_url http://localhost:8123/healthz
 
-TOKEN="${CG_INTERNAL_TOKENS:-dev-cg-spine-token-change-me}"
+echo "==> IdentityGovern health (8124)"
+wait_for_url http://localhost:8124/healthz
+
 echo "==> governed commit"
 curl -sf -X POST http://localhost:8120/governed/commit \
   -H 'content-type: application/json' \

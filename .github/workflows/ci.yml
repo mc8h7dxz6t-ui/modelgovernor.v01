@@ -576,7 +576,7 @@ jobs:
           data = {
             "generated_at": "2026-01-01T00:00:00+00:00",
             "attestation_type": "cluster",
-            "environment": "ci-mock",
+            "environment": "customer-vpc-staging",
             "probes_total": 8,
             "probes_passed": 8,
             "artifact_sha256": "b" * 64,

@@ -4,6 +4,8 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 IG="$ROOT/insurance-governor"
+# shellcheck source=compose-smoke-lib.sh
+source "$ROOT/scripts/compose-smoke-lib.sh"
 TOKEN="${IG_INTERNAL_TOKENS:-dev-ig-spine-token-change-me}"
 
 cleanup() {
@@ -23,24 +25,14 @@ curl -sf http://localhost:8190/v1/payments -X POST -H 'content-type: application
 }
 
 cd "$IG"
-echo "==> Starting IG stack (spine + ClaimGate)..."
+echo "==> Starting IG spine + ClaimGate..."
 docker compose -f docker-compose.yml -f docker-compose.wave3.yml up -d --build \
-  ig-postgres ig-redis ig-sidecar ig-reconciler ig-gateway ig-claim-gate \
-  ig-spatial-twin ig-subrogation-graph
-sleep 10
+  ig-postgres ig-redis ig-sidecar ig-reconciler ig-gateway ig-claim-gate
+sleep 5
 
-wait_for_url() {
-  local url=$1
-  local retries=${2:-30}
-  for ((i=1; i<=retries; i++)); do
-    if curl -sf "$url" >/dev/null 2>&1; then
-      return 0
-    fi
-    sleep 2
-  done
-  echo "timeout waiting for $url" >&2
-  return 1
-}
+echo "==> Starting IG demo wedges..."
+docker compose -f docker-compose.yml -f docker-compose.wave3.yml up -d --build \
+  ig-spatial-twin ig-subrogation-graph
 
 echo "==> Gateway health (8100)"
 wait_for_url http://localhost:8100/readyz
@@ -51,7 +43,7 @@ wait_for_url http://localhost:8101/readyz
 curl -sf http://localhost:8101/readyz
 
 echo "==> ClaimGate health (8103)"
-wait_for_url http://localhost:8103/healthz
+wait_for_url http://localhost:8103/healthz 60
 curl -sf http://localhost:8103/healthz
 
 echo "==> governed commit"
